@@ -1,0 +1,22 @@
+{
+  "name": "taiwan-procession",
+  "version": "0.1.0",
+  "description": "遶境：台灣環島進香 × 斬妖 × 廟宇經營（Phaser 3 + TypeScript）",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
+  }
+}

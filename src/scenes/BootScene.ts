@@ -1,0 +1,26 @@
+import Phaser from 'phaser';
+import { makeFigures } from '../art/figures';
+import { makeBackdropTextures, makeTemple } from '../art/backdrop';
+
+export class BootScene extends Phaser.Scene {
+  constructor() {
+    super('boot');
+  }
+
+  create(): void {
+    makeFigures(this);
+    makeBackdropTextures(this);
+    makeTemple(this, 'temple_qingling', '青嶺宮');
+    makeTemple(this, 'temple_zhuang', '福安宮');
+    makeTemple(this, 'temple_huize', '惠澤宮');
+    // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）
+    const q = new URLSearchParams(location.search);
+    const jump = q.get('scene');
+    if (jump) {
+      const n = Number(q.get('n') ?? 1);
+      this.scene.start(jump, { day: n, night: n, id: q.get('id') ?? 'opening' });
+      return;
+    }
+    this.scene.start('title');
+  }
+}
