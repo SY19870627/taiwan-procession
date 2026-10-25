@@ -5,6 +5,17 @@
 import Phaser from 'phaser';
 import { GROUND_Y } from '../theme';
 import { FOLK_KEYS } from './figures';
+import type { MemberKey } from '../core/upgrades';
+
+/** 點隊伍裡的人，對應到整備畫面的哪一位 */
+export function memberOfTexture(key: string): MemberKey | null {
+  if (key === 'palanquin') return 'palanquin';
+  if (key === 'qiye' || key === 'baye') return 'qiye';
+  if (key.startsWith('bajiang')) return 'bajiang';
+  if (key === 'lion') return 'xingshi';
+  if (key.startsWith('folk') || key === 'paoshou') return 'paoshou';
+  return null;
+}
 
 interface Member {
   img: Phaser.GameObjects.Image;
@@ -71,6 +82,7 @@ export class Procession {
     const y = GROUND_Y + (i % 2 ? -12 : 6) * this.scale;
     const img = this.scene.add.image(walkIn ? -40 : x, y, FOLK_KEYS[i % FOLK_KEYS.length]).setOrigin(0.5, 1).setScale(this.scale).setDepth(10 + y / 100);
     if (walkIn) this.scene.tweens.add({ targets: img, x, duration: 1800, ease: 'Sine.out' });
+    this.makeTappable(img);
     this.followers.push({ img, baseY: y, phase: Math.random() * Math.PI * 2, bob: 3, sway: 1.5 });
   }
 
@@ -84,6 +96,21 @@ export class Procession {
     const want = Math.min(18, n);
     while (this.followers.length < want) this.addFollower(true);
     while (this.followers.length > want) this.removeFollower();
+  }
+
+  /** 讓神轎、陣頭、信徒可以點（打開整備畫面看細節） */
+  onTap(cb: (k: MemberKey) => void): void {
+    this.tapCb = cb;
+    for (const m of [...this.members, ...this.followers]) this.makeTappable(m.img);
+  }
+
+  private tapCb?: (k: MemberKey) => void;
+
+  private makeTappable(img: Phaser.GameObjects.Image): void {
+    const k = memberOfTexture(img.texture.key);
+    if (!k || !this.tapCb || img.input) return;
+    img.setInteractive({ useHandCursor: true });
+    img.on('pointerup', () => this.tapCb?.(k));
   }
 
   update(dt: number): void {

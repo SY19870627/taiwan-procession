@@ -6,6 +6,7 @@
  * 全程自動戰鬥，玩家只能放兩個法術：天令（範圍雷擊）、淨符（回復）。
  */
 import { ENEMIES, UNITS, type EnemyId, type UnitId } from './units';
+import type { PalanquinStats, UnitStats } from './upgrades';
 
 export type NightMode = 'patrol' | 'defend' | 'boss';
 export type Side = -1 | 1;
@@ -27,7 +28,9 @@ export interface BattleSetup {
   /** 夜晚長度（秒），撐到這個時間就天亮 */
   duration: number;
   spawns: Spawn[];
-  units: { id: UnitId; level: number; side: Side }[];
+  /** 陣頭：數值由 core/upgrades.ts 算好再傳進來 */
+  units: { id: UnitId; side: Side; stats: UnitStats }[];
+  palanquin: PalanquinStats;
   followers: number;
   morale: number;
   incense: number;
@@ -50,6 +53,10 @@ export interface Fighter {
   cd: number;
   timer: number;
   aoe: number;
+  /** 七爺八爺：捉拿門檻（剩多少血以下） */
+  capture: number;
+  /** 受到傷害的倍率（八將的架勢） */
+  guard: number;
   alive: boolean;
   /** 動作狀態（畫面用） */
   state: 'idle' | 'walk' | 'fight' | 'charge' | 'breath' | 'retreat';
@@ -77,7 +84,6 @@ export type BattleEvent =
 
 export const SMITE_COST = 15;
 export const BLESS_COST = 10;
-const CAPTURE_AT = 0.3;
 
 export class Battle {
   readonly setup: BattleSetup;
@@ -102,7 +108,7 @@ export class Battle {
       return s / 4294967296;
     };
     const px = setup.mode === 'patrol' ? setup.fieldW * 0.42 : setup.fieldW / 2;
-    this.palanquin = { x: px, hp: 300, maxHp: 300, flash: 0 };
+    this.palanquin = { x: px, hp: setup.palanquin.hp, maxHp: setup.palanquin.hp, flash: 0 };
     this.placeUnits();
     for (const sp of setup.spawns) {
       for (let i = 0; i < sp.count; i++) this.spawnQueue.push({ t: sp.t + i * sp.gap, enemy: sp.enemy, side: sp.side });
@@ -117,18 +123,16 @@ export class Battle {
     const sorted = [...this.setup.units].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
     for (const u of sorted) {
       const def = UNITS[u.id];
+      const st = u.stats;
       const i = bySide[u.side]++;
-      const lv = Math.max(1, u.level);
-      const isFire = u.id === 'paoshou';
       // 鞭炮組站在神轎旁邊往外射，近戰站外圈
-      const dist = isFire ? 70 : 150 + i * 85;
-      const atkMul = 1 + 0.25 * (lv - 1) + (isFire ? this.setup.followers / 30 : 0);
+      const dist = u.id === 'paoshou' ? 70 : 150 + i * 85;
       this.fighters.push({
         uid: this.uidSeq++, team: 'unit', id: u.id, name: def.name, side: u.side,
         x: this.palanquin.x + u.side * dist,
-        hp: Math.round(def.hp * (1 + 0.2 * (lv - 1))), maxHp: Math.round(def.hp * (1 + 0.2 * (lv - 1))),
-        atk: def.atk * atkMul, range: def.range, cd: def.cd * this.cdMul(), timer: this.rng() * def.cd,
-        aoe: def.aoe, alive: true, state: 'idle', flash: 0,
+        hp: st.hp, maxHp: st.hp,
+        atk: st.atk, range: st.range, cd: st.cd * this.cdMul(), timer: this.rng() * st.cd,
+        aoe: st.aoe, capture: st.capture, guard: st.guard, alive: true, state: 'idle', flash: 0,
       });
     }
   }
@@ -161,7 +165,7 @@ export class Battle {
       uid: this.uidSeq++, team: 'enemy', id: enemy, name: def.name, side,
       x: side === -1 ? -40 : this.setup.fieldW + 40,
       hp: def.hp, maxHp: def.hp, atk: def.atk, range: def.range, cd: def.cd, timer: def.cd * this.rng(),
-      aoe: 0, alive: true, state: 'walk', flash: 0,
+      aoe: 0, capture: 0, guard: 1, alive: true, state: 'walk', flash: 0,
     };
     if (isBoss) {
       this.bossSpawned = true;
@@ -276,7 +280,7 @@ export class Battle {
     e.flash = 1;
     this.events.push({ type: 'hit', uid: e.uid, x: e.x, dmg: Math.round(dmg), weak });
     // 七爺八爺：打到虛弱就捉拿
-    if (src?.id === 'qiye' && def.capturable && e.hp > 0 && e.hp <= e.maxHp * CAPTURE_AT) {
+    if (src && src.capture > 0 && def.capturable && e.hp > 0 && e.hp <= e.maxHp * src.capture) {
       e.alive = false;
       this.captured++;
       this.events.push({ type: 'capture', uid: e.uid, x: e.x });
@@ -333,7 +337,8 @@ export class Battle {
     e.x += dir * def.speed * dt;
   }
 
-  private hurtUnit(u: Fighter, dmg: number): void {
+  private hurtUnit(u: Fighter, raw: number): void {
+    const dmg = raw * u.guard;
     u.hp -= dmg;
     u.flash = 1;
     this.events.push({ type: 'hit', uid: u.uid, x: u.x, dmg: Math.round(dmg) });
@@ -412,7 +417,7 @@ export class Battle {
     this.incense -= SMITE_COST;
     const r = 130;
     this.events.push({ type: 'smite', x: target.x, r });
-    for (const e of alive) if (Math.abs(e.x - target.x) <= r) this.damage(e, 70);
+    for (const e of alive) if (Math.abs(e.x - target.x) <= r) this.damage(e, this.setup.palanquin.smite);
     return true;
   }
 
@@ -424,8 +429,8 @@ export class Battle {
   bless(): boolean {
     if (!this.canBless()) return false;
     this.incense -= BLESS_COST;
-    this.palanquin.hp = Math.min(this.palanquin.maxHp, this.palanquin.hp + this.palanquin.maxHp * 0.25);
-    for (const u of this.units) if (u.alive) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.35);
+    this.palanquin.hp = Math.min(this.palanquin.maxHp, this.palanquin.hp + this.palanquin.maxHp * this.setup.palanquin.bless);
+    for (const u of this.units) if (u.alive) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * (this.setup.palanquin.bless + 0.1));
     this.events.push({ type: 'bless' });
     return true;
   }

@@ -1,4 +1,5 @@
 import type { UnitId } from './core/units';
+import type { Upgrades } from './core/upgrades';
 
 /** 一次出巡（原型：三天）的進度與資源 */
 export interface RunState {
@@ -10,8 +11,8 @@ export interface RunState {
   followers: number;
   /** 士氣 0–100：影響陣頭出手速度 */
   morale: number;
-  /** 陣頭等級 */
-  levels: Partial<Record<UnitId, number>>;
+  /** 逐項升級：神轎與每個陣頭各項屬性的等級（沒有記錄就是 Lv1） */
+  ups: Upgrades;
   /** 布陣：每個陣頭在神轎的哪一邊（-1 左 / 後方，1 右 / 前方） */
   sides: Partial<Record<UnitId, -1 | 1>>;
   /** 當晚捉拿到的小妖數 */
@@ -45,7 +46,7 @@ export function newRun(): RunState {
     incense: 40,
     followers: 12,
     morale: 60,
-    levels: { qiye: 1, bajiang: 1, xingshi: 1, paoshou: 1 },
+    ups: {},
     sides: { qiye: 1, bajiang: 1, xingshi: -1, paoshou: -1 },
     captured: 0,
     intel: {},

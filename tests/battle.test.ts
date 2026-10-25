@@ -2,12 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { Battle, type BattleSetup, type Side } from '../src/core/battle';
 import { NIGHTS } from '../src/content/nights';
 import type { UnitId } from '../src/core/units';
+import { palanquinStats, unitStats, type Upgrades } from '../src/core/upgrades';
 
-type Plan = { units: { id: UnitId; level: number; side: Side }[]; followers: number; morale: number; incense: number; intel?: BattleSetup['intel']; spells?: boolean };
+type Plan = { units: { id: UnitId; level: number; side: Side }[]; pal?: number; followers: number; morale: number; incense: number; intel?: BattleSetup['intel']; spells?: boolean };
 
 export function simulate(night: number, plan: Plan, seed = 7) {
   const n = NIGHTS[night];
-  const b = new Battle({ mode: n.mode, fieldW: 1280, duration: n.duration, spawns: n.spawns, units: plan.units, followers: plan.followers, morale: plan.morale, incense: plan.incense, intel: plan.intel ?? {}, seed });
+  // 等級 lv 換算成逐項升級：體力、武力都到 lv
+  const ups: Upgrades = {};
+  for (const u of plan.units) ups[u.id] = { hp: u.level, atk: u.level };
+  ups.palanquin = { hp: plan.pal ?? 1 };
+  const units = plan.units.map((u) => ({ id: u.id, side: u.side, stats: unitStats(u.id, ups, plan.followers) }));
+  const b = new Battle({ mode: n.mode, fieldW: 1280, duration: n.duration, spawns: n.spawns, units, palanquin: palanquinStats(ups), followers: plan.followers, morale: plan.morale, incense: plan.incense, intel: plan.intel ?? {}, seed });
   let t = 0;
   while (!b.result && t < 400) {
     b.step(1 / 30);

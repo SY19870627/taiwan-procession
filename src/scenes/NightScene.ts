@@ -8,6 +8,7 @@ import { NIGHTS } from '../content/nights';
 import { Street } from '../art/backdrop';
 import { run } from '../state';
 import { availableUnits } from './PrepScene';
+import { palanquinStats, unitStats } from '../core/upgrades';
 import { ResourceBar, button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 
 interface View {
@@ -56,9 +57,9 @@ export class NightScene extends Phaser.Scene {
     this.speed = 1;
     this.t = 0;
     const def = NIGHTS[this.n];
-    const units = availableUnits().map((id) => ({ id, level: run.levels[id] ?? 1, side: (run.sides[id] ?? 1) as Side }));
+    const units = availableUnits().map((id) => ({ id, side: (run.sides[id] ?? 1) as Side, stats: unitStats(id, run.ups, run.followers) }));
     this.battle = new Battle({
-      mode: def.mode, fieldW: W, duration: def.duration, spawns: def.spawns, units,
+      mode: def.mode, fieldW: W, duration: def.duration, spawns: def.spawns, units, palanquin: palanquinStats(run.ups),
       followers: run.followers, morale: run.morale, incense: run.incense, intel: run.intel,
     });
     this.cameras.main.fadeIn(500, 10, 8, 18);

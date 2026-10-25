@@ -8,6 +8,7 @@ import { Procession } from '../art/procession';
 import { DAYS, type DayEvent, type Outcome } from '../content/days';
 import { run, applyDelta } from '../state';
 import { ResourceBar, button, floatText, fullscreenButton, go, panel, txt } from '../ui/widgets';
+import type { MemberKey } from '../core/upgrades';
 
 export class DayScene extends Phaser.Scene {
   private street!: Street;
@@ -68,7 +69,22 @@ export class DayScene extends Phaser.Scene {
       fastBtn.setLabel(this.fast ? '正常 ▶' : '快轉 ▶▶');
     }, { size: 20, fill: 0x2a2236 });
     fastBtn.setDepth(895);
+    // 隊伍整備：點按鈕、或直接點隊伍裡的神轎、陣頭
+    const teamBtn = button(this, 110, H - 110, 180, 56, '隊伍整備', () => this.openTeam(), { size: 22, fill: 0x8a1b14 });
+    teamBtn.setDepth(895);
+    this.proc.onTap((k) => this.openTeam(k));
+    this.events.off('resume');
+    this.events.on('resume', () => this.bar.refresh());
+    const hint = txt(this, W / 2, 112, '點隊伍裡的神轎或陣頭，可以看細節、升級', 18, C.paper, { bold: false, backgroundColor: '#1d1726cc', padding: { x: 12, y: 6 } })
+      .setOrigin(0.5).setDepth(890).setAlpha(this.day === 1 ? 1 : 0);
+    this.tweens.add({ targets: hint, alpha: 0, delay: 9000, duration: 800 });
     fullscreenButton(this);
+  }
+
+  private openTeam(focus?: MemberKey): void {
+    if (this.paused || this.ended) return;
+    this.scene.pause();
+    this.scene.launch('unit', { from: 'day', focus });
   }
 
   private ticker(news: string[]): void {

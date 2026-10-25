@@ -9,6 +9,7 @@ import { PrepScene } from './scenes/PrepScene';
 import { NightScene } from './scenes/NightScene';
 import { JudgeScene } from './scenes/JudgeScene';
 import { EndScene } from './scenes/EndScene';
+import { UnitScene } from './scenes/UnitScene';
 
 async function start() {
   setupMobile();
@@ -33,7 +34,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, StoryScene, DayScene, PrepScene, NightScene, JudgeScene, EndScene],
+    scene: [BootScene, TitleScene, StoryScene, DayScene, PrepScene, NightScene, JudgeScene, EndScene, UnitScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;
