@@ -510,7 +510,7 @@ export function nightEffects(r: RunState, night: number): string[] {
   if (r.tonight.cleared) out.push('清了小魍巢：妖怪 -2 波');
   if (night === 2 && r.intel.mainSide) out.push('阿雄看過蹄印：妖怪主力從右側（北）來');
   if (night === 3) {
-    out.push(r.shijuEnraged ? '石駒被捕獸夾所傷，暴怒：衝鋒更頻繁、更痛' : '石駒沒有受傷');
+    out.push(r.shijuEnraged ? '石駒被捕獸夾所傷，暴怒：衝鋒更頻繁、更痛、煞氣更重' : '石駒沒有受傷');
     if (r.b.xiaoyun === 'invited') out.push('小芸在場：石駒煞氣 -20%，第一次衝鋒會被喊停');
     if (r.allied) out.push('惠澤宮令旗隊助陣（交陪）');
   }

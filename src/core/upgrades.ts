@@ -42,7 +42,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 export const hpMul = (lv: number) => 1 + 0.2 * (lv - 1);
 export const atkMul = (lv: number) => 1 + 0.2 * (lv - 1);
 export const cdMul = (lv: number) => 1 - 0.08 * (lv - 1);
-export const captureAt = (lv: number) => 0.3 + 0.05 * (lv - 1);
+export const captureAt = (lv: number) => 0.5 + 0.05 * (lv - 1);
 export const guardMul = (lv: number) => 1 - 0.08 * (lv - 1);
 export const quakeAoe = (lv: number) => UNITS.xingshi.aoe + 15 * (lv - 1);
 export const fireRange = (lv: number) => UNITS.paoshou.range + 40 * (lv - 1);
@@ -60,10 +60,10 @@ const SPEED: StatDef = { key: 'speed', name: '身手', desc: '出手的快慢（
 export const MEMBERS: MemberDef[] = [
   {
     key: 'palanquin',
-    tags: ['陣眼', '法術來源', '倒下即失敗'],
+    tags: ['陣眼', '倒下即失敗', '天令：冷卻 15 秒', '淨符：冷卻 25 秒'],
     name: '神轎',
     role: '隊伍核心・青嶺王坐鎮',
-    lore: '四名轎班扛著青嶺王的神轎。凡人看到的是金碧輝煌的轎子，靈界裡它是全隊的陣眼：神轎一倒，隊伍就潰散。天令、淨符兩道法術都從這裡發出。',
+    lore: '四名轎班扛著青嶺王的神轎。凡人看到的是金碧輝煌的轎子，靈界裡它是全隊的陣眼：神轎一倒，隊伍就潰散。天令、淨符兩道法術都從這裡發出，用過要等冷卻。',
     tex: ['palanquin'],
     stats: [
       { key: 'hp', name: '轎身', desc: '神轎的耐久，歸零就輸', cost: 20, show: (lv) => `${palHp(lv)}` },
@@ -73,43 +73,43 @@ export const MEMBERS: MemberDef[] = [
   },
   {
     key: 'qiye',
-    tags: ['近戰', '單體', '會捉拿小妖'],
+    tags: ['近戰', '捉拿小妖', '勾魂鎖：每 4 擊拉來遠處妖怪、定身 1.5 秒'],
     name: '七爺八爺',
     role: '暗訪捉妖・前鋒',
-    lore: '高瘦白袍、吐長舌的七爺，矮胖黑臉、拿手銬的八爺。暗訪時走在最前面，把妖怪打到虛弱就直接上銬，天亮後交給判官審問。',
+    lore: '高瘦白袍、吐長舌的七爺，矮胖黑臉、拿手銬的八爺。暗訪時走在最前面，把妖怪打到虛弱就直接上銬，天亮後交給判官審問。八爺的鎖鏈甩得很遠，躲在後面的妖怪也逃不掉。',
     tex: ['qiye', 'baye'],
     stats: [HP, ATK, SPEED, { key: 'special', name: '捉拿', desc: '妖怪剩多少血以下就能上銬', cost: 18, show: (lv) => pct(captureAt(lv)) }],
   },
   {
     key: 'bajiang',
-    tags: ['近戰', '單體', '擋路肉盾'],
+    tags: ['近戰', '橫掃一群', '格擋 25%', '擋路肉盾'],
     name: '八將團',
     role: '近身肉盾・擋在最外圈',
-    lore: '畫著臉譜、手持法器的八將，在靈界是一堵牆。妖怪要碰到神轎，得先過他們這一關。',
+    lore: '畫著臉譜、手持法器的八將，在靈界是一堵牆。法器一掃就是一片，妖怪的爪子也常常被法器擋下。妖怪要碰到神轎，得先過他們這一關。',
     tex: ['bajiang0', 'bajiang1'],
     stats: [HP, ATK, SPEED, { key: 'special', name: '架勢', desc: '受到的傷害', cost: 18, show: (lv) => pct(guardMul(lv)) }],
   },
   {
     key: 'xingshi',
-    tags: ['中距離', '範圍震擊', '剋石頭類'],
+    tags: ['中距離', '範圍震擊', '震退＋暈眩', '剋石頭類'],
     name: '醒獅團',
     role: '鑼鼓震擊・範圍攻擊',
-    lore: '獅頭一甩、鑼鼓一響，凡人只覺得熱鬧，靈界裡卻是一圈震波。石頭做的妖怪最怕這個。',
+    lore: '獅頭一甩、鑼鼓一響，凡人只覺得熱鬧，靈界裡卻是一圈震波，把妖怪震得往後退、頭昏眼花。石頭做的妖怪最怕這個。',
     tex: ['lion'],
     stats: [HP, ATK, SPEED, { key: 'special', name: '震幅', desc: '震擊的範圍（像素）', cost: 18, show: (lv) => `${quakeAoe(lv)}` }],
   },
   {
     key: 'paoshou',
-    tags: ['遠程', '範圍爆炸', '信徒越多越強'],
+    tags: ['遠程', '範圍爆炸', '驚嚇減速 2 秒', '疾魅受傷 ×2', '信徒越多越強'],
     name: '鞭炮組',
     role: '驅邪火力・遠程',
-    lore: '信徒點的鞭炮，在靈界就是驅邪的火力。站在神轎旁邊往外射，跟著隊伍的信徒越多，炸得越兇。',
+    lore: '信徒點的鞭炮，在靈界就是驅邪的火力。炸到的妖怪會嚇得腳步變慢，輕飄飄的疾魅更是一炸就散。跟著隊伍的信徒越多，炸得越兇。',
     tex: ['paoshou', 'folk2'],
     stats: [HP, ATK, SPEED, { key: 'special', name: '射程', desc: '鞭炮射多遠（像素）', cost: 18, show: (lv) => `${fireRange(lv)}` }],
   },
   {
     key: 'kaijiang',
-    tags: ['遠程', '範圍', '交陪援軍'],
+    tags: ['遠程', '交陪援軍', '令旗加持：同側陣頭出手 +15%'],
     name: '惠澤宮令旗隊',
     role: '交陪援軍・遠程',
     lore: '與惠澤宮會香結為交陪後，開疆聖王派來助陣的令旗隊。揮動三角令旗，從遠處打擊妖怪。',

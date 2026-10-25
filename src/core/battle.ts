@@ -35,7 +35,6 @@ export interface BattleSetup {
   boss?: { hpMul?: number; atkMul?: number; chargeEvery?: number; skipCharges?: number };
   followers: number;
   morale: number;
-  incense: number;
   intel: { quakeTip?: boolean; bellyWound?: boolean; longBreath?: boolean };
   /** 亂數種子（測試用，可重現） */
   seed?: number;
@@ -59,6 +58,12 @@ export interface Fighter {
   capture: number;
   /** 受到傷害的倍率（八將的架勢） */
   guard: number;
+  /** 定身（秒）：被勾魂鎖拉過來、被醒獅震暈 */
+  stun: number;
+  /** 減速（秒）：被鞭炮嚇到 */
+  slow: number;
+  /** 出手次數（七爺八爺每 4 擊放一次勾魂鎖） */
+  hits: number;
   alive: boolean;
   /** 動作狀態（畫面用） */
   state: 'idle' | 'walk' | 'fight' | 'charge' | 'breath' | 'retreat';
@@ -83,10 +88,18 @@ export type BattleEvent =
   | { type: 'charge'; uid: number }
   | { type: 'breath'; uid: number }
   | { type: 'callout'; uid: number }
+  | { type: 'chain'; fromX: number; toX: number; uid: number }
+  | { type: 'block'; x: number }
+  | { type: 'knock'; x: number }
   | { type: 'end'; result: 'win' | 'lose' };
 
-export const SMITE_COST = 15;
-export const BLESS_COST = 10;
+/** 法術冷卻（秒） */
+export const SMITE_CD = 15;
+export const BLESS_CD = 25;
+/** 七爺八爺：每幾擊放一次勾魂鎖 */
+const CHAIN_EVERY = 4;
+/** 八將：格擋機率 */
+const BLOCK_CHANCE = 0.25;
 
 export class Battle {
   readonly setup: BattleSetup;
@@ -95,7 +108,9 @@ export class Battle {
   fighters: Fighter[] = [];
   palanquin: { x: number; hp: number; maxHp: number; flash: number };
   captured = 0;
-  incense: number;
+  /** 法術剩餘冷卻（秒），0 表示可以用 */
+  smiteCd = 0;
+  blessCd = 0;
   events: BattleEvent[] = [];
   private uidSeq = 1;
   private bossSpawned = false;
@@ -106,7 +121,6 @@ export class Battle {
 
   constructor(setup: BattleSetup) {
     this.setup = setup;
-    this.incense = setup.incense;
     let s = setup.seed ?? Math.floor(Math.random() * 1e9);
     this.rng = () => {
       s = (s * 1664525 + 1013904223) % 4294967296;
@@ -123,7 +137,8 @@ export class Battle {
 
   /** 陣頭依布陣站在神轎兩側：每邊依序往外排 */
   private placeUnits(): void {
-    const order: UnitId[] = ['bajiang', 'qiye', 'shiju', 'xingshi', 'kaijiang', 'paoshou'];
+    // 由內往外：七爺八爺在八將身後捉妖，八將站最外圈擋路
+    const order: UnitId[] = ['qiye', 'bajiang', 'shiju', 'xingshi', 'kaijiang', 'paoshou'];
     const bySide: Record<string, number> = { '-1': 0, '1': 0 };
     const sorted = [...this.setup.units].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
     for (const u of sorted) {
@@ -137,8 +152,12 @@ export class Battle {
         x: this.palanquin.x + u.side * dist,
         hp: st.hp, maxHp: st.hp,
         atk: st.atk, range: st.range, cd: st.cd * this.cdMul(), timer: this.rng() * st.cd,
-        aoe: st.aoe, capture: st.capture, guard: st.guard, alive: true, state: 'idle', flash: 0,
+        aoe: st.aoe, capture: st.capture, guard: st.guard, stun: 0, slow: 0, hits: 0, alive: true, state: 'idle', flash: 0,
       });
+    }
+    // 令旗隊：同一側的陣頭出手加快 15%
+    for (const k of this.fighters.filter((f) => f.id === 'kaijiang')) {
+      for (const u of this.fighters) if (u.team === 'unit' && u.side === k.side && u !== k) u.cd *= 0.85;
     }
   }
 
@@ -170,7 +189,7 @@ export class Battle {
       uid: this.uidSeq++, team: 'enemy', id: enemy, name: def.name, side,
       x: side === -1 ? -40 : this.setup.fieldW + 40,
       hp: def.hp, maxHp: def.hp, atk: def.atk, range: def.range, cd: def.cd, timer: def.cd * this.rng(),
-      aoe: 0, capture: 0, guard: 1, alive: true, state: 'walk', flash: 0,
+      aoe: 0, capture: 0, guard: 1, stun: 0, slow: 0, hits: 0, alive: true, state: 'walk', flash: 0,
     };
     if (isBoss) {
       const m = this.setup.boss ?? {};
@@ -189,6 +208,8 @@ export class Battle {
   step(dt: number): void {
     if (this.result) return;
     this.t += dt;
+    this.smiteCd = Math.max(0, this.smiteCd - dt);
+    this.blessCd = Math.max(0, this.blessCd - dt);
     while (this.spawnQueue.length && this.spawnQueue[0].t <= this.t) {
       const s = this.spawnQueue.shift()!;
       this.spawn(s.enemy, s.side);
@@ -233,16 +254,29 @@ export class Battle {
     u.state = target ? 'fight' : 'idle';
     if (!target || u.timer > 0) return;
     u.timer = u.cd;
+    u.hits++;
     const id = u.id as UnitId;
     const def = UNITS[id];
     if (id === 'paoshou' || id === 'kaijiang') {
       this.events.push({ type: 'shot', fromX: u.x, toX: target.x, kind: id === 'paoshou' ? 'firecracker' : 'flag' });
-      this.area(target.x, u.aoe, u.atk, u);
+      const hit = this.area(target.x, u.aoe, u.atk, u);
+      // 鞭炮：被炸到的妖怪受到驚嚇，減速 2 秒
+      if (id === 'paoshou') for (const e of hit) if (e.id !== 'boss') e.slow = 2;
       return;
     }
     if (def.trait === 'quake') {
       this.events.push({ type: 'quake', x: target.x, r: u.aoe });
-      this.area(target.x, u.aoe, u.atk, u);
+      const hit = this.area(target.x, u.aoe, u.atk, u);
+      // 醒獅：鑼鼓一震，把妖怪往外震退，並暈眩一下
+      let knocked = false;
+      for (const e of hit) {
+        if (!e.alive || e.id === 'boss') continue;
+        const away = Math.sign(e.x - this.palanquin.x) || e.side;
+        e.x = Math.max(-30, Math.min(this.setup.fieldW + 30, e.x + away * 30));
+        e.stun = Math.max(e.stun, 0.3);
+        knocked = true;
+      }
+      if (knocked) this.events.push({ type: 'knock', x: target.x });
       return;
     }
     if (def.trait === 'charge') {
@@ -250,7 +284,38 @@ export class Battle {
       this.events.push({ type: 'quake', x: target.x, r: u.aoe });
       return;
     }
+    if (id === 'qiye' && u.hits % CHAIN_EVERY === 0) {
+      // 七爺八爺：勾魂鎖，把遠處的妖怪拉到面前並定身
+      const far = this.farthestEnemy(u.x, u.range + 170);
+      if (far) {
+        const from = far.x;
+        far.x = u.x + u.side * 30;
+        far.stun = 1.5;
+        this.events.push({ type: 'chain', fromX: u.x, toX: from, uid: far.uid });
+        this.damage(far, u.atk, u);
+        return;
+      }
+    }
+    if (id === 'bajiang') {
+      // 八將：橫掃，打中目標身邊的一群
+      this.area(target.x, 45, u.atk, u);
+      return;
+    }
     this.damage(target, u.atk, u);
+  }
+
+  private farthestEnemy(x: number, range: number): Fighter | undefined {
+    let best: Fighter | undefined;
+    let bd = -1;
+    for (const e of this.fighters) {
+      if (e.team !== 'enemy' || !e.alive || e.id === 'boss') continue;
+      const d = Math.abs(e.x - x);
+      if (d <= range && d > bd) {
+        bd = d;
+        best = e;
+      }
+    }
+    return best;
   }
 
   private nearestEnemy(x: number, range: number): Fighter | undefined {
@@ -267,10 +332,16 @@ export class Battle {
     return best;
   }
 
-  private area(x: number, r: number, dmg: number, src: Fighter): void {
+  /** 範圍傷害，回傳打到的妖怪 */
+  private area(x: number, r: number, dmg: number, src: Fighter): Fighter[] {
+    const hit: Fighter[] = [];
     for (const e of this.fighters) {
-      if (e.team === 'enemy' && e.alive && Math.abs(e.x - x) <= Math.max(r, 20)) this.damage(e, dmg, src);
+      if (e.team === 'enemy' && e.alive && Math.abs(e.x - x) <= Math.max(r, 20)) {
+        hit.push(e);
+        this.damage(e, dmg, src);
+      }
     }
+    return hit;
   }
 
   private damage(e: Fighter, raw: number, src?: Fighter): void {
@@ -281,6 +352,8 @@ export class Battle {
       mul *= def.quakeWeak;
       if (e.id === 'kui' && this.setup.intel.quakeTip) mul *= 1.5;
     }
+    // 疾魅最怕鞭炮
+    if (src?.id === 'paoshou' && e.id === 'mei') mul *= 2;
     if (e.id === 'boss' && e.state === 'breath') {
       mul = this.setup.intel.bellyWound ? 2.4 : 1.4;
       weak = true;
@@ -322,6 +395,12 @@ export class Battle {
   }
 
   private stepEnemy(e: Fighter, dt: number): void {
+    e.slow = Math.max(0, e.slow - dt);
+    if (e.stun > 0) {
+      e.stun -= dt;
+      e.state = 'idle';
+      return;
+    }
     e.timer -= dt;
     const def = ENEMIES[e.id as EnemyId];
     const b = this.blocker(e);
@@ -344,10 +423,15 @@ export class Battle {
       return;
     }
     e.state = 'walk';
-    e.x += dir * def.speed * dt;
+    e.x += dir * def.speed * (e.slow > 0 ? 0.55 : 1) * dt;
   }
 
   private hurtUnit(u: Fighter, raw: number): void {
+    // 八將：有機會用法器格擋，完全不受傷
+    if (u.id === 'bajiang' && this.rng() < BLOCK_CHANCE) {
+      this.events.push({ type: 'block', x: u.x });
+      return;
+    }
     const dmg = raw * u.guard;
     u.hp -= dmg;
     u.flash = 1;
@@ -425,7 +509,7 @@ export class Battle {
 
   // ---------- 玩家法術 ----------
   canSmite(): boolean {
-    return !this.result && this.incense >= SMITE_COST && this.enemies.some((e) => e.alive);
+    return !this.result && this.smiteCd <= 0 && this.enemies.some((e) => e.alive);
   }
 
   /** 天令：在妖怪最密集（離神轎最近）的地方降下雷擊 */
@@ -433,7 +517,7 @@ export class Battle {
     if (!this.canSmite()) return false;
     const alive = this.enemies.filter((e) => e.alive);
     const target = alive.reduce((a, e) => (Math.abs(e.x - this.palanquin.x) < Math.abs(a.x - this.palanquin.x) ? e : a));
-    this.incense -= SMITE_COST;
+    this.smiteCd = SMITE_CD;
     const r = 130;
     this.events.push({ type: 'smite', x: target.x, r });
     for (const e of alive) if (Math.abs(e.x - target.x) <= r) this.damage(e, this.setup.palanquin.smite);
@@ -441,13 +525,13 @@ export class Battle {
   }
 
   canBless(): boolean {
-    return !this.result && this.incense >= BLESS_COST;
+    return !this.result && this.blessCd <= 0;
   }
 
   /** 淨符：神轎回復 25%，陣頭回復 35% */
   bless(): boolean {
     if (!this.canBless()) return false;
-    this.incense -= BLESS_COST;
+    this.blessCd = BLESS_CD;
     this.palanquin.hp = Math.min(this.palanquin.maxHp, this.palanquin.hp + this.palanquin.maxHp * this.setup.palanquin.bless);
     for (const u of this.units) if (u.alive) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * (this.setup.palanquin.bless + 0.1));
     this.events.push({ type: 'bless' });

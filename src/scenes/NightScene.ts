@@ -3,7 +3,7 @@
  */
 import Phaser from 'phaser';
 import { C, H, W, GROUND_Y, TIME_SCALE } from '../theme';
-import { Battle, BLESS_COST, SMITE_COST, type BattleEvent, type Fighter, type Side } from '../core/battle';
+import { Battle, BLESS_CD, SMITE_CD, type BattleEvent, type Fighter, type Side } from '../core/battle';
 import { NIGHTS, nightSpawns } from '../content/nights';
 import { Street } from '../art/backdrop';
 import { run } from '../state';
@@ -41,6 +41,8 @@ export class NightScene extends Phaser.Scene {
   private capTxt!: Phaser.GameObjects.Text;
   private bossBar?: Phaser.GameObjects.Graphics;
   private smiteBtn!: Button;
+  private smiteFill!: Phaser.GameObjects.Rectangle;
+  private blessFill!: Phaser.GameObjects.Rectangle;
   private blessBtn!: Button;
   private speed = 1;
   private over = false;
@@ -61,12 +63,12 @@ export class NightScene extends Phaser.Scene {
     this.battle = new Battle({
       mode: def.mode, fieldW: W, duration: def.duration, spawns: nightSpawns(this.n, run.tonight), units, palanquin: palanquinStats(run.ups),
       boss: {
-        hpMul: run.b.xiaoyun === 'invited' ? 0.8 : 1,
-        atkMul: run.shijuEnraged ? 1.3 : 1,
-        chargeEvery: run.shijuEnraged ? 6 : 8,
+        hpMul: (run.b.xiaoyun === 'invited' ? 0.8 : 1) * (run.shijuEnraged ? 1.15 : 1),
+        atkMul: run.shijuEnraged ? 1.5 : 1,
+        chargeEvery: run.shijuEnraged ? 5 : 8,
         skipCharges: run.b.xiaoyun === 'invited' ? 1 : 0,
       },
-      followers: run.followers, morale: run.morale, incense: run.incense, intel: run.intel,
+      followers: run.followers, morale: run.morale, intel: run.intel,
     });
     this.cameras.main.fadeIn(500, 10, 8, 18);
     this.drawBackground(def.mode);
@@ -142,19 +144,18 @@ export class NightScene extends Phaser.Scene {
     this.capTxt = txt(this, 34, 104, '捉拿 0', 22, 0x9fe8c0).setDepth(891);
     if (this.battle.setup.mode === 'boss') this.bossBar = this.add.graphics().setDepth(890);
 
-    this.smiteBtn = button(this, W - 300, H - 58, 170, 70, `天令 ${SMITE_COST}`, () => {
-      if (this.battle.smite()) this.bar.refresh(this.battle.incense);
-    }, { size: 26, fill: 0x5a2a8a });
-    this.blessBtn = button(this, W - 110, H - 58, 170, 70, `淨符 ${BLESS_COST}`, () => {
-      if (this.battle.bless()) this.bar.refresh(this.battle.incense);
-    }, { size: 26, fill: 0x2f6f5a });
+    // 法術：冷卻制，按了之後要等冷卻（天令 15 秒、淨符 25 秒）
+    this.smiteBtn = button(this, W - 300, H - 58, 170, 70, '天令', () => this.battle.smite(), { size: 26, fill: 0x5a2a8a });
+    this.blessBtn = button(this, W - 110, H - 58, 170, 70, '淨符', () => this.battle.bless(), { size: 26, fill: 0x2f6f5a });
+    this.smiteFill = this.add.rectangle(W - 385, H - 93, 170, 70, 0x000000, 0.45).setOrigin(0, 0).setDepth(896);
+    this.blessFill = this.add.rectangle(W - 195, H - 93, 170, 70, 0x000000, 0.45).setOrigin(0, 0).setDepth(896);
     for (const b of [this.smiteBtn, this.blessBtn]) b.setDepth(895);
     const sp = button(this, 90, H - 58, 130, 56, '速度 x1', () => {
       this.speed = this.speed === 1 ? 2 : 1;
       sp.setLabel(`速度 x${this.speed}`);
     }, { size: 20, fill: 0x2a2236 });
     sp.setDepth(895);
-    this.bar.refresh(this.battle.incense);
+    this.bar.refresh();
   }
 
   // ---------- 每幀 ----------
@@ -221,13 +222,17 @@ export class NightScene extends Phaser.Scene {
       if (f.state === 'fight') dx = Math.max(0, Math.sin(this.t * 9 + v.phase)) * 8 * dir;
       if (f.state === 'charge') y -= Math.abs(Math.sin(this.t * 20)) * 10;
       if (f.state === 'breath') y += 6;
+      const dazed = f.team === 'enemy' && f.stun > 0;
       if (f.team === 'enemy' && f.id !== 'kui' && f.id !== 'boss') y -= 10 + Math.sin(this.t * 3 + v.phase) * 6;
       v.c.y = y;
       for (const img of v.imgs) img.x = (img.getData('bx') as number) + dx;
       for (const img of v.imgs) {
         if (f.flash > 0.5) img.setTintFill(0xffffff);
         else if (f.id === 'boss' && f.state === 'breath') img.setTint(0xffb0b0);
+        else if (dazed) img.setTint(0xc8c8ff);
+        else if (f.team === 'enemy' && f.slow > 0) img.setTint(0xffc890);
         else img.clearTint();
+        img.angle = dazed ? Math.sin(this.t * 20) * 8 : 0;
       }
       // 血條
       v.hp.clear();
@@ -272,6 +277,13 @@ export class NightScene extends Phaser.Scene {
     this.capTxt.setText(`捉拿 ${this.battle.captured}`);
     this.smiteBtn.setEnabled(this.battle.canSmite());
     this.blessBtn.setEnabled(this.battle.canBless());
+    // 冷卻：按鈕上蓋一層會慢慢縮短的暗色，並顯示剩餘秒數
+    const sc = this.battle.smiteCd;
+    const bc = this.battle.blessCd;
+    this.smiteFill.width = 170 * (sc / SMITE_CD);
+    this.blessFill.width = 170 * (bc / BLESS_CD);
+    this.smiteBtn.setLabel(sc > 0 ? `天令 ${Math.ceil(sc)}秒` : '天令');
+    this.blessBtn.setLabel(bc > 0 ? `淨符 ${Math.ceil(bc)}秒` : '淨符');
     if (this.bossBar) {
       const b = this.battle.boss;
       const frac = b ? Math.max(0, b.hp / b.maxHp) : 0;
@@ -324,6 +336,15 @@ export class NightScene extends Phaser.Scene {
           floatText(this, W / 2, 200, '石駒衝鋒！', 0xff6a6a, 40);
           this.cameras.main.shake(500, 0.006);
           break;
+        case 'chain':
+          this.chain(e.fromX, e.toX);
+          break;
+        case 'block':
+          floatText(this, e.x, GROUND_Y - 150, '格擋', 0xbfe0ff, 22);
+          break;
+        case 'knock':
+          floatText(this, e.x, GROUND_Y - 120, '震退', 0xffd76a, 22);
+          break;
         case 'callout':
           floatText(this, W / 2, 230, '小芸：「石駒，不要！」', 0xfff3c4, 36);
           break;
@@ -362,6 +383,17 @@ export class NightScene extends Phaser.Scene {
     });
   }
 
+  /** 勾魂鎖：從七爺八爺甩出一條鎖鏈，把遠處的妖怪拉過來 */
+  private chain(fromX: number, toX: number): void {
+    const g = this.add.graphics().setDepth(68);
+    const y = GROUND_Y - 60;
+    g.lineStyle(4, 0xc8c8d8, 1);
+    g.lineBetween(fromX, y, toX, y);
+    for (let x = Math.min(fromX, toX); x < Math.max(fromX, toX); x += 14) g.strokeCircle(x, y, 4);
+    this.tweens.add({ targets: g, alpha: 0, duration: 500, onComplete: () => g.destroy() });
+    floatText(this, (fromX + toX) / 2, GROUND_Y - 130, '勾魂鎖！', 0xe8e8ff, 26);
+  }
+
   private ring(x: number, r: number, color: number): void {
     const g = this.add.circle(x, GROUND_Y - 20, 10, color, 0).setStrokeStyle(4, color, 0.9).setDepth(65);
     g.setScale(1, 0.35);
@@ -393,7 +425,6 @@ export class NightScene extends Phaser.Scene {
 
   // ---------- 結束 ----------
   private finish(result: 'win' | 'lose'): void {
-    run.incense = this.battle.incense;
     const captured = this.battle.captured;
     const mode = this.battle.setup.mode;
     if (result === 'win' && mode === 'boss') {

@@ -13,7 +13,7 @@ export function simulate(night: number, plan: Plan, seed = 7) {
   for (const u of plan.units) ups[u.id] = { hp: u.level, atk: u.level };
   ups.palanquin = { hp: plan.pal ?? 1 };
   const units = plan.units.map((u) => ({ id: u.id, side: u.side, stats: unitStats(u.id, ups, plan.followers) }));
-  const b = new Battle({ mode: n.mode, fieldW: 1280, duration: n.duration, spawns: nightSpawns(night, { miracles: plan.miracles ?? 0, cleared: !!plan.cleared }), boss: plan.boss, units, palanquin: palanquinStats(ups), followers: plan.followers, morale: plan.morale, incense: plan.incense, intel: plan.intel ?? {}, seed });
+  const b = new Battle({ mode: n.mode, fieldW: 1280, duration: n.duration, spawns: nightSpawns(night, { miracles: plan.miracles ?? 0, cleared: !!plan.cleared }), boss: plan.boss, units, palanquin: palanquinStats(ups), followers: plan.followers, morale: plan.morale, intel: plan.intel ?? {}, seed });
   let t = 0;
   while (!b.result && t < 400) {
     b.step(1 / 30);
@@ -71,9 +71,9 @@ describe('平衡', () => {
     const units = [...base(2), { id: 'kaijiang' as UnitId, level: 1, side: 1 as Side }];
     const p = { units, followers: 20, morale: 65, incense: 45, intel: { bellyWound: true }, spells: true };
     console.log('night3 normal', simulate(3, p));
-    console.log('night3 enraged', simulate(3, { ...p, boss: { atkMul: 1.3, chargeEvery: 6 } }));
+    console.log('night3 enraged', simulate(3, { ...p, boss: { hpMul: 1.15, atkMul: 1.5, chargeEvery: 5 } }));
     console.log('night3 xiaoyun', simulate(3, { ...p, boss: { hpMul: 0.8, skipCharges: 1 } }));
-    console.log('night3 enraged+xiaoyun', simulate(3, { ...p, boss: { atkMul: 1.3, chargeEvery: 6, hpMul: 0.8, skipCharges: 1 } }));
+    console.log('night3 enraged+xiaoyun', simulate(3, { ...p, boss: { atkMul: 1.5, chargeEvery: 5, hpMul: 0.92, skipCharges: 1 } }));
     console.log('night1 miracle', simulate(1, { units: base(), followers: 22, morale: 60, incense: 20, miracles: 1, spells: true }));
     console.log('night1 cleared', simulate(1, { units: base(), followers: 12, morale: 60, incense: 40, cleared: true }));
     console.log('night2 2 miracles', simulate(2, { units: base(2), followers: 30, morale: 60, incense: 30, miracles: 2, spells: true }));

@@ -55,7 +55,7 @@ export class PrepScene extends Phaser.Scene {
     if (run.intel.longBreath && n === 3) lines.push('石駒衝鋒後會喘息較久');
     txt(this, lx + 24, 330, '今晚的狀況', 24, C.gold, { serif: true });
     txt(this, lx + 24, 366, lines.length ? lines.map((s) => `・${s}`).join('\n') : '（沒有特別的狀況）', 18, lines.length ? 0x9fe8c0 : C.muted, { bold: false, lineSpacing: 6, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
-    txt(this, lx + 24, H - 70, '法術：天令（香火 15）範圍雷擊、淨符（香火 10）回復', 17, C.muted, { bold: false, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
+    txt(this, lx + 24, H - 70, '法術（冷卻制）：天令 15 秒一次（範圍雷擊）、淨符 25 秒一次（回復）', 17, C.muted, { bold: false, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
 
     // 右欄：陣頭列表
     const rx = lx + lw + 20;

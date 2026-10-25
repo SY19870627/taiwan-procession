@@ -96,8 +96,9 @@ export function nightSpawns(n: number, mods: { miracles: number; cleared: boolea
   }
   const d = NIGHTS[n].duration;
   for (let i = 0; i < mods.miracles; i++) {
-    list.push(wave(Math.min(d - 20, 14 + i * 9), 'mei', 1, 3, 0.8));
-    list.push(wave(Math.min(d - 12, 34 + i * 9), 'wang', 1, 4, 1.1));
+    list.push(wave(Math.min(d - 20, 14 + i * 9), 'mei', 1, 5, 0.7));
+    list.push(wave(Math.min(d - 12, 30 + i * 9), 'wang', 1, 6, 0.9));
+    if (n >= 2) list.push(wave(Math.min(d - 8, 46 + i * 9), 'kui', 1, 2, 2));
   }
   return list;
 }

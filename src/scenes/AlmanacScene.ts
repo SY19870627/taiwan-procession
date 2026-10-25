@@ -138,9 +138,9 @@ export class AlmanacScene extends Phaser.Scene {
     const per = Math.max(1, Math.floor(colH / lineH));
     const cols: string[] = [];
     for (const para of s.split('\n')) {
-      const chars = Array.from(para);
+      const chars = Array.from(toVertical(para));
       // 標點不放在一欄的開頭（避頭點）：遇到就留在上一欄的最後
-      const PUNCT = '，。、；：！？」』）';
+      const PUNCT = '，。、；：！？﹂﹄︶︼︙';
       let i = 0;
       while (i < chars.length) {
         let end = Math.min(chars.length, i + per);
@@ -196,3 +196,18 @@ export class AlmanacScene extends Phaser.Scene {
   }
 }
 
+
+/**
+ * 直書用的標點：括號、引號、刪節號要換成直排的字形，方向才會正確。
+ * 例如「」→﹁﹂、【】→︻︼、（）→︵︶、……→︙
+ */
+const VERTICAL: Record<string, string> = {
+  '「': '﹁', '」': '﹂', '『': '﹃', '』': '﹄',
+  '【': '︻', '】': '︼', '（': '︵', '）': '︶', '(': '︵', ')': '︶',
+  '〔': '︹', '〕': '︺', '《': '︽', '》': '︾', '〈': '︿', '〉': '﹀',
+  '—': '︱', '－': '︱', '～': '≀',
+};
+
+export function toVertical(s: string): string {
+  return Array.from(s.replace(/……/g, '︙').replace(/…/g, '︙')).map((c) => VERTICAL[c] ?? c).join('');
+}

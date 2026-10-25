@@ -160,14 +160,20 @@ export class UnitScene extends Phaser.Scene {
       const side = run.sides[m.key] ?? 1;
       tags.push(`布陣：${side === 1 ? '前方／右側' : '後方／左側'}`);
     }
+    // 標籤放不下就換行
     let tx = px + 28;
-    const ty = loreT.y + loreT.height + 22;
+    let ty = loreT.y + loreT.height + 18;
     for (const t of tags) {
-      const chip = txt(this, tx, ty, t, 17, 0xfbe7b0, { backgroundColor: '#4a2a3a', padding: { x: 10, y: 5 } });
+      const chip = txt(this, tx, ty, t, 16, 0xfbe7b0, { backgroundColor: '#4a2a3a', padding: { x: 9, y: 4 } });
+      if (tx > px + 28 && tx + chip.width > px + pw - 24) {
+        tx = px + 28;
+        ty += chip.height + 8;
+        chip.setPosition(tx, ty);
+      }
       this.detail.add(chip);
-      tx += chip.width + 10;
+      tx += chip.width + 8;
     }
-    const rowsTop = Math.max(ty + 50, py + 150);
+    const rowsTop = Math.max(ty + 46, py + 150);
     const rowH = Math.min(92, (py + ph - 20 - rowsTop) / m.stats.length);
     m.stats.forEach((s, i) => this.statRow(m, s, px, rowsTop + i * rowH, pw, rowH));
     if (m.locked) this.detail.add(txt(this, px + pw / 2, py + ph - 30, m.locked, 18, C.muted, { bold: false }).setOrigin(0.5));
