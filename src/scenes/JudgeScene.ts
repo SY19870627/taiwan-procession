@@ -36,22 +36,24 @@ export class JudgeScene extends Phaser.Scene {
     }
 
     const verdict = judge(n, run.captured);
+    const unlocks = verdict.unlocks;
     Object.assign(run.intel, verdict.intel);
-    new Dialogue(this, verdict.lines, () => this.summary(n));
+    new Dialogue(this, verdict.lines, () => this.summary(n, unlocks));
   }
 
-  private summary(n: number): void {
+  private summary(n: number, unlocks: string[]): void {
     const reward = run.captured * 4;
     applyDelta({ incense: reward, morale: 5 });
     run.captured = 0;
     const pw = 640;
-    const ph = 300;
+    const ph = unlocks.length ? 380 : 300;
     const x = (W - pw) / 2;
     const y = 120;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.35).setOrigin(0).setDepth(960).setInteractive();
     panel(this, x, y, pw, ph).setDepth(961);
     txt(this, W / 2, y + 50, '超渡完畢', 36, C.gold, { serif: true }).setOrigin(0.5).setDepth(962);
-    txt(this, W / 2, y + 125, `香火 +${reward}、士氣 +5\n現在：香火 ${run.incense}・信徒 ${run.followers}・士氣 ${run.morale}`, 24, C.paper, { bold: false, align: 'center', lineSpacing: 10 }).setOrigin(0.5).setDepth(962);
-    button(this, W / 2, y + ph - 55, 300, 70, `起駕・第 ${n + 1} 天`, () => go(this, 'day', { day: n + 1 }), { size: 28, fill: 0x8a1b14 }).setDepth(963);
+    txt(this, W / 2, y + 120, `香火 +${reward}、士氣 +5\n現在：香火 ${run.incense}・信徒 ${run.followers}・士氣 ${run.morale}`, 24, C.paper, { bold: false, align: 'center', lineSpacing: 10 }).setOrigin(0.5).setDepth(962);
+    if (unlocks.length) txt(this, W / 2, y + 205, unlocks.map((u) => `解鎖：${u}`).join('\n'), 20, 0x9fe8c0, { align: 'center', lineSpacing: 8 }).setOrigin(0.5, 0).setDepth(962);
+    button(this, W / 2, y + ph - 55, 300, 70, `起駕・第 ${n + 1} 天`, () => go(this, 'almanac', { day: n + 1 }), { size: 28, fill: 0x8a1b14 }).setDepth(963);
   }
 }

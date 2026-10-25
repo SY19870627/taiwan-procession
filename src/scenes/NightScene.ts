@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import { C, H, W, GROUND_Y, TIME_SCALE } from '../theme';
 import { Battle, BLESS_COST, SMITE_COST, type BattleEvent, type Fighter, type Side } from '../core/battle';
-import { NIGHTS } from '../content/nights';
+import { NIGHTS, nightSpawns } from '../content/nights';
 import { Street } from '../art/backdrop';
 import { run } from '../state';
 import { availableUnits } from './PrepScene';
@@ -59,7 +59,13 @@ export class NightScene extends Phaser.Scene {
     const def = NIGHTS[this.n];
     const units = availableUnits().map((id) => ({ id, side: (run.sides[id] ?? 1) as Side, stats: unitStats(id, run.ups, run.followers) }));
     this.battle = new Battle({
-      mode: def.mode, fieldW: W, duration: def.duration, spawns: def.spawns, units, palanquin: palanquinStats(run.ups),
+      mode: def.mode, fieldW: W, duration: def.duration, spawns: nightSpawns(this.n, run.tonight), units, palanquin: palanquinStats(run.ups),
+      boss: {
+        hpMul: run.b.xiaoyun === 'invited' ? 0.8 : 1,
+        atkMul: run.shijuEnraged ? 1.3 : 1,
+        chargeEvery: run.shijuEnraged ? 6 : 8,
+        skipCharges: run.b.xiaoyun === 'invited' ? 1 : 0,
+      },
       followers: run.followers, morale: run.morale, incense: run.incense, intel: run.intel,
     });
     this.cameras.main.fadeIn(500, 10, 8, 18);
@@ -317,6 +323,9 @@ export class NightScene extends Phaser.Scene {
         case 'charge':
           floatText(this, W / 2, 200, '石駒衝鋒！', 0xff6a6a, 40);
           this.cameras.main.shake(500, 0.006);
+          break;
+        case 'callout':
+          floatText(this, W / 2, 230, '小芸：「石駒，不要！」', 0xfff3c4, 36);
           break;
         case 'breath':
           floatText(this, this.battle.palanquin.x + 160, GROUND_Y - 180, run.intel.bellyWound ? '喘息中・打肚子的舊傷！' : '喘息中', 0xffd0d0, 26);

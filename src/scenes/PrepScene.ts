@@ -8,6 +8,7 @@ import { UNITS, type UnitId } from '../core/units';
 import { run } from '../state';
 import { ResourceBar, button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { lvOf, memberDef, type MemberKey } from '../core/upgrades';
+import { nightEffects } from '../content/believers';
 import type { Side } from '../core/battle';
 
 export function availableUnits(): UnitId[] {
@@ -47,14 +48,13 @@ export class PrepScene extends Phaser.Scene {
     panel(this, lx, 120, lw, H - 140);
     txt(this, lx + 24, 140, '今夜', 24, C.gold, { serif: true });
     txt(this, lx + 24, 176, def.brief, 21, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
-    const intel: string[] = [];
-    if (run.intel.mainSide && n === 2) intel.push('妖怪主要從右側（北）來');
-    if (run.intel.quakeTip && n === 2) intel.push('醒獅的震擊對石屑傀特別有效');
-    if (run.intel.bellyWound && n === 3) intel.push('石駒肚子的舊傷是弱點（喘息時傷害大增）');
-    if (run.intel.longBreath && n === 3) intel.push('石駒衝鋒後會喘息較久');
-    if (run.allied && n === 3) intel.push('惠澤宮令旗隊助陣（交陪）');
-    txt(this, lx + 24, 400, '判官情報', 24, C.gold, { serif: true });
-    txt(this, lx + 24, 436, intel.length ? intel.map((s) => `・${s}`).join('\n') : '（沒有情報）', 20, intel.length ? 0x9fe8c0 : C.muted, { bold: false, lineSpacing: 8, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
+    // 白天的選擇造成的今晚狀況＋判官情報
+    const lines = [...nightEffects(run, n)];
+    if (run.intel.quakeTip && n === 2) lines.push('醒獅的震擊對石屑傀特別有效');
+    if (run.intel.bellyWound && n === 3) lines.push('石駒肚子的舊傷是弱點（喘息時傷害大增）');
+    if (run.intel.longBreath && n === 3) lines.push('石駒衝鋒後會喘息較久');
+    txt(this, lx + 24, 330, '今晚的狀況', 24, C.gold, { serif: true });
+    txt(this, lx + 24, 366, lines.length ? lines.map((s) => `・${s}`).join('\n') : '（沒有特別的狀況）', 18, lines.length ? 0x9fe8c0 : C.muted, { bold: false, lineSpacing: 6, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
     txt(this, lx + 24, H - 70, '法術：天令（香火 15）範圍雷擊、淨符（香火 10）回復', 17, C.muted, { bold: false, wordWrap: { width: lw - 48, useAdvancedWrap: true } });
 
     // 右欄：陣頭列表

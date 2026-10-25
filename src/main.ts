@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { W, H } from './theme';
+import * as state from './state';
 import { setupMobile, watchOrientation } from './mobile';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { StoryScene } from './scenes/StoryScene';
-import { DayScene } from './scenes/DayScene';
+import { AlmanacScene } from './scenes/AlmanacScene';
+import { MapScene } from './scenes/MapScene';
 import { PrepScene } from './scenes/PrepScene';
 import { NightScene } from './scenes/NightScene';
 import { JudgeScene } from './scenes/JudgeScene';
@@ -34,10 +36,12 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, StoryScene, DayScene, PrepScene, NightScene, JudgeScene, EndScene, UnitScene],
+    scene: [BootScene, TitleScene, StoryScene, AlmanacScene, MapScene, PrepScene, NightScene, JudgeScene, EndScene, UnitScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;
+  // 除錯用：在 console 看目前進度
+  (window as unknown as Record<string, unknown>).__run = () => state.run;
 }
 
 start();

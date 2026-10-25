@@ -53,7 +53,7 @@ export class TitleScene extends Phaser.Scene {
     txt(this, W / 2, 226, '白天祈福，晚上斬妖。凡人什麼都看不見。', 22, C.muted, { bold: false }).setOrigin(0.5);
     button(this, W / 2, H - 70, 260, 76, '起　駕', () => {
       resetRun();
-      go(this, 'story', { id: 'opening', next: { key: 'day', data: { day: 1 } } });
+      go(this, 'almanac', { prologue: true });
     }, { size: 34, fill: 0x8a1b14 });
     fullscreenButton(this);
   }

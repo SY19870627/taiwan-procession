@@ -76,3 +76,28 @@ export const NIGHTS: Record<number, NightDef> = {
     ],
   },
 };
+
+/**
+ * 今晚實際的妖怪波次：基本波次，加上白天的選擇
+ * - 每次神蹟（天機外洩）：多 2 波，從正面（右側／前方）來
+ * - 清了小魍巢：少掉最早的 2 波小魍
+ */
+export function nightSpawns(n: number, mods: { miracles: number; cleared: boolean }): Spawn[] {
+  let list = [...NIGHTS[n].spawns];
+  if (mods.cleared) {
+    let removed = 0;
+    list = list.filter((s) => {
+      if (removed < 2 && s.enemy === 'wang') {
+        removed++;
+        return false;
+      }
+      return true;
+    });
+  }
+  const d = NIGHTS[n].duration;
+  for (let i = 0; i < mods.miracles; i++) {
+    list.push(wave(Math.min(d - 20, 14 + i * 9), 'mei', 1, 3, 0.8));
+    list.push(wave(Math.min(d - 12, 34 + i * 9), 'wang', 1, 4, 1.1));
+  }
+  return list;
+}

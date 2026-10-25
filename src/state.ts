@@ -1,5 +1,6 @@
 import type { UnitId } from './core/units';
 import type { Upgrades } from './core/upgrades';
+import { newBelievers, type BelieverState } from './content/believers';
 
 /** 一次出巡（原型：三天）的進度與資源 */
 export interface RunState {
@@ -27,7 +28,21 @@ export interface RunState {
     bellyWound?: boolean;
     /** 知道石駒衝鋒後會喘息較久 */
     longBreath?: boolean;
+    /** 小魍怕鹽米（解鎖信徒卡上的便宜選項） */
+    salt?: boolean;
   };
+  /** 五位信徒目前的狀態（見 content/believers.ts） */
+  b: BelieverState;
+  /** 今天剩下的時辰 */
+  hours: number;
+  /** 今天還能顯現幾次神蹟 */
+  miracles: number;
+  /** 今晚的戰況修正（白天的選擇造成） */
+  tonight: { miracles: number; cleared: boolean };
+  /** 石駒被阿雄的陷阱激怒 */
+  shijuEnraged: boolean;
+  /** 「昨日」欄：前一天沒照顧到的人發生了什麼 */
+  yesterday: string[];
   /** 交陪：已與惠澤宮會香 */
   allied: boolean;
   /** 石駒已被喚回 */
@@ -55,6 +70,12 @@ export function newRun(): RunState {
     flags: {},
     retries: 0,
     totalCaptured: 0,
+    b: newBelievers(),
+    hours: 5,
+    miracles: 1,
+    tonight: { miracles: 0, cleared: false },
+    shijuEnraged: false,
+    yesterday: [],
   };
 }
 

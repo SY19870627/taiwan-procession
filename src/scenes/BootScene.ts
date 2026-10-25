@@ -18,7 +18,7 @@ export class BootScene extends Phaser.Scene {
     const jump = q.get('scene');
     if (jump) {
       const n = Number(q.get('n') ?? 1);
-      this.scene.start(jump, { day: n, night: n, id: q.get('id') ?? 'opening' });
+      this.scene.start(jump, { day: n, night: n, id: q.get('id') ?? 'dusk3', prologue: q.get('prologue') === '1' });
       return;
     }
     this.scene.start('title');

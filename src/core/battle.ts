@@ -31,6 +31,8 @@ export interface BattleSetup {
   /** 陣頭：數值由 core/upgrades.ts 算好再傳進來 */
   units: { id: UnitId; side: Side; stats: UnitStats }[];
   palanquin: PalanquinStats;
+  /** 魔王的狀態（白天的選擇造成）：暴怒、小芸在場 */
+  boss?: { hpMul?: number; atkMul?: number; chargeEvery?: number; skipCharges?: number };
   followers: number;
   morale: number;
   incense: number;
@@ -80,6 +82,7 @@ export type BattleEvent =
   | { type: 'palanquin'; dmg: number }
   | { type: 'charge'; uid: number }
   | { type: 'breath'; uid: number }
+  | { type: 'callout'; uid: number }
   | { type: 'end'; result: 'win' | 'lose' };
 
 export const SMITE_COST = 15;
@@ -96,6 +99,8 @@ export class Battle {
   events: BattleEvent[] = [];
   private uidSeq = 1;
   private bossSpawned = false;
+  private skipLeft = 0;
+  private chargeFrom = 0;
   private spawnQueue: { t: number; enemy: EnemyId; side: Side }[] = [];
   private rng: () => number;
 
@@ -168,6 +173,11 @@ export class Battle {
       aoe: 0, capture: 0, guard: 1, alive: true, state: 'walk', flash: 0,
     };
     if (isBoss) {
+      const m = this.setup.boss ?? {};
+      f.hp = f.maxHp = Math.round(def.hp * (m.hpMul ?? 1));
+      f.hp = Math.round(f.hp);
+      f.atk = def.atk * (m.atkMul ?? 1);
+      this.skipLeft = m.skipCharges ?? 0;
       this.bossSpawned = true;
       f.chargeIn = 7;
       f.chargeHit = new Set();
@@ -361,6 +371,14 @@ export class Battle {
     const home = b.side === -1 ? 90 : this.setup.fieldW - 90;
     if (b.state === 'charge') {
       b.x += dir * 430 * dt;
+      // 小芸在場：第一次衝鋒衝到一半，聽到她的聲音停了下來
+      if (this.skipLeft > 0 && Math.abs(b.x - this.chargeFrom) > 160) {
+        this.skipLeft--;
+        b.state = 'breath';
+        b.stateTime = 0;
+        this.events.push({ type: 'callout', uid: b.uid });
+        return;
+      }
       for (const u of this.fighters) {
         if (u.team === 'unit' && u.alive && !b.chargeHit!.has(u.uid) && Math.abs(u.x - b.x) < 30) {
           b.chargeHit!.add(u.uid);
@@ -388,7 +406,7 @@ export class Battle {
       if ((dir === 1 && b.x <= home) || (dir === -1 && b.x >= home)) {
         b.state = 'walk';
         b.stateTime = 0;
-        b.chargeIn = 8;
+        b.chargeIn = this.setup.boss?.chargeEvery ?? 8;
       }
       return;
     }
@@ -398,6 +416,7 @@ export class Battle {
       b.state = 'charge';
       b.stateTime = 0;
       b.chargeHit = new Set();
+      this.chargeFrom = b.x;
       this.events.push({ type: 'charge', uid: b.uid });
       return;
     }
