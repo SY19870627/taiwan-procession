@@ -2,7 +2,7 @@
  * 背景：白天的街景（會往後捲動）、夜晚的廟埕。全部程式繪製。
  */
 import Phaser from 'phaser';
-import { FONT, SERIF, H, W, GROUND_Y, lerpColor } from '../theme';
+import { FONT, SERIF, FIELD_H as H, FIELD_W as W, GROUND_Y, lerpColor } from '../theme';
 
 const SIGNS = ['香舖', '麵線', '青草茶', '金紙', '佛具', '冰果室', '布莊', '中藥', '雜貨', '肉圓', '米苔目', '刻印'];
 const WALLS = [0xd9c3a0, 0xc9a98a, 0xb8a07a, 0xd8b8a0, 0xa8a090, 0xc0b090];

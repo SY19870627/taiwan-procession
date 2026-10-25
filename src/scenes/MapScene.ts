@@ -9,7 +9,6 @@ import { run, applyDelta } from '../state';
 import { ResourceBar, button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申'];
-const PANEL_W = 540;
 
 export class MapScene extends Phaser.Scene {
   private plan!: DayPlan;
@@ -43,7 +42,9 @@ export class MapScene extends Phaser.Scene {
     this.routeGfx = new Map();
     this.visited = new Set();
     this.markers = undefined;
-    this.mapRect = { x: 20, y: 104, w: W - PANEL_W - 60, h: H - 124 };
+    // 直式：上方資訊、中間地圖、下方信徒卡
+    const mapY = 164;
+    this.mapRect = { x: 16, y: mapY, w: W - 32, h: Math.round(Math.max(470, H - mapY - 600)) };
     this.cameras.main.fadeIn(500, 10, 8, 18);
 
     const bg = this.add.graphics();
@@ -55,12 +56,12 @@ export class MapScene extends Phaser.Scene {
     this.showRouteChoice();
 
     const mr = this.mapRect;
-    button(this, mr.x + 90, mr.y + mr.h - 40, 160, 52, '因果簿', () => this.showLedger(), { size: 22, fill: 0x4a2a3a }).setDepth(50);
-    button(this, mr.x + 260, mr.y + mr.h - 40, 160, 52, '隊伍整備', () => {
+    button(this, mr.x + 74, mr.y + mr.h - 34, 130, 50, '因果簿', () => this.showLedger(), { size: 20, fill: 0x4a2a3a }).setDepth(50);
+    button(this, mr.x + 214, mr.y + mr.h - 34, 130, 50, '隊伍整備', () => {
       if (this.busy) return;
       this.scene.pause();
       this.scene.launch('unit', { from: 'map' });
-    }, { size: 22, fill: 0x4a2a3a }).setDepth(50);
+    }, { size: 20, fill: 0x4a2a3a }).setDepth(50);
     this.events.off('resume');
     this.events.on('resume', () => this.refreshHeader());
     fullscreenButton(this);
@@ -69,7 +70,7 @@ export class MapScene extends Phaser.Scene {
   // ---------- 地圖 ----------
   private pt(s: { x: number; y: number }): { x: number; y: number } {
     const r = this.mapRect;
-    return { x: r.x + 40 + s.x * (r.w - 80), y: r.y + 30 + s.y * (r.h - 110) };
+    return { x: r.x + 50 + s.x * (r.w - 100), y: r.y + 34 + s.y * (r.h - 120) };
   }
 
   private drawMap(): void {
@@ -171,23 +172,23 @@ export class MapScene extends Phaser.Scene {
 
   // ---------- 上方資訊 ----------
   private drawHeader(): void {
+    txt(this, 20, 16, `${this.plan.title}・白天`, 28, C.gold, { serif: true });
+    txt(this, 20, 58, this.plan.area, 18, C.paper, { bold: false });
+    this.bar = new ResourceBar(this, W - 436 - 84, 16);
     const g = this.add.graphics();
     g.fillStyle(0x1d1726, 0.88);
-    g.fillRoundedRect(16, 12, 640, 80, 12);
+    g.fillRoundedRect(16, 92, W - 32, 62, 12);
     g.lineStyle(2, C.gold, 0.7);
-    g.strokeRoundedRect(16, 12, 640, 80, 12);
-    txt(this, 34, 20, `${this.plan.title}・白天`, 28, C.gold, { serif: true });
-    txt(this, 34, 58, this.plan.area, 18, C.paper, { bold: false });
-    txt(this, 290, 22, '時辰', 18, C.muted);
+    g.strokeRoundedRect(16, 92, W - 32, 62, 12);
+    txt(this, 32, 123, '時辰', 18, C.muted).setOrigin(0, 0.5);
     for (let i = 0; i < this.plan.hours; i++) {
-      this.hourBoxes.push(txt(this, 340 + i * 44, 30, HOUR_NAMES[i], 24, '#1d1726', { serif: true, backgroundColor: '#e9b949', padding: { x: 7, y: 3 } }).setOrigin(0, 0.5));
+      this.hourBoxes.push(txt(this, 80 + i * 44, 123, HOUR_NAMES[i], 24, '#1d1726', { serif: true, backgroundColor: '#e9b949', padding: { x: 7, y: 3 } }).setOrigin(0, 0.5));
     }
-    txt(this, 290, 64, '神蹟', 18, C.muted);
+    txt(this, 316, 123, '神蹟', 18, C.muted).setOrigin(0, 0.5);
     for (let i = 0; i < this.plan.miracles; i++) {
-      this.miracleDots.push(this.add.circle(354 + i * 32, 66, 11, 0xffd76a).setStrokeStyle(2, 0xb3261e));
+      this.miracleDots.push(this.add.circle(378 + i * 30, 123, 11, 0xffd76a).setStrokeStyle(2, 0xb3261e));
     }
-    txt(this, 430, 64, `每次：香火 ${MIRACLE_COST}、今晚妖怪 +${MIRACLE_WAVES} 波`, 15, C.muted, { bold: false }).setOrigin(0, 0.5);
-    this.bar = new ResourceBar(this, W - 520, 20);
+    txt(this, 440, 123, `每次：香火 ${MIRACLE_COST}\n今晚妖怪 +${MIRACLE_WAVES} 波`, 15, C.muted, { bold: false }).setOrigin(0, 0.5);
     this.refreshHeader();
   }
 
@@ -202,10 +203,10 @@ export class MapScene extends Phaser.Scene {
   private resetSide(): { x: number; y: number; w: number; h: number } {
     this.side.destroy();
     this.side = this.add.container(0, 0).setDepth(30);
-    const x = W - PANEL_W - 24;
-    const y = 104;
-    const w = PANEL_W;
-    const h = H - 124;
+    const x = 16;
+    const y = this.mapRect.y + this.mapRect.h + 14;
+    const w = W - 32;
+    const h = H - y - 16;
     this.side.add(panel(this, x, y, w, h));
     return { x, y, w, h };
   }
@@ -395,23 +396,27 @@ export class MapScene extends Phaser.Scene {
   // ---------- 因果簿 ----------
   private showLedger(): void {
     const objs: Phaser.GameObjects.GameObject[] = [];
-    const pw = Math.min(W - 80, 900);
-    const ph = 600;
-    const x = (W - pw) / 2;
+    const pw = W - 32;
+    const ph = Math.min(H - 80, 980);
+    const x = 16;
     const y = (H - ph) / 2;
     objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.5).setOrigin(0).setDepth(900).setInteractive());
     objs.push(panel(this, x, y, pw, ph).setDepth(901));
     objs.push(txt(this, x + 30, y + 20, '因果簿', 32, C.gold, { serif: true }).setDepth(902));
     const color = { good: 0x9fe8c0, warn: 0xffd76a, bad: 0xff9a8a, none: C.paper };
-    ledger(run).forEach((l, i) => {
-      objs.push(txt(this, x + 40, y + 80 + i * 52, l.who, 24, C.paper, { serif: true }).setDepth(902));
-      objs.push(txt(this, x + 180, y + 84 + i * 52, l.state, 20, color[l.tone], { bold: false, wordWrap: { width: pw - 220, useAdvancedWrap: true } }).setDepth(902));
-    });
+    let ly = y + 80;
+    for (const l of ledger(run)) {
+      objs.push(txt(this, x + 30, ly, l.who, 24, C.paper, { serif: true }).setDepth(902));
+      const t = txt(this, x + 150, ly + 3, l.state, 20, color[l.tone], { bold: false, lineSpacing: 4, wordWrap: { width: pw - 180, useAdvancedWrap: true } }).setDepth(902);
+      objs.push(t);
+      ly += Math.max(40, t.height) + 18;
+    }
     const eff = nightEffects(run, this.plan.day);
-    objs.push(txt(this, x + 40, y + 360, '今晚的戰況', 24, C.gold, { serif: true }).setDepth(902));
-    objs.push(txt(this, x + 40, y + 400, eff.length ? eff.map((s) => `・${s}`).join('\n') : '（目前沒有特別的狀況）', 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 80, useAdvancedWrap: true } }).setDepth(902));
+    ly += 10;
+    objs.push(txt(this, x + 30, ly, '今晚的戰況', 24, C.gold, { serif: true }).setDepth(902));
+    objs.push(txt(this, x + 30, ly + 40, eff.length ? eff.map((s) => `・${s}`).join('\n') : '（目前沒有特別的狀況）', 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 60, useAdvancedWrap: true } }).setDepth(902));
     let close: Button | null = null;
-    close = button(this, x + pw / 2, y + ph - 46, 200, 56, '關閉', () => {
+    close = button(this, x + pw / 2, y + ph - 50, 220, 60, '關閉', () => {
       for (const o of objs) o.destroy();
       close?.destroy();
     }, { size: 22, fill: 0x3a3442 });

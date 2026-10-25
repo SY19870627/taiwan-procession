@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { W, H, gameWidth, setGameWidth } from './theme';
+import { W, H, gameHeight, setGameHeight } from './theme';
 
 export const IS_TOUCH = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 const IS_IOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -20,7 +20,7 @@ export async function enterFullscreen(): Promise<void> {
   if (!canFullscreen() || isFullscreen()) return;
   try {
     await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-    await (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.('landscape');
+    await (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.('portrait');
   } catch {
     /* 使用者拒絕或瀏覽器不支援 */
   }
@@ -33,7 +33,7 @@ export function toggleFullscreen(): void {
 
 export function setupMobile(): void {
   if (!IS_TOUCH) return;
-  // 第一次點畫面：進全螢幕、鎖橫向
+  // 第一次點畫面：進全螢幕、鎖直向
   if (canFullscreen()) window.addEventListener('pointerup', () => void enterFullscreen(), { once: true });
   // iPhone 沒有網頁全螢幕：提示加到主畫面（只提示一次）
   const tip = document.getElementById('ios-tip');
@@ -52,17 +52,17 @@ export function setupMobile(): void {
   document.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
-/** 手機橫豎切換、網址列伸縮後：刷新畫面大小；寬度差太多就換寬度並重建目前的場景 */
+/** 網址列伸縮、轉回直向後：刷新畫面大小；高度差太多就換高度並重建目前的場景 */
 export function watchOrientation(game: Phaser.Game): void {
   let timers: number[] = [];
   const later = (fn: () => void, ms: number) => { timers.push(window.setTimeout(fn, ms)); };
   const refresh = () => game.scale.refresh();
   const rebuild = () => {
-    if (window.innerHeight > window.innerWidth) return;
-    const want = gameWidth();
-    if (Math.abs(want - W) < 24) return;
-    setGameWidth(want);
-    game.scale.setGameSize(want, H);
+    if (window.innerHeight < window.innerWidth) return;
+    const want = gameHeight();
+    if (Math.abs(want - H) < 24) return;
+    setGameHeight(want);
+    game.scale.setGameSize(W, want);
     // 只重建「可以安全重建」的場景（戰鬥中不重建，打完再說）
     for (const s of game.scene.getScenes(true)) {
       const safe = (s as unknown as { rebuildable?: boolean }).rebuildable;

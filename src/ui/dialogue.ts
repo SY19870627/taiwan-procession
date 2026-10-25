@@ -7,6 +7,9 @@ import { C, H, W, SERIF } from '../theme';
 import { SPEAKERS, type Line } from '../content/story';
 import { txt } from './widgets';
 
+/** 對話框高度 */
+const BOX_H = 280;
+
 export class Dialogue {
   private scene: Phaser.Scene;
   private lines: Line[];
@@ -27,20 +30,21 @@ export class Dialogue {
     this.lines = lines;
     this.onDone = onDone;
     this.onFx = onFx;
-    const bx = 40;
-    const by = H - 210;
-    const bw = W - 80;
+    // 直式：對話框在下方，比較高、字可以多排幾行
+    const bx = 20;
+    const by = H - BOX_H - 40;
+    const bw = W - 40;
     this.box = scene.add.graphics().setDepth(500);
     this.box.fillStyle(0x000000, 0.4);
-    this.box.fillRoundedRect(bx + 4, by + 6, bw, 180, 18);
+    this.box.fillRoundedRect(bx + 4, by + 6, bw, BOX_H, 18);
     this.box.fillStyle(0x17121f, 0.94);
-    this.box.fillRoundedRect(bx, by, bw, 180, 18);
+    this.box.fillRoundedRect(bx, by, bw, BOX_H, 18);
     this.box.lineStyle(3, C.gold, 0.9);
-    this.box.strokeRoundedRect(bx, by, bw, 180, 18);
+    this.box.strokeRoundedRect(bx, by, bw, BOX_H, 18);
     this.nameTag = txt(scene, bx + 32, by - 22, '', 26, C.gold, { serif: true, backgroundColor: '#17121f', padding: { x: 14, y: 6 } }).setDepth(501);
-    this.body = txt(scene, bx + 36, by + 34, '', 30, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: bw - 72, useAdvancedWrap: true } }).setDepth(501);
-    this.hint = txt(scene, bx + bw - 30, by + 150, '▼ 點一下繼續', 18, C.muted).setOrigin(1, 0.5).setDepth(501).setAlpha(0);
-    scene.tweens.add({ targets: this.hint, y: by + 144, duration: 500, yoyo: true, repeat: -1 });
+    this.body = txt(scene, bx + 30, by + 40, '', 30, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: bw - 60, useAdvancedWrap: true } }).setDepth(501);
+    this.hint = txt(scene, bx + bw - 30, by + BOX_H - 30, '▼ 點一下繼續', 18, C.muted).setOrigin(1, 0.5).setDepth(501).setAlpha(0);
+    scene.tweens.add({ targets: this.hint, y: by + BOX_H - 36, duration: 500, yoyo: true, repeat: -1 });
     // 整個畫面都可以點
     const hit = scene.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.001).setDepth(499).setInteractive();
     hit.on('pointerup', () => this.advance());
@@ -54,8 +58,8 @@ export class Dialogue {
     const key = sp.tex + sp.side;
     let c = this.portraits.get(key);
     if (c) return c;
-    const x = sp.side === 'left' ? W * 0.2 : W * 0.8;
-    const y = H - 200;
+    const x = sp.side === 'left' ? W * 0.25 : W * 0.75;
+    const y = H - BOX_H - 30;
     c = this.scene.add.container(x, y).setDepth(400);
     const img = this.scene.add.image(0, 0, sp.tex).setOrigin(0.5, 1).setScale(sp.scale);
     // 立繪面向畫面中央：右邊的角色往左看
@@ -88,7 +92,7 @@ export class Dialogue {
       if (c === active) {
         this.scene.tweens.add({ targets: c, alpha: 1, duration: 200 });
         c.setDepth(401);
-        this.scene.tweens.add({ targets: c, y: H - 206, duration: 120, yoyo: true });
+        this.scene.tweens.add({ targets: c, y: H - BOX_H - 36, duration: 120, yoyo: true });
       } else if (c.alpha > 0) {
         this.scene.tweens.add({ targets: c, alpha: 0.35, duration: 200 });
         c.setDepth(400);

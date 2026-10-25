@@ -8,6 +8,9 @@ import { run } from '../state';
 import { MAX_LV, MEMBERS, costOf, lvOf, type MemberDef, type MemberKey, type StatDef } from '../core/upgrades';
 import { ResourceBar, button, floatText, panel, txt } from '../ui/widgets';
 
+/** 舞台地面（立繪腳底）的 y */
+const GY = 470;
+
 export interface UnitSceneData {
   /** 打開時先看哪一位 */
   focus?: MemberKey;
@@ -40,41 +43,42 @@ export class UnitScene extends Phaser.Scene {
     this.idx = Math.max(0, this.list.findIndex((m) => m.key === data.focus));
     this.tabs = [];
     this.sliding = false;
-    this.stageW = Math.round(W * 0.42);
+    // 直式：上方舞台（立繪），下方細節
+    this.stageW = W - 40;
 
     // 背景：廟裡的偏殿，暗紅色調
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x1a1018, 0x1a1018, 0x3a1e26, 0x3a1e26, 1);
     bg.fillRect(0, 0, W, H);
     bg.fillStyle(0x24161c, 1);
-    bg.fillRect(0, 520, this.stageW + 20, H - 520);
+    bg.fillRect(0, GY, W, H - GY);
     bg.lineStyle(1, 0x3a2830, 1);
-    for (let x = 0; x < this.stageW + 20; x += 54) bg.lineBetween(x, 520, x - 30, H);
+    for (let x = -100; x < W + 100; x += 54) bg.lineBetween(x, GY, x + (x - W / 2) * 0.4, H);
     // 舞台聚光
-    const cx = this.stageW / 2 + 20;
-    this.add.ellipse(cx, 524, this.stageW * 0.8, 70, 0xffd76a, 0.12);
-    const halo = this.add.circle(cx, 360, 190, 0xffd76a, 0.06);
+    const cx = W / 2;
+    this.add.ellipse(cx, GY + 4, this.stageW * 0.7, 60, 0xffd76a, 0.12);
+    const halo = this.add.circle(cx, GY - 160, 170, 0xffd76a, 0.06);
     this.tweens.add({ targets: halo, scale: 1.08, alpha: 0.1, duration: 1600, yoyo: true, repeat: -1 });
     // 兩側燈籠
-    for (const lx of [40, this.stageW]) {
-      const l = this.add.image(lx, 130, 'lantern').setScale(0.9);
+    for (const lx of [50, W - 50]) {
+      const l = this.add.image(lx, 190, 'lantern').setScale(0.9);
       this.tweens.add({ targets: l, angle: { from: -4, to: 4 }, duration: 1700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
 
     // 上方：返回、標題、香火
     button(this, 86, 46, 132, 56, '◀ 返回', () => this.close(), { size: 22, fill: 0x2a2236 }).setDepth(50);
     txt(this, 172, 22, '隊伍整備', 34, C.gold, { serif: true });
-    txt(this, 176, 66, '左右切換成員，每項屬性分開升級', 17, C.muted, { bold: false });
-    this.bar = new ResourceBar(this, W - 520, 20);
+    this.bar = new ResourceBar(this, 16, 90);
+    txt(this, W - 20, 115, '左右滑動切換成員', 15, C.muted, { bold: false }).setOrigin(1, 0.5);
 
     this.stage = this.add.container(0, 0);
     this.detail = this.add.container(0, 0);
 
     // 左右切換
-    button(this, 52, 340, 64, 120, '◀', () => this.go(-1), { size: 34, fill: 0x3a2430 }).setDepth(40);
-    button(this, this.stageW - 12, 340, 64, 120, '▶', () => this.go(1), { size: 34, fill: 0x3a2430 }).setDepth(40);
+    button(this, 44, GY - 150, 64, 120, '◀', () => this.go(-1), { size: 34, fill: 0x3a2430 }).setDepth(40);
+    button(this, W - 44, GY - 150, 64, 120, '▶', () => this.go(1), { size: 34, fill: 0x3a2430 }).setDepth(40);
     // 舞台上左右滑動也能切換
-    const swipe = this.add.rectangle(cx, 340, this.stageW - 160, 360, 0xffffff, 0.001).setInteractive();
+    const swipe = this.add.rectangle(cx, GY - 150, this.stageW - 140, 320, 0xffffff, 0.001).setInteractive();
     let downX: number | null = null;
     swipe.on('pointerdown', (p: Phaser.Input.Pointer) => (downX = p.x));
     swipe.on('pointerup', (p: Phaser.Input.Pointer) => {
@@ -88,9 +92,9 @@ export class UnitScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ESC', () => this.close());
 
     // 下方：成員分頁（點名字直接跳過去）
-    const tabW = Math.min(150, (this.stageW - 20) / this.list.length);
+    const tabW = (W - 24) / this.list.length;
     this.list.forEach((m, i) => {
-      const t = txt(this, 30 + tabW * i + tabW / 2, 664, m.name.replace('惠澤宮', ''), 17, C.muted)
+      const t = txt(this, 12 + tabW * i + tabW / 2, GY + 122, m.name.replace('惠澤宮', ''), 17, C.muted)
         .setOrigin(0.5).setInteractive({ useHandCursor: true }).setPadding(4, 10, 4, 10);
       t.on('pointerup', () => this.go(i - this.idx));
       this.tabs.push(t);
@@ -109,7 +113,7 @@ export class UnitScene extends Phaser.Scene {
   /** 畫目前這位成員：左邊立繪、右邊細節 */
   private render(dir: number): void {
     const m = this.list[this.idx];
-    const cx = this.stageW / 2 + 20;
+    const cx = W / 2;
     // 立繪：舊的滑出、新的滑入
     const old = this.stage;
     if (dir !== 0) {
@@ -122,16 +126,16 @@ export class UnitScene extends Phaser.Scene {
     const imgs = m.tex.map((k) => this.add.image(0, 0, k).setOrigin(0.5, 1));
     const tallest = Math.max(...imgs.map((i) => i.height));
     const widest = imgs.reduce((a, i) => a + i.width, 0);
-    const scale = Math.min(320 / tallest, (this.stageW - 200) / widest, 2.4);
+    const scale = Math.min(290 / tallest, (this.stageW - 180) / widest, 2.4);
     let x = cx - (widest * scale) / 2;
     for (const img of imgs) {
-      img.setScale(scale).setPosition(x + (img.width * scale) / 2, 520);
+      img.setScale(scale).setPosition(x + (img.width * scale) / 2, GY);
       x += img.width * scale;
       this.stage.add(img);
-      this.tweens.add({ targets: img, y: 514, duration: 900 + Math.random() * 300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.tweens.add({ targets: img, y: GY - 6, duration: 900 + Math.random() * 300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
-    this.stage.add(txt(this, cx, 560, m.name, 36, C.gold, { serif: true }).setOrigin(0.5));
-    this.stage.add(txt(this, cx, 604, m.role, 19, C.paper, { bold: false }).setOrigin(0.5));
+    this.stage.add(txt(this, cx, GY + 36, m.name, 34, C.gold, { serif: true }).setOrigin(0.5));
+    this.stage.add(txt(this, cx, GY + 76, m.role, 18, C.paper, { bold: false }).setOrigin(0.5));
     if (dir !== 0) {
       this.tweens.add({ targets: this.stage, x: 0, alpha: 1, duration: 220, ease: 'Cubic.out', onComplete: () => (this.sliding = false) });
     }
@@ -145,10 +149,10 @@ export class UnitScene extends Phaser.Scene {
   private renderDetail(m: MemberDef): void {
     this.detail.destroy();
     this.detail = this.add.container(0, 0);
-    const px = this.stageW + 50;
-    const pw = W - px - 30;
-    const py = 104;
-    const ph = H - py - 20;
+    const px = 16;
+    const pw = W - 32;
+    const py = GY + 152;
+    const ph = H - py - 16;
     this.detail.add(panel(this, px, py, pw, ph));
     let lore = m.lore;
     if (m.key === 'paoshou') lore += `\n目前信徒 ${run.followers} 人：火力 ×${(1 + run.followers / 30).toFixed(2)}`;
@@ -173,7 +177,7 @@ export class UnitScene extends Phaser.Scene {
       this.detail.add(chip);
       tx += chip.width + 8;
     }
-    const rowsTop = Math.max(ty + 46, py + 150);
+    const rowsTop = ty + 44;
     const rowH = Math.min(92, (py + ph - 20 - rowsTop) / m.stats.length);
     m.stats.forEach((s, i) => this.statRow(m, s, px, rowsTop + i * rowH, pw, rowH));
     if (m.locked) this.detail.add(txt(this, px + pw / 2, py + ph - 30, m.locked, 18, C.muted, { bold: false }).setOrigin(0.5));

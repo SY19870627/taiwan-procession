@@ -36,16 +36,17 @@ export class AlmanacScene extends Phaser.Scene {
     bg.fillRect(0, 0, W, H);
 
     // 紙
-    const pw = Math.min(W - 60, 1320);
-    const ph = 600;
+    // 直式：一整頁直書黃曆，下方留按鈕
+    const pw = W - 32;
+    const ph = H - 170;
     const px = (W - pw) / 2;
-    const py = 20;
+    const py = 18;
     this.drawPaper(px, py, pw, ph);
 
     // 由右往左排：日期 → 宜忌 → 沖煞 → 舊聞 → 昨日
     let x = px + pw - 70;
-    const top = py + 60;
-    const colH = ph - 110;
+    const top = py + 84;
+    const colH = ph - 134;
     // 日期
     txt(this, x, top - 18, '農曆', 20, RED, { serif: true }).setOrigin(0.5, 0);
     this.vtext(x, top + 16, a.lunar, 62, RED, colH);
@@ -83,11 +84,11 @@ export class AlmanacScene extends Phaser.Scene {
     }
 
     // 下方按鈕
-    if (prologue) this.prologueJiao(py + ph);
+    if (prologue) this.prologueJiao();
     else {
       const plan = DAY_PLANS[day];
-      txt(this, W / 2 - 160, H - 50, `${plan.title}・${plan.area}`, 26, C.paper, { serif: true }).setOrigin(1, 0.5);
-      button(this, W / 2 + 60, H - 50, 220, 64, '起　駕', () => go(this, 'map', { day }), { size: 30, fill: 0x8a1b14 });
+      txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
+      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'map', { day }), { size: 32, fill: 0x8a1b14 });
     }
     fullscreenButton(this);
   }
@@ -159,10 +160,10 @@ export class AlmanacScene extends Phaser.Scene {
   }
 
   /** 序章：擲筊請示「明日是否照常暗訪？」，三種結果事先寫明 */
-  private prologueJiao(bottom: number): void {
+  private prologueJiao(): void {
     const j = PROLOGUE_JIAO;
-    const pw = 760;
-    const ph = 300;
+    const pw = W - 40;
+    const ph = 420;
     const x = (W - pw) / 2;
     const y = (H - ph) / 2;
     const objs: Phaser.GameObjects.GameObject[] = [];
@@ -175,24 +176,24 @@ export class AlmanacScene extends Phaser.Scene {
         `笑杯 25%：照舊出巡（香火 +5）`,
         `陰杯 25%：一樣出巡，但多備香火（香火 +10、士氣 -5）`,
       ];
-      const body = txt(this, x + 40, y + 80, lines.join('\n'), 21, C.paper, { bold: false, lineSpacing: 12, wordWrap: { width: pw - 80, useAdvancedWrap: true } }).setDepth(902);
+      const body = txt(this, x + 32, y + 84, lines.join('\n'), 21, C.paper, { bold: false, lineSpacing: 14, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902);
       objs.push(body);
-      const tb = button(this, W / 2, y + ph - 50, 220, 64, '擲　筊', () => {
+      const tb = button(this, W / 2, y + ph - 56, 240, 70, '擲　筊', () => {
         tb.destroy();
         body.setVisible(false);
-        objs.push(...throwJiao(this, y + 150, 903, (r) => {
+        objs.push(...throwJiao(this, y + 180, 903, (r) => {
           const o = j[r];
           run.morale = Math.max(0, Math.min(100, run.morale + o.morale));
           run.incense += o.incense;
           objs.push(txt(this, W / 2, y + 100, JIAO_NAME[r], 44, r === 'holy' ? C.gold : C.paper, { serif: true }).setOrigin(0.5).setDepth(903));
-          objs.push(txt(this, W / 2, y + 220, o.text, 22, C.paper, { bold: false, align: 'center', wordWrap: { width: pw - 80, useAdvancedWrap: true } }).setOrigin(0.5).setDepth(903));
-          button(this, W / 2, y + ph + 50, 260, 64, '翻到明天', () => go(this, 'almanac', { day: 1 }), { size: 26, fill: 0x8a1b14 }).setDepth(903);
+          objs.push(txt(this, W / 2, y + 290, o.text, 22, C.paper, { bold: false, align: 'center', wordWrap: { width: pw - 80, useAdvancedWrap: true } }).setOrigin(0.5).setDepth(903));
+          button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => go(this, 'almanac', { day: 1 }), { size: 26, fill: 0x8a1b14 }).setDepth(903);
         }));
       }, { size: 30, fill: 0x8a1b14 }).setDepth(903);
       objs.push(tb);
     };
-    txt(this, W / 2 - 160, bottom + 50, '阿土伯：「香斷了三次……王爺有話要說。」', 22, C.paper, { serif: true }).setOrigin(1, 0.5);
-    button(this, W / 2 + 60, bottom + 50, 220, 64, '請示王爺', open, { size: 26, fill: 0x8a1b14 });
+    txt(this, W / 2, H - 126, '阿土伯：「香斷了三次……王爺有話要說。」', 22, C.paper, { serif: true }).setOrigin(0.5);
+    button(this, W / 2, H - 62, 280, 76, '請示王爺', open, { size: 30, fill: 0x8a1b14 });
   }
 }
 

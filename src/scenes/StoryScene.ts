@@ -31,10 +31,10 @@ export class StoryScene extends Phaser.Scene {
       this.tweens.add({ targets: s, y: s.y - 60, x: s.x + Phaser.Math.Between(-40, 40), alpha: 0.02, duration: 4000 + i * 300, yoyo: true, repeat: -1 });
     }
     // 遠景剪影
-    if (cs.mood !== 'temple') this.add.tileSprite(0, H - 210, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.8);
-    else this.add.image(W / 2, H - 200, 'temple_huize').setOrigin(0.5, 1).setScale(0.9).setTint(0x7a5a3a);
+    if (cs.mood !== 'temple') this.add.tileSprite(0, H * 0.62, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.8);
+    else this.add.image(W / 2, H * 0.62, 'temple_huize').setOrigin(0.5, 1).setScale(0.9).setTint(0x7a5a3a);
     const label = cs.mood === 'demon' ? '妖怪視角' : '神明視角';
-    txt(this, 40, 30, `${label}｜${cs.place}`, 22, cs.mood === 'demon' ? 0xc9a0ff : C.gold, { serif: true }).setDepth(600);
+    txt(this, 24, 26, `${label}｜${cs.place}`, 22, cs.mood === 'demon' ? 0xc9a0ff : C.gold, { serif: true }).setDepth(600);
     const fx = (k: 'shake' | 'firecracker' | 'flash') => {
       if (k === 'shake') this.cameras.main.shake(300, 0.008);
       if (k === 'flash') this.cameras.main.flash(400, 255, 230, 160);

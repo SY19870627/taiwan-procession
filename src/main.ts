@@ -8,7 +8,7 @@ import { StoryScene } from './scenes/StoryScene';
 import { AlmanacScene } from './scenes/AlmanacScene';
 import { MapScene } from './scenes/MapScene';
 import { PrepScene } from './scenes/PrepScene';
-import { NightScene } from './scenes/NightScene';
+import { NightHud, NightScene } from './scenes/NightScene';
 import { JudgeScene } from './scenes/JudgeScene';
 import { EndScene } from './scenes/EndScene';
 import { UnitScene } from './scenes/UnitScene';
@@ -36,7 +36,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, StoryScene, AlmanacScene, MapScene, PrepScene, NightScene, JudgeScene, EndScene, UnitScene],
+    scene: [BootScene, TitleScene, StoryScene, AlmanacScene, MapScene, PrepScene, NightScene, NightHud, JudgeScene, EndScene, UnitScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;

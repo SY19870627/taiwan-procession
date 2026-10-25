@@ -2,40 +2,39 @@ export const FONT = '"Noto Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "
 export const SERIF = '"Noto Serif TC", "Noto Serif CJK TC", "PMingLiU", serif';
 
 /**
- * 畫面寬度：高度固定 720，寬度跟著螢幕比例（16:9 是 1280，最寬 1800）。
- * 手機比 16:9 更長時，寬度變大、畫面填滿，不會有左右黑邊。
+ * 直式畫面：寬度固定 720，高度跟著螢幕比例（16:9 是 1280，最長 1560）。
+ * 電腦瀏覽器一律 720×1280，置中顯示，左右留邊。
  */
-export function gameWidth(): number {
+export function gameHeight(): number {
   try {
-    if (typeof window === 'undefined') return BASE_W;
+    if (typeof window === 'undefined') return BASE_H;
     const touch = window.matchMedia?.('(pointer: coarse)').matches;
-    const ios = /iPhone|iPod/.test(navigator.userAgent);
-    const standalone = window.matchMedia?.('(display-mode: standalone)').matches
-      || window.matchMedia?.('(display-mode: fullscreen)').matches
-      || (navigator as unknown as { standalone?: boolean }).standalone === true;
-    // 瀏海區（左右各讓出一樣寬）：讀 #game 實際的 left 值
+    if (!touch) return BASE_H;
+    // 讀 #game 實際可用的範圍（已扣掉瀏海與底部橫條）
     const el = document.getElementById('game');
-    const inset = el ? parseFloat(getComputedStyle(el).left) || 0 : 0;
-    const long = (a: number, b: number) => (Math.max(a, b) - 2 * inset) / Math.min(a, b);
-    const a = !touch ? (window.innerWidth - 2 * inset) / window.innerHeight
-      : ios && !standalone ? long(window.innerWidth, window.innerHeight)
-      : long(screen.width, screen.height);
-    if (!isFinite(a) || a <= 0) return BASE_W;
-    return Math.round(Math.min(1800, Math.max(BASE_W, 720 * a)));
+    const w = el?.clientWidth || window.innerWidth;
+    const h = el?.clientHeight || window.innerHeight;
+    const a = Math.max(w, h) / Math.min(w, h);
+    if (!isFinite(a) || a <= 0) return BASE_H;
+    return Math.round(Math.min(1560, Math.max(BASE_H, 720 * a)));
   } catch {
-    return BASE_W;
+    return BASE_H;
   }
 }
 
-export const BASE_W = 1280;
-export let W = gameWidth();
-export const H = 720;
+export const BASE_H = 1280;
+export const W = 720;
+export let H = gameHeight();
 
-export function setGameWidth(w: number): void {
-  W = w;
+export function setGameHeight(h: number): void {
+  H = h;
 }
 
-/** 地面（隊伍腳底）的 y 座標 */
+/** 夜戰的戰場（邏輯座標，畫面上整片縮小放進上方的戰鬥帶） */
+export const FIELD_W = 1280;
+export const FIELD_H = 720;
+
+/** 夜戰戰鬥帶的地面（隊伍腳底）y 座標 */
 export const GROUND_Y = 560;
 
 export const C = {
