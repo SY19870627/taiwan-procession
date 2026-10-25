@@ -13,8 +13,11 @@ export function gameWidth(): number {
     const standalone = window.matchMedia?.('(display-mode: standalone)').matches
       || window.matchMedia?.('(display-mode: fullscreen)').matches
       || (navigator as unknown as { standalone?: boolean }).standalone === true;
-    const long = (a: number, b: number) => Math.max(a, b) / Math.min(a, b);
-    const a = !touch ? window.innerWidth / window.innerHeight
+    // 瀏海區（左右各讓出一樣寬）：讀 #game 實際的 left 值
+    const el = document.getElementById('game');
+    const inset = el ? parseFloat(getComputedStyle(el).left) || 0 : 0;
+    const long = (a: number, b: number) => (Math.max(a, b) - 2 * inset) / Math.min(a, b);
+    const a = !touch ? (window.innerWidth - 2 * inset) / window.innerHeight
       : ios && !standalone ? long(window.innerWidth, window.innerHeight)
       : long(screen.width, screen.height);
     if (!isFinite(a) || a <= 0) return BASE_W;
