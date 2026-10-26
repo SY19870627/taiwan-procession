@@ -45,7 +45,7 @@ export const EVIDENCE: Record<string, Evidence> = {
 };
 
 // ---------- 案子 ----------
-export type Verdict = 'release' | 'recruit' | 'escort' | 'slay' | 'free';
+export type Verdict = 'release' | 'recruit' | 'escort' | 'slay' | 'free' | 'ship';
 
 export const VERDICT_NAME: Record<Verdict, string> = {
   release: '化解超渡',
@@ -53,6 +53,7 @@ export const VERDICT_NAME: Record<Verdict, string> = {
   escort: '押送地府',
   slay: '斬',
   free: '放走',
+  ship: '上王船',
 };
 
 export interface Truth {
@@ -238,7 +239,3 @@ export const CASES: Record<string, GhostCase> = {
   },
 };
 
-/** 這隻鬼相關的證據 id */
-export function evidenceOf(caseId: string): string[] {
-  return Object.values(EVIDENCE).filter((e) => e.ghost === caseId).map((e) => e.id);
-}
