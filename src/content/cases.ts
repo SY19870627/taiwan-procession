@@ -45,7 +45,7 @@ export const EVIDENCE: Record<string, Evidence> = {
 };
 
 // ---------- 案子 ----------
-export type Verdict = 'release' | 'recruit' | 'escort' | 'slay' | 'free';
+export type Verdict = 'release' | 'recruit' | 'escort' | 'slay' | 'free' | 'ship';
 
 export const VERDICT_NAME: Record<Verdict, string> = {
   release: '化解超渡',
@@ -53,7 +53,12 @@ export const VERDICT_NAME: Record<Verdict, string> = {
   escort: '押送地府',
   slay: '斬',
   free: '放走',
+  ship: '上王船',
 };
+
+/** 案卷記載的毛病，以及要用哪一種證據補正 */
+export type Defect = '塗改' | '缺頁' | '模糊';
+export const DEFECT_NEEDS: Record<Defect, EvidenceKind> = { 塗改: '物證', 缺頁: '文獻', 模糊: '證詞' };
 
 export interface Truth {
   /** 對哪一句供詞出示 */
@@ -100,8 +105,10 @@ export interface GhostCase {
   innocent: boolean;
   /** 收容時一起得到的證據 */
   onCollect?: string[];
-  /** 夜審供詞 */
+  /** 夜審供詞（第二章：案卷上的記載） */
   statements: string[];
+  /** 第二章：每一筆記載的毛病（塗改要物證、缺頁要文獻、模糊要證詞；null 是記載無誤） */
+  dossier?: (Defect | null)[];
   /** 追問每一句時多說的話 */
   press: string[];
   truths: Truth[];
@@ -238,7 +245,3 @@ export const CASES: Record<string, GhostCase> = {
   },
 };
 
-/** 這隻鬼相關的證據 id */
-export function evidenceOf(caseId: string): string[] {
-  return Object.values(EVIDENCE).filter((e) => e.ghost === caseId).map((e) => e.id);
-}

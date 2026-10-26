@@ -269,7 +269,7 @@ export interface LedgerLine {
 }
 
 export function ledger(r: RunState): LedgerLine[] {
-  const b = r.b;
+  const b = r.b as unknown as BelieverState;
   const axiu: Record<BelieverState['axiu'], LedgerLine> = {
     sick: { who: '阿秀嬸', state: '孫子發燒（明天會住院；根源在夜裡纏著他的東西）', tone: 'warn' },
     eased: { who: '阿秀嬸', state: '阿弟暫時好一點（第二夜前要審古井邊的鬼）', tone: 'warn' },
@@ -321,6 +321,8 @@ export interface Epitaph {
   who: string;
   good: boolean;
   text: string;
+  /** 不算圓滿也不算遺憾時的標籤（例如「隨船」） */
+  tag?: string;
 }
 
 export function epitaphs(r: RunState): Epitaph[] {

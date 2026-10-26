@@ -3,9 +3,8 @@
  * 停下來做事才花時辰；略過就走過去了，不能回頭。
  */
 import type { RunState } from '../state';
-import { caseDone, gainEvidence, isHeld } from '../state';
-import { CARDS, type Almanac, type Card } from './believers';
-import { CASES, EVIDENCE } from './cases';
+import type { Almanac } from './believers';
+import type { StreetTheme } from '../art/backdrop';
 
 export type Encounter =
   /** 信徒（人的事），用 believers.ts 的信徒卡 */
@@ -40,8 +39,8 @@ export interface DayPlan {
   routes: RouteDef[];
   /** 兩條路會合之後 */
   post: Encounter[];
-  /** 街景：城市、半城半鄉、山 */
-  theme: 'city' | 'mixed' | 'hill';
+  /** 街景：城市、半城半鄉、山；第二章的漁港、海邊 */
+  theme: StreetTheme;
 }
 
 // ---------- 可以重複用的事 ----------
@@ -160,57 +159,6 @@ const DAY3: DayPlan = {
 
 export const DAY_PLANS: Record<number, DayPlan> = { 1: DAY1, 2: DAY2, 3: DAY3 };
 
-// ---------- 路上的事：現在能不能處理 ----------
-export type GhostMood = 'normal' | 'hiding' | 'fled';
-
-/** 戾氣讓鬼躲起來或逃走 */
-export function ghostMood(r: RunState, caseId: string): GhostMood {
-  const t = CASES[caseId].timid;
-  if (r.liqi >= t + 1) return 'fled';
-  if (r.liqi >= t) return 'hiding';
-  return 'normal';
-}
-
-/** 這件事今天還會不會出現（null = 不出現，直接略過） */
-export function visible(r: RunState, e: Encounter): boolean {
-  switch (e.kind) {
-    case 'person': return CARDS[e.card](r) !== null;
-    case 'ghost': return !caseDone(e.caseId) && !isHeld(e.caseId);
-    case 'clue': return !r.evidence.includes(e.evidence) && (!e.needs || r.evidence.includes(e.needs));
-    case 'talk': return !r.evidence.includes(e.evidence);
-    case 'imp': return true;
-  }
-}
-
-/** 收容一隻鬼要幾個時辰：平常不花時辰（只佔收容格）；躲起來要花 1 個時辰勸出來 */
-export function collectHours(r: RunState, caseId: string): number {
-  return ghostMood(r, caseId) === 'hiding' ? 1 : 0;
-}
-
-/** 戾氣 3：凡人也不太敢靠近，問話會沒人理 */
-export function talkBlocked(r: RunState): boolean {
-  return r.liqi >= 3;
-}
-
-/** 一句話摘要（「前方」清單用） */
-export function summary(r: RunState, e: Encounter): { icon: string; title: string; cost: string; color: number } {
-  switch (e.kind) {
-    case 'person': {
-      const c = CARDS[e.card](r) as Card;
-      const min = Math.min(...c.options.map((o) => o.hours));
-      return { icon: '人', title: `${e.place}・${c.who}${c.deadline ? '【急】' : ''}`, cost: `${min} 時辰起`, color: 0xe9b949 };
-    }
-    case 'ghost': {
-      const k = CASES[e.caseId];
-      const mood = ghostMood(r, e.caseId);
-      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost: mood === 'fled' ? '會逃走' : collectHours(r, e.caseId) ? `收容 ${collectHours(r, e.caseId)} 時辰＋1 格` : '收容佔 1 格', color: 0x9fd0ff };
-    }
-    case 'imp': return { icon: '妖', title: `${e.place}・小妖`, cost: '驅散 1 時辰', color: 0xc9a0ff };
-    case 'clue': return { icon: '證', title: `${e.place}・線索`, cost: `${e.hours} 時辰`, color: 0x9fe8c0 };
-    case 'talk': return { icon: '問', title: `${e.place}・${e.who}`, cost: talkBlocked(r) ? '不敢靠近' : `問話 ${e.hours} 時辰`, color: 0x9fe8c0 };
-  }
-}
-
 // ---------- 天亮：處理期限、寫「昨日」 ----------
 /**
  * 夜審結束後呼叫（n = 剛過完第幾夜）。改變信徒狀態，回傳明天黃曆「昨日」欄的文字。
@@ -262,26 +210,20 @@ export function endOfDay3(r: RunState): void {
   if (r.b.azhe === 'believer') r.b.azhe = 'stayed';
 }
 
-/** 起駕時把黃曆上的文獻收進證物袋，回傳新得到的 */
-export function takeDocs(plan: DayPlan): string[] {
-  return plan.docs.filter((id) => gainEvidence(id));
-}
-
-/** 這隻鬼之後還會在哪裡出現（今天之後） */
-export function laterSightings(caseId: string, day: number): string[] {
+/** 第一章：判決對信徒的影響，回傳要多顯示的句子 */
+export function verdictEffects(r: RunState, id: string, verdict: string): string[] {
   const out: string[] = [];
-  for (let d = day + 1; d <= 3; d++) {
-    const p = DAY_PLANS[d];
-    for (const r of p.routes) {
-      for (const e of [...p.pre, ...r.encounters, ...p.post]) {
-        if (e.kind === 'ghost' && e.caseId === caseId) out.push(`第${'一二三'[d - 1]}天${r.id}線・${e.place}`);
-      }
-    }
+  if (id === 'gui' && r.b.axiu !== 'regret' && r.b.axiu !== 'cured') {
+    r.b.axiu = 'cured';
+    out.push('', '當晚，阿弟睡得很沉，燒也退了。');
+  }
+  if (id === 'tian' && verdict === 'release') {
+    r.b.azhe = 'stayed';
+    out.push('', '小芸替阿添公傳了話。阿哲照著煮出那鍋黑糖水，說味道跟小時候一模一樣。');
+  }
+  if (id === 'biao' && verdict === 'free' && r.flags.freed_biao && r.b.xiaoyun !== 'protected' && r.b.xiaoyun !== 'invited') {
+    r.b.xiaoyun = 'lost';
+    out.push('', '隔天，河邊又傳出有孩子差點落水。小芸再也不敢靠近那條河。');
   }
   return out;
-}
-
-/** 證據跟哪隻鬼有關（顯示用） */
-export function evidenceFor(id: string): string {
-  return CASES[EVIDENCE[id].ghost].dayName;
 }

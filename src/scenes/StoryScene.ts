@@ -30,9 +30,16 @@ export class StoryScene extends Phaser.Scene {
         .setTint(tint).setAlpha(0.12).setScale(Phaser.Math.FloatBetween(1, cs.mood === 'demon' ? 4 : 1.2));
       this.tweens.add({ targets: s, y: s.y - 60, x: s.x + Phaser.Math.Between(-40, 40), alpha: 0.02, duration: 4000 + i * 300, yoyo: true, repeat: -1 });
     }
-    // 遠景剪影
-    if (cs.mood !== 'temple') this.add.tileSprite(0, H * 0.62, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.8);
-    else this.add.image(W / 2, H * 0.62, 'temple_huize').setOrigin(0.5, 1).setScale(0.9).setTint(0x7a5a3a);
+    // 遠景剪影：山或海（第二章在海邊）
+    if (cs.bg === 'sea') {
+      const sea = this.add.graphics();
+      sea.fillStyle(cs.mood === 'demon' ? 0x0a0c22 : 0x2a2a44, 1);
+      sea.fillRect(0, H * 0.5, W, H * 0.5);
+      sea.lineStyle(2, cs.mood === 'demon' ? 0x3a2a6a : 0x8a7a6a, 0.5);
+      for (let y = H * 0.52; y < H; y += 26) for (let x = ((y / 26) % 2) * 30; x < W; x += 80) sea.lineBetween(x, y, x + 36, y);
+      this.add.image(W * 0.3, H * 0.56, 'wangchuan').setOrigin(0.5, 1).setScale(0.9).setTint(cs.mood === 'demon' ? 0x6a5a8a : 0xffe0b0);
+    } else if (cs.mood !== 'temple') this.add.tileSprite(0, H * 0.62, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.8);
+    else this.add.image(W / 2, H * 0.62, cs.temple ?? 'temple_huize').setOrigin(0.5, 1).setScale(0.9).setTint(0x7a5a3a);
     const label = cs.mood === 'demon' ? '妖怪視角' : '神明視角';
     txt(this, 24, 26, `${label}｜${cs.place}`, 22, cs.mood === 'demon' ? 0xc9a0ff : C.gold, { serif: true }).setDepth(600);
     const fx = (k: 'shake' | 'firecracker' | 'flash') => {

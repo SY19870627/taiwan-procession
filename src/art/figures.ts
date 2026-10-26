@@ -4,9 +4,9 @@
  */
 import Phaser from 'phaser';
 
-type G = Phaser.GameObjects.Graphics;
+export type G = Phaser.GameObjects.Graphics;
 
-function make(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: G, w: number, h: number) => void): void {
+export function make(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: G, w: number, h: number) => void): void {
   if (scene.textures.exists(key)) return;
   const g = scene.make.graphics({ x: 0, y: 0 }, false);
   draw(g, w, h);
@@ -14,10 +14,10 @@ function make(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: 
   g.destroy();
 }
 
-const SKIN = 0xe8b98a;
-const DARK = 0x231a2c;
+export const SKIN = 0xe8b98a;
+export const DARK = 0x231a2c;
 
-interface PersonOpt {
+export interface PersonOpt {
   robe: number;
   trim?: number;
   pants?: number;
@@ -26,17 +26,19 @@ interface PersonOpt {
   tall?: number;
   /** 身體寬度倍率 */
   wide?: number;
-  hat?: 'none' | 'cap' | 'tall' | 'flat' | 'bun' | 'helmet' | 'scarf';
+  hat?: 'none' | 'cap' | 'tall' | 'flat' | 'bun' | 'helmet' | 'scarf' | 'straw' | 'band';
   hatColor?: number;
   /** 臉譜：上半臉、下半臉顏色 */
   paint?: [number, number];
   tongue?: boolean;
   /** 手上拿的東西 */
-  item?: 'incense' | 'fan' | 'club' | 'chain' | 'gong' | 'flag' | 'firecracker' | 'brush' | 'none';
+  item?: 'incense' | 'fan' | 'club' | 'chain' | 'gong' | 'flag' | 'firecracker' | 'brush' | 'rudder' | 'letter' | 'sack' | 'hammer' | 'basket' | 'token' | 'none';
+  /** 圍裙 */
+  apron?: number;
 }
 
 /** 一般人形：腳 → 長袍 → 手 → 頭 → 帽子 → 手持物 */
-function person(g: G, w: number, h: number, o: PersonOpt): void {
+export function person(g: G, w: number, h: number, o: PersonOpt): void {
   const t = o.tall ?? 1;
   const k = o.wide ?? 1;
   const cx = w / 2;
@@ -65,6 +67,10 @@ function person(g: G, w: number, h: number, o: PersonOpt): void {
     g.fillRect(cx - 17 * k, foot - 19 * t, 34 * k, 5 * t);
     g.fillRect(cx - 2, top, 4, bodyH - 4);
     g.fillRect(cx - 12 * k, top + bodyH * 0.38, 24 * k, 4);
+  }
+  if (o.apron !== undefined) {
+    g.fillStyle(o.apron, 1);
+    g.fillRect(cx - 10 * k, top + bodyH * 0.35, 20 * k, bodyH * 0.6);
   }
   // 手臂
   g.fillStyle(o.robe, 1);
@@ -132,6 +138,14 @@ function person(g: G, w: number, h: number, o: PersonOpt): void {
     case 'scarf':
       g.fillRect(cx - headR, hy - headR, headR * 2, 6);
       break;
+    case 'straw':
+      // 斗笠：寬寬的尖帽
+      g.fillTriangle(cx - headR - 14, hy - 2, cx + headR + 14, hy - 2, cx, hy - headR - 16);
+      break;
+    case 'band':
+      g.fillRect(cx - headR, hy - headR * 0.5, headR * 2, 4);
+      g.fillTriangle(cx + headR - 2, hy - headR * 0.5, cx + headR + 8, hy - headR * 0.5 + 8, cx + headR + 2, hy - headR * 0.5 + 10);
+      break;
     default:
       break;
   }
@@ -178,6 +192,46 @@ function person(g: G, w: number, h: number, o: PersonOpt): void {
       g.fillStyle(0xd62b2b, 1);
       for (let i = 0; i < 6; i++) g.fillRect(hx + 1, handY - 32 + i * 5, 6, 4);
       break;
+    case 'rudder':
+      // 斷掉的舵：一截木柄＋半片舵葉
+      g.fillStyle(0x4a3220, 1);
+      g.fillRect(hx - 3, handY - 46, 6, 50);
+      g.fillStyle(0x5a3e28, 1);
+      g.fillTriangle(hx - 3, handY + 4, hx - 3, handY + 30, hx - 22, handY + 22);
+      g.lineStyle(1, 0x2a1a10, 1);
+      g.lineBetween(hx - 3, handY - 8, hx + 3, handY - 14);
+      break;
+    case 'letter':
+      g.fillStyle(0xf4efe0, 1);
+      g.fillRect(hx - 4, handY - 14, 14, 10);
+      g.lineStyle(1, 0xa3261c, 1);
+      g.strokeRect(hx - 4, handY - 14, 14, 10);
+      break;
+    case 'sack':
+      g.fillStyle(0xd8c8a0, 1);
+      g.fillRoundedRect(hx - 4, handY - 30, 22, 30, 6);
+      g.fillStyle(0xa3261c, 1);
+      g.fillRect(hx, handY - 20, 14, 3);
+      break;
+    case 'hammer':
+      g.fillStyle(0x6b3b1f, 1);
+      g.fillRect(hx - 1.5, handY - 26, 3, 28);
+      g.fillStyle(0x8a8a90, 1);
+      g.fillRect(hx - 6, handY - 30, 12, 6);
+      break;
+    case 'basket':
+      g.fillStyle(0x9a7a3a, 1);
+      g.fillEllipse(hx + 2, handY, 20, 12);
+      g.fillStyle(0xf4f4f0, 1);
+      g.fillEllipse(hx + 2, handY - 4, 14, 6);
+      break;
+    case 'token':
+      // 令牌
+      g.fillStyle(0xe9b949, 1);
+      g.fillRoundedRect(hx - 5, handY - 26, 10, 22, 3);
+      g.fillStyle(0xa3261c, 1);
+      g.fillRect(hx - 2, handY - 22, 4, 12);
+      break;
     case 'brush':
       g.fillStyle(0x6b3b1f, 1);
       g.fillRect(hx - 1, handY - 22, 2, 22);
@@ -187,6 +241,57 @@ function person(g: G, w: number, h: number, o: PersonOpt): void {
     default:
       break;
   }
+}
+
+/** 神轎：四個轎班扛著；轎衫、轎身、轎頂的顏色可以換（第二章各千歲的轎班轎衫顏色不同） */
+export function drawPalanquin(g: G, w: number, h: number, o: { shirt: number; body: number; roof: number; sash?: number }): void {
+  const cx = w / 2;
+  // 轎班
+  for (const dx of [-62, -26, 26, 62]) {
+    g.fillStyle(DARK, 1);
+    g.fillRect(cx + dx - 6, h - 18, 5, 16);
+    g.fillRect(cx + dx + 1, h - 18, 5, 16);
+    g.fillStyle(o.shirt, 1);
+    g.fillRect(cx + dx - 9, h - 58, 18, 42);
+    g.fillStyle(o.sash ?? 0xc8372d, 1);
+    g.fillRect(cx + dx - 9, h - 38, 18, 4);
+    g.fillStyle(SKIN, 1);
+    g.fillCircle(cx + dx, h - 66, 9);
+    g.fillStyle(o.sash ?? 0xc8372d, 1);
+    g.fillRect(cx + dx - 9, h - 74, 18, 4);
+  }
+  // 轎槓
+  g.fillStyle(0x5a2e14, 1);
+  g.fillRect(cx - 96, h - 62, 192, 7);
+  // 轎身
+  g.fillStyle(o.body, 1);
+  g.fillRect(cx - 44, h - 128, 88, 68);
+  g.fillStyle(0xe9b949, 1);
+  g.fillRect(cx - 44, h - 128, 88, 6);
+  g.fillRect(cx - 44, h - 66, 88, 6);
+  g.fillRect(cx - 44, h - 128, 6, 68);
+  g.fillRect(cx + 38, h - 128, 6, 68);
+  // 轎窗與神光
+  g.fillStyle(0x2a1208, 1);
+  g.fillRect(cx - 26, h - 116, 52, 42);
+  g.fillStyle(0xffd76a, 0.9);
+  g.fillCircle(cx, h - 96, 14);
+  g.fillStyle(0xfff3c4, 1);
+  g.fillCircle(cx, h - 96, 7);
+  // 轎頂（燕尾）
+  g.fillStyle(o.roof, 1);
+  g.beginPath();
+  g.moveTo(cx - 62, h - 126);
+  g.lineTo(cx + 62, h - 126);
+  g.lineTo(cx + 40, h - 150);
+  g.lineTo(cx - 40, h - 150);
+  g.closePath();
+  g.fillPath();
+  g.fillStyle(0xe9b949, 1);
+  g.fillTriangle(cx - 66, h - 122, cx - 50, h - 128, cx - 70, h - 140);
+  g.fillTriangle(cx + 66, h - 122, cx + 50, h - 128, cx + 70, h - 140);
+  g.fillCircle(cx, h - 160, 8);
+  g.fillRect(cx - 2, h - 156, 4, 8);
 }
 
 const FLAG_COLORS = [0xf2f0e6, 0x2f8f5a, 0x22232b, 0xd23a2a, 0xe7c13a];
@@ -291,55 +396,7 @@ export function makeFigures(scene: Phaser.Scene): void {
   });
 
   // 神轎：四個轎班扛著
-  make(scene, 'palanquin', 200, 190, (g, w, h) => {
-    const cx = w / 2;
-    // 轎班
-    for (const dx of [-62, -26, 26, 62]) {
-      g.fillStyle(DARK, 1);
-      g.fillRect(cx + dx - 6, h - 18, 5, 16);
-      g.fillRect(cx + dx + 1, h - 18, 5, 16);
-      g.fillStyle(0xf2f0e6, 1);
-      g.fillRect(cx + dx - 9, h - 58, 18, 42);
-      g.fillStyle(0xc8372d, 1);
-      g.fillRect(cx + dx - 9, h - 38, 18, 4);
-      g.fillStyle(SKIN, 1);
-      g.fillCircle(cx + dx, h - 66, 9);
-      g.fillStyle(0xc8372d, 1);
-      g.fillRect(cx + dx - 9, h - 74, 18, 4);
-    }
-    // 轎槓
-    g.fillStyle(0x5a2e14, 1);
-    g.fillRect(cx - 96, h - 62, 192, 7);
-    // 轎身
-    g.fillStyle(0x8a1b14, 1);
-    g.fillRect(cx - 44, h - 128, 88, 68);
-    g.fillStyle(0xe9b949, 1);
-    g.fillRect(cx - 44, h - 128, 88, 6);
-    g.fillRect(cx - 44, h - 66, 88, 6);
-    g.fillRect(cx - 44, h - 128, 6, 68);
-    g.fillRect(cx + 38, h - 128, 6, 68);
-    // 轎窗與神光
-    g.fillStyle(0x2a1208, 1);
-    g.fillRect(cx - 26, h - 116, 52, 42);
-    g.fillStyle(0xffd76a, 0.9);
-    g.fillCircle(cx, h - 96, 14);
-    g.fillStyle(0xfff3c4, 1);
-    g.fillCircle(cx, h - 96, 7);
-    // 轎頂（燕尾）
-    g.fillStyle(0xb3261e, 1);
-    g.beginPath();
-    g.moveTo(cx - 62, h - 126);
-    g.lineTo(cx + 62, h - 126);
-    g.lineTo(cx + 40, h - 150);
-    g.lineTo(cx - 40, h - 150);
-    g.closePath();
-    g.fillPath();
-    g.fillStyle(0xe9b949, 1);
-    g.fillTriangle(cx - 66, h - 122, cx - 50, h - 128, cx - 70, h - 140);
-    g.fillTriangle(cx + 66, h - 122, cx + 50, h - 128, cx + 70, h - 140);
-    g.fillCircle(cx, h - 160, 8);
-    g.fillRect(cx - 2, h - 156, 4, 8);
-  });
+  make(scene, 'palanquin', 200, 190, (g, w, h) => drawPalanquin(g, w, h, { shirt: 0xf2f0e6, body: 0x8a1b14, roof: 0xb3261e }));
 
   // 涼傘
   make(scene, 'umbrella', 90, 170, (g, w, h) => {

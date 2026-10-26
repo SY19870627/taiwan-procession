@@ -297,7 +297,7 @@ export function skyColors(hour: number): [number, number] {
   return [last[1], last[2]];
 }
 
-export type StreetTheme = 'city' | 'mixed' | 'hill';
+export type StreetTheme = 'city' | 'mixed' | 'hill' | 'harbor' | 'shore';
 
 /**
  * 會往後捲動的街景：天空、遠景（城市或山）、街屋或田園、馬路。
@@ -325,14 +325,17 @@ export class Street {
     this.theme = opts.theme;
     this.sky = scene.add.graphics().setDepth(-100);
     this.setHour(opts.hour ?? (opts.night ? 21 : 9));
-    const farKey = opts.night ? (opts.theme === 'city' ? 'skylineN' : 'mtnFarN') : opts.theme === 'city' ? 'skyline' : 'mtnFar';
-    this.far = scene.add.tileSprite(0, GROUND_Y - 110, W, scene.textures.get(farKey).getSourceImage().height, farKey).setOrigin(0, 1).setDepth(-90);
-    if (opts.theme !== 'city') {
+    const sea = opts.theme === 'harbor' || opts.theme === 'shore';
+    const farKey = sea ? (opts.night ? 'seaFarN' : 'seaFar') : opts.night ? (opts.theme === 'city' ? 'skylineN' : 'mtnFarN') : opts.theme === 'city' ? 'skyline' : 'mtnFar';
+    this.far = scene.add.tileSprite(0, GROUND_Y - (sea ? 80 : 110), W, scene.textures.get(farKey).getSourceImage().height, farKey).setOrigin(0, 1).setDepth(-90);
+    if (opts.theme === 'mixed' || opts.theme === 'hill') {
       this.near = scene.add.tileSprite(0, GROUND_Y - 90, W, 220, opts.night ? 'mtnFarN' : 'mtnNear').setOrigin(0, 1).setDepth(-85);
       if (opts.night) this.near.setTint(0x2a2a40);
     }
-    this.road = scene.add.tileSprite(0, GROUND_Y - 90, W, H - (GROUND_Y - 90), opts.night ? 'roadN' : 'road').setOrigin(0, 0).setDepth(-60);
-    this.ruralMix = opts.theme === 'city' ? 0 : opts.theme === 'hill' ? 0.8 : 0.3;
+    const roadKey = opts.theme === 'shore' ? (opts.night ? 'sandN' : 'sandroad') : opts.night ? 'roadN' : 'road';
+    this.road = scene.add.tileSprite(0, GROUND_Y - 90, W, H - (GROUND_Y - 90), roadKey).setOrigin(0, 0).setDepth(-60);
+    const MIX: Record<StreetTheme, number> = { city: 0, mixed: 0.3, hill: 0.8, harbor: 0.25, shore: 0.65 };
+    this.ruralMix = MIX[opts.theme];
     while (this.nextX < W + 300) this.addProp();
   }
 
@@ -347,7 +350,10 @@ export class Street {
   private addProp(): void {
     const rural = Math.random() < this.ruralMix;
     const n = this.night ? 'N' : '';
-    const key = rural ? `rural${n}${this.k % 4}` : `shop${n}${(this.k * 3) % 8}`;
+    let key = rural ? `rural${n}${this.k % 4}` : `shop${n}${(this.k * 3) % 8}`;
+    // 第二章：漁港的街屋與碼頭、海邊的防風林與消波塊
+    if (this.theme === 'harbor') key = rural ? `quay${n}${this.k % 3}` : `hshop${n}${(this.k * 3) % 8}`;
+    if (this.theme === 'shore') key = rural ? (this.k % 2 ? 'dune' : 'tetrapod') : `hshop${n}${(this.k * 3) % 8}`;
     const img = this.scene.add.image(this.nextX, GROUND_Y - 88, key).setOrigin(0, 1).setDepth(-70);
     this.props.push(img);
     this.nextX += img.width + (rural ? 10 : 0);

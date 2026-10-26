@@ -48,7 +48,7 @@ export const UNITS: Record<UnitId, UnitDef> = {
   },
 };
 
-export type EnemyId = 'wang' | 'mei' | 'kui' | 'boss';
+export type EnemyId = 'wang' | 'mei' | 'kui' | 'boss' | 'yi' | 'sha' | 'chu' | 'tide';
 
 export interface EnemyDef {
   id: EnemyId;
@@ -71,4 +71,11 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   mei: { id: 'mei', name: '疾魅', hp: 60, atk: 5, speed: 92, cd: 0.7, range: 22, armor: 1, quakeWeak: 1, capturable: true },
   kui: { id: 'kui', name: '石屑傀', hp: 210, atk: 12, speed: 30, cd: 1.6, range: 30, armor: 0.6, quakeWeak: 1.6, capturable: true },
   boss: { id: 'boss', name: '石駒', hp: 1500, atk: 26, speed: 34, cd: 1.6, range: 50, armor: 0.45, quakeWeak: 1.2, capturable: false },
+  // 第二章（東津）
+  yi: { id: 'yi', name: '小疫鬼', hp: 95, atk: 6, speed: 44, cd: 1.0, range: 26, armor: 1, quakeWeak: 1, capturable: true },
+  sha: { id: 'sha', name: '海煞', hp: 60, atk: 5, speed: 96, cd: 0.7, range: 22, armor: 1, quakeWeak: 1, capturable: true },
+  /** 黑潮的觸手：不會走，從沙裡伸出來拖住王船 */
+  chu: { id: 'chu', name: '觸手', hp: 260, atk: 9, speed: 0, cd: 1.8, range: 260, armor: 0.8, quakeWeak: 1.4, capturable: false },
+  /** 黑潮：在海裡，打不到；會捲浪 */
+  tide: { id: 'tide', name: '黑潮', hp: 99999, atk: 26, speed: 0, cd: 2, range: 0, armor: 1, quakeWeak: 1, capturable: false },
 };

@@ -1,11 +1,11 @@
 /**
  * 大地圖（出巡圖）：選章節。一章一個地方的祭典與魔王。
- * 目前只有「萬舺・青嶺王暗訪」可以玩，其他章節先標在地圖上（尚未開放）。
+ * 目前可以玩「萬舺・青嶺王暗訪」與「東津・迎王」，其他章節先標在地圖上（尚未開放）。
  * 遊戲中一律用虛構名稱（見設計文件 14.5 命名原則）。
  */
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
-import { resetRun } from '../state';
+import { startChapter } from '../content/chapter';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 
 interface Chapter {
@@ -40,9 +40,9 @@ const CHAPTERS: Chapter[] = [
     scale: '尚未開放',
   },
   {
-    id: 'dongjin', place: '東津', title: '迎王', lon: 120.45, lat: 22.46, open: false,
-    desc: '三年一科的迎王，王船出海。送走的是瘟疫，還是別的什麼？',
-    scale: '尚未開放',
+    id: 'dongjin', place: '東津', title: '迎王', lon: 120.45, lat: 22.46, open: true,
+    desc: '三年一科的迎王，代天巡狩的千歲爺駐駕代天府。雲王爺開路、千歲爺調閱案卷。王船出海那晚，送走的是瘟疫，還是別的什麼？',
+    scale: '三天＋送王・五位信徒・四個有冤情的鬼・魔王黑潮',
   },
   {
     id: 'lishan', place: '鯉山', title: '鯉山之夜', lon: 121.14, lat: 22.76, open: false,
@@ -142,7 +142,7 @@ export class ChapterScene extends Phaser.Scene {
     c.add(txt(this, 40, y + 92, ch.desc, 19, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: W - 80, useAdvancedWrap: true } }));
     const b: Button = button(this, W / 2, y + 296 - 56, 300, 72, ch.open ? '出　巡' : '尚未開放', () => {
       if (!ch.open) return;
-      resetRun();
+      startChapter(ch.id);
       go(this, 'almanac', { prologue: true });
     }, { size: 30, fill: 0x8a1b14 });
     b.setEnabled(ch.open);

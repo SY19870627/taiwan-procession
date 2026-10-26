@@ -5,8 +5,8 @@
  */
 import Phaser from 'phaser';
 import { C, H, W, hex } from '../theme';
-import { PROLOGUE, PROLOGUE_JIAO, type Almanac } from '../content/believers';
-import { DAY_PLANS } from '../content/days';
+import type { Almanac } from '../content/believers';
+import { CH } from '../content/chapter';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt } from '../ui/widgets';
 import { JIAO_NAME, JIAO_RULE, throwJiao, type JiaoResult } from '../ui/jiao';
@@ -27,7 +27,7 @@ export class AlmanacScene extends Phaser.Scene {
     const prologue = !!data.prologue;
     const day = data.day ?? 1;
     this.restartData = { day, prologue };
-    const a: Almanac = prologue ? PROLOGUE : DAY_PLANS[day].almanac(run);
+    const a: Almanac = prologue ? CH().prologue : CH().days[day].almanac(run);
     const yesterday = prologue ? [] : run.yesterday;
     this.cameras.main.fadeIn(600, 10, 8, 18);
 
@@ -91,7 +91,7 @@ export class AlmanacScene extends Phaser.Scene {
     // 下方按鈕
     if (prologue) this.prologueJiao();
     else {
-      const plan = DAY_PLANS[day];
+      const plan = CH().days[day];
       txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
       button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: { key: 'day', data: { day } } }), { size: 32, fill: 0x8a1b14 });
     }
@@ -175,7 +175,7 @@ export class AlmanacScene extends Phaser.Scene {
 
   /** 序章：擲筊請示「明日是否照常暗訪？」，三種結果事先寫明 */
   private prologueJiao(): void {
-    const j = PROLOGUE_JIAO;
+    const j = CH().jiao;
     const pw = W - 40;
     const ph = 600;
     const x = (W - pw) / 2;
@@ -185,7 +185,7 @@ export class AlmanacScene extends Phaser.Scene {
       objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.4).setOrigin(0).setDepth(900).setInteractive());
       objs.push(panel(this, x, y, pw, ph).setDepth(901));
       objs.push(txt(this, W / 2, y + 36, `擲筊・請示：${j.ask}`, 30, C.gold, { serif: true }).setOrigin(0.5).setDepth(902));
-      const rules = ['照傳統擲三次：', '聖杯（一平一凸）：王爺應允', '笑杯（兩平）：王爺在笑', '陰杯（兩凸）：王爺要大家小心'];
+      const rules = ['照傳統擲三次：', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`, `笑杯（兩平）：${j.laugh.text.replace(/。$/, '')}`, `陰杯（兩凸）：${j.yin.text.replace(/。$/, '')}`];
       objs.push(txt(this, x + 32, y + 76, rules.join('\n'), 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
       const rows: Phaser.GameObjects.Text[] = [];
       for (let i = 0; i < j.times; i++) rows.push(txt(this, x + 32, y + 230 + i * 34, `第 ${i + 1} 次：`, 20, C.muted, { bold: false }).setDepth(902));
@@ -214,7 +214,7 @@ export class AlmanacScene extends Phaser.Scene {
       tb.setDepth(903);
       objs.push(tb);
     };
-    txt(this, W / 2, H - 126, '阿土伯：「香斷了三次……王爺有話要說。」', 22, C.paper, { serif: true }).setOrigin(0.5);
+    txt(this, W / 2, H - 126, CH().prologueLine, 22, C.paper, { serif: true, align: 'center', wordWrap: { width: W - 40, useAdvancedWrap: true } }).setOrigin(0.5);
     const ask = button(this, W / 2, H - 62, 280, 76, '請示王爺', () => { ask.setEnabled(false); open(); }, { size: 30, fill: 0x8a1b14 });
   }
 }

@@ -1,7 +1,9 @@
-import { newBelievers, type BelieverState } from './content/believers';
+import { newBelievers } from './content/believers';
 
 /** 一次出巡（原型：三天）的進度與資源 */
 export interface RunState {
+  /** 目前的章節（見 content/chapter.ts） */
+  chapter: string;
   /** 第幾天（1–3） */
   day: number;
   /** 判官審出的情報 */
@@ -17,12 +19,14 @@ export interface RunState {
     /** 小魍怕鹽米（解鎖信徒卡上的便宜選項） */
     salt?: boolean;
   };
-  /** 五位信徒目前的狀態（見 content/believers.ts） */
-  b: BelieverState;
+  /** 信徒目前的狀態（每章自己定義，見各章的 believers） */
+  b: Record<string, string>;
   /** 今天剩下的時辰 */
   hours: number;
   /** 今天還能顯現幾次神蹟 */
   miracles: number;
+  /** 第二章：今天還有幾道王令（押煞上船用） */
+  decrees: number;
   /** 石駒被阿雄的陷阱激怒 */
   shijuEnraged: boolean;
   /** 「昨日」欄：前一天沒照顧到的人發生了什麼 */
@@ -31,7 +35,7 @@ export interface RunState {
   allied: boolean;
   /** 石駒已被喚回 */
   shijuJoined: boolean;
-  /** 最後一戰的判決 */
+  /** 最後一戰的判決（第一章：喚回／送回山中／斬；第二章：一起送走／鎮回海裡／斬） */
   shijuEnd?: 'recall' | 'return' | 'slay';
   /** 白天事件的旗標 */
   flags: Record<string, boolean>;
@@ -55,6 +59,7 @@ export interface RunState {
 
 export function newRun(): RunState {
   return {
+    chapter: 'wanjia',
     day: 1,
     intel: {},
     allied: false,
@@ -68,9 +73,10 @@ export function newRun(): RunState {
     liqi: 0,
     cases: {},
     bossAdds: 0,
-    b: newBelievers(),
+    b: { ...newBelievers() },
     hours: 6,
     miracles: 1,
+    decrees: 0,
     shijuEnraged: false,
     yesterday: [],
   };
@@ -79,8 +85,10 @@ export function newRun(): RunState {
 /** 全域唯一的進度（原型不存檔） */
 export let run: RunState = newRun();
 
-export function resetRun(): void {
+export function resetRun(chapter = 'wanjia', believers?: Record<string, string>): void {
   run = newRun();
+  run.chapter = chapter;
+  if (believers) run.b = { ...believers };
 }
 
 export function clamp(v: number, lo: number, hi: number): number {

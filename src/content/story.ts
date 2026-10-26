@@ -3,7 +3,7 @@
  * 遊戲中一律使用虛構名稱（見設計文件 14.5 命名原則）。
  */
 
-export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma';
+export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -15,6 +15,11 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   kaijiang: { name: '開疆聖王（旨意）', tex: 'decree', side: 'left', scale: 1.4 },
   judge: { name: '文判官', tex: 'judge', side: 'left', scale: 1.7 },
   baoma: { name: '報馬仔', tex: 'baoma', side: 'left', scale: 1.8 },
+  // 第二章（東津）
+  yun: { name: '雲王爺（旨意）', tex: 'decree', side: 'left', scale: 1.4 },
+  heichao: { name: '黑潮', tex: 'heichao', side: 'right', scale: 1.0 },
+  heichaoCalm: { name: '黑潮', tex: 'heichao_calm', side: 'right', scale: 1.0 },
+  zhongjun: { name: '中軍府', tex: 'zhongjun', side: 'left', scale: 1.7 },
 };
 
 export interface Line {
@@ -28,6 +33,10 @@ export interface Cutscene {
   /** 畫面色調：妖怪視角是紫色，廟裡是金色 */
   mood: 'demon' | 'temple' | 'dawn';
   place: string;
+  /** 遠景：海邊（第二章） */
+  bg?: 'sea';
+  /** 神明視角時的廟 */
+  temple?: string;
   lines: Line[];
 }
 
@@ -47,6 +56,28 @@ export const CUTSCENES: Record<string, Cutscene> = {
     lines: [
       { who: 'kaijiang', text: '回來吧。', fx: 'flash' },
       { who: 'shijuCalm', text: '……主公。' },
+    ],
+  },
+  // ---------- 第二章：東津・迎王 ----------
+  tide3: {
+    mood: 'demon',
+    place: '大鵬澳・送王夜',
+    bg: 'sea',
+    lines: [
+      { who: 'narrator', text: '王船從東盛宮出發，要推到大鵬澳的沙灘。\n金紙、米包、替身，一路堆上了船。' },
+      { who: 'heichao', text: '船……又要出海了。' },
+      { who: 'heichao', text: '上一次出海，沒有一個人回來。', fx: 'shake' },
+      { who: 'heichao', text: '這一次，換你們留下來。', fx: 'shake' },
+    ],
+  },
+  sendoff: {
+    mood: 'dawn',
+    place: '大鵬澳・天將亮',
+    bg: 'sea',
+    lines: [
+      { who: 'yun', text: '上船吧。千歲爺帶你們回去。', fx: 'flash' },
+      { who: 'heichaoCalm', text: '……可以回家了嗎？' },
+      { who: 'narrator', text: '王船點了火。火光裡，海面上好像有五個人影，朝岸上揮了揮手。', fx: 'firecracker' },
     ],
   },
   retreat: {

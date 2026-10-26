@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { W, H } from './theme';
 import * as state from './state';
-import { CASES } from './content/cases';
+import { CH } from './content/chapter';
 import { setupMobile, watchOrientation } from './mobile';
 import { CutScene } from './scenes/CutScene';
 import { BootScene } from './scenes/BootScene';
@@ -44,7 +44,7 @@ async function start() {
   (window as unknown as Record<string, unknown>).__game = game;
   // 除錯用：在 console 看目前進度
   (window as unknown as Record<string, unknown>).__run = () => state.run;
-  (window as unknown as Record<string, unknown>).__cases = CASES;
+  (window as unknown as Record<string, unknown>).__cases = () => CH().cases;
 }
 
 start();
