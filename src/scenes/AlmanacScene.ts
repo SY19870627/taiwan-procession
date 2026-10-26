@@ -185,7 +185,7 @@ export class AlmanacScene extends Phaser.Scene {
       objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.4).setOrigin(0).setDepth(900).setInteractive());
       objs.push(panel(this, x, y, pw, ph).setDepth(901));
       objs.push(txt(this, W / 2, y + 36, `擲筊・請示：${j.ask}`, 30, C.gold, { serif: true }).setOrigin(0.5).setDepth(902));
-      const rules = ['照傳統擲三次：', '聖杯（一平一凸）：王爺應允', '笑杯（兩平）：王爺在笑', '陰杯（兩凸）：王爺要大家小心'];
+      const rules = ['照傳統擲三次：', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`, `笑杯（兩平）：${j.laugh.text.replace(/。$/, '')}`, `陰杯（兩凸）：${j.yin.text.replace(/。$/, '')}`];
       objs.push(txt(this, x + 32, y + 76, rules.join('\n'), 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
       const rows: Phaser.GameObjects.Text[] = [];
       for (let i = 0; i < j.times; i++) rows.push(txt(this, x + 32, y + 230 + i * 34, `第 ${i + 1} 次：`, 20, C.muted, { bold: false }).setDepth(902));
