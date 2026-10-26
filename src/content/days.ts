@@ -183,9 +183,9 @@ export function visible(r: RunState, e: Encounter): boolean {
   }
 }
 
-/** 收容一隻鬼要幾個時辰（躲起來要多花 1） */
+/** 收容一隻鬼要幾個時辰：平常不花時辰（只佔收容格）；躲起來要花 1 個時辰勸出來 */
 export function collectHours(r: RunState, caseId: string): number {
-  return ghostMood(r, caseId) === 'hiding' ? 2 : 1;
+  return ghostMood(r, caseId) === 'hiding' ? 1 : 0;
 }
 
 /** 戾氣 3：凡人也不太敢靠近，問話會沒人理 */
@@ -209,7 +209,7 @@ export function summary(r: RunState, e: Encounter): { icon: string; title: strin
     case 'ghost': {
       const k = CASES[e.caseId];
       const mood = ghostMood(r, e.caseId);
-      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost: mood === 'fled' ? '會逃走' : `收容 ${collectHours(r, e.caseId)} 時辰`, color: 0x9fd0ff };
+      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost: mood === 'fled' ? '會逃走' : collectHours(r, e.caseId) ? `收容 ${collectHours(r, e.caseId)} 時辰＋1 格` : '收容佔 1 格', color: 0x9fd0ff };
     }
     case 'imp': return { icon: '妖', title: `${e.place}・小妖`, cost: '驅散 1 時辰', color: 0xc9a0ff };
     case 'clue': return { icon: '證', title: `${e.place}・線索`, cost: `${e.hours} 時辰`, color: 0x9fe8c0 };

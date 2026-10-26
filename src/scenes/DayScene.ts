@@ -345,12 +345,12 @@ export class DayScene extends Phaser.Scene {
       ...(have.length < evs.length ? [`還缺：${evs.filter((id) => !have.includes(id)).map((id) => EVIDENCE[id].name).join('、')}`] : []),
       later.length ? `今天不收，${later.join('、')}還會遇到` : '今天不收，之後就遇不到了',
     ].join('\n');
-    const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要多花時間勸出來。' : ''}\n\n${info}`;
+    const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
     const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' });
     const full = run.held.length >= run.slots;
     const why = full ? '收容格滿了' : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));
-    const cost = `${hours} 時辰・收容格 1${extra.length ? `・得到證據：${extra.map((id) => EVIDENCE[id].name).join('、')}` : ''}`;
+    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔收容格 1（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到證據：${extra.map((id) => EVIDENCE[id].name).join('、')}` : ''}`;
     const y = this.optionRow(p, y0, '收容', cost, '七爺八爺把牠帶回令旗下，今晚夜審', why, () => this.collect(e, hours));
     this.skipRow(p, y, k.harm, () => this.skip());
   }

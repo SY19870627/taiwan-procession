@@ -153,7 +153,10 @@ export class TrialScene extends Phaser.Scene {
       }
       y += rowH;
     });
-    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 56, 300, 70, '下判決', () => this.verdicts(k), { size: 26, fill: 0x8a1b14 }));
+    // 證據不足可以先押著：已查明的真相會保留，明天白天再去找證據
+    this.add2(button(this, p.x + 24 + 150, p.y + p.h - 56, 300, 70, '先押著，改日再審', () => this.postpone(k), { size: 20, fill: 0x3a3442 }));
+    this.add2(button(this, p.x + p.w - 24 - 150, p.y + p.h - 56, 300, 70, '下判決', () => this.verdicts(k), { size: 26, fill: 0x8a1b14 }));
+    if (this.n < 3) this.add2(txt(this, p.x + 24 + 150, p.y + p.h - 98, '真相會保留・天亮時怨氣 +1', 14, C.muted, { bold: false }).setOrigin(0.5, 1));
   }
 
   /** 出示證據：列出證物袋，挑一件 */
@@ -236,6 +239,12 @@ export class TrialScene extends Phaser.Scene {
   private postpone(k: GhostCase): void {
     this.messages.push(`${k.dayName}改日再審。`);
     this.lobby();
+    const st = this.caseState(k);
+    const left = k.truths.length - st.truths.length;
+    if (left) {
+      const miss = k.truths.filter((_, i) => !st.truths.includes(i)).map((t) => EVIDENCE[t.evidence[0]].where);
+      this.add2(txt(this, W / 2, 190, `${k.dayName}先押在令旗下。\n還缺的證據可以到：\n${[...new Set(miss)].join('\n')}`, 17, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
+    }
   }
 
   private judge(k: GhostCase, v: VerdictDef): void {
