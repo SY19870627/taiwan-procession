@@ -2,6 +2,7 @@
  * 結局：信徒錄。黃曆紙樣式，一人一欄寫出這三天之後每個人的結局。
  */
 import Phaser from 'phaser';
+import { portraitKey, portraitThumb } from '../art/portraits';
 import { C, H, W } from '../theme';
 import { run } from '../state';
 import { CH } from '../content/chapter';
@@ -48,8 +49,15 @@ export class EndScene extends Phaser.Scene {
     const shipped = ghosts.filter((e) => e.tag).length;
     let y = py + 150;
     // 一人兩行：名字＋結局（字小一點，十個人才放得下）
-    const row = (who: string, good: boolean, text: string, tag?: string) => {
-      txt(this, px + 44, y, who, 22, INK, { serif: true });
+    const row = (who: string, good: boolean, text: string, tag?: string, ghost = false) => {
+      // 有立繪圖的放小頭像在名字前面
+      const art = portraitKey(this, who.replace(/[（(].*$/, ''), good ? (ghost ? 'relieved' : 'smile') : 'sad');
+      let nx = px + 44;
+      if (art) {
+        portraitThumb(this, art, px + 44, y - 4, 32);
+        nx += 40;
+      }
+      txt(this, nx, y, who, 22, INK, { serif: true });
       txt(this, px + pw - 44, y + 2, tag ?? (good ? '圓滿' : '遺憾'), 16, 0xfbf3e2, { backgroundColor: tag ? '#2b5a8a' : good ? '#2f6f5a' : '#7a3a2a', padding: { x: 6, y: 2 } }).setOrigin(1, 0);
       const t = txt(this, px + 44, y + 32, text, 18, INK, { serif: true, lineSpacing: 4, wordWrap: { width: pw - 88, useAdvancedWrap: true } });
       y = t.y + t.height + 16;
@@ -61,9 +69,9 @@ export class EndScene extends Phaser.Scene {
     head('【信徒】');
     for (const e of list) row(e.who, e.good, e.text);
     head('【鬼】');
-    for (const e of ghosts) row(e.who, e.good, e.text, e.tag);
+    for (const e of ghosts) row(e.who, e.good, e.text, e.tag, true);
     const sj = CH().finalEpitaph(run);
-    row(sj.who, sj.good, sj.text, sj.tag);
+    row(sj.who, sj.good, sj.text, sj.tag, true);
     txt(this, W / 2, py + ph - 56, `照顧了 ${good}／${list.length} 位信徒・化解了 ${eased}／${ghosts.length} 個鬼${shipped ? `・${shipped} 個隨船走了` : ''}`, 24, RED, { serif: true }).setOrigin(0.5);
 
     txt(this, W / 2, H - 150, `戾氣 ${run.liqi}・重整再戰 ${run.retries} 次`, 17, C.muted, { bold: false }).setOrigin(0.5);

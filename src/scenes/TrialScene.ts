@@ -57,7 +57,12 @@ export class TrialScene extends Phaser.Scene {
     txt(this, W / 2, 30, T.plaque, 26, C.gold, { serif: true, backgroundColor: dossier ? '#0e2244' : '#3a0e0a', padding: { x: 18, y: 6 } }).setOrigin(0.5, 0);
     T.officers.forEach((o, i) => {
       const x = i === 0 ? 120 : W - 120;
-      const img = this.add.image(x, 500, o.tex).setOrigin(0.5, 1).setScale(1.2).setFlipX(i === 1);
+      // 有立繪圖就用圖；右邊那位翻過來面向中間
+      const art = portraitKey(this, o.label);
+      const img = art
+        ? this.add.image(x, 506, art).setOrigin(0.5, 1).setFlipX(i === 1)
+        : this.add.image(x, 500, o.tex).setOrigin(0.5, 1).setScale(1.2).setFlipX(i === 1);
+      if (art) img.setScale(Math.min(250 / img.height, 190 / img.width)).setAlpha(0.95);
       if (o.tint) img.setTint(o.tint);
       txt(this, x, 510, o.label, 16, C.muted).setOrigin(0.5, 0);
     });

@@ -54,12 +54,12 @@ export const CARDS2: Record<string, (r: RunState) => Card | null> = {
       {
         label: '停轎聽她說', hours: 1, gives: ['caisao_net'],
         result: '她把那天的事說出來了',
-        apply: (s) => { s.b.caisao = 'talked'; give('caisao_net'); return '蔡嫂放下刀：「那天颱風要來了。船長說：『最後一網就回來。』我老公就跟著去了。」'; },
+        apply: (s) => { s.b.caisao = 'talked'; give('caisao_net'); return '蔡嫂放下刀：「{sad}那天颱風要來了。船長說：『最後一網就回來。』我老公就跟著去了。」'; },
       },
       {
         label: '陪她收攤', hours: 2, gives: ['caisao_net', 'caisao_rice'],
         result: '她把那天的事說出來了；也說了以前港口的阿婆',
-        apply: (s) => { s.b.caisao = 'talked'; give('caisao_net', 'caisao_rice'); return '「船長說『最後一網就回來』……」蔡嫂擦著砧板，「以前港口有個阿婆，每次船回來都煮一大鍋鹹粥。我老公最愛吃。」'; },
+        apply: (s) => { s.b.caisao = 'talked'; give('caisao_net', 'caisao_rice'); return '「{sad}船長說『最後一網就回來』……」蔡嫂擦著砧板，「以前港口有個阿婆，每次船回來都煮一大鍋鹹粥。我老公最愛吃。」'; },
       },
     ],
     ignore: '第三天還能在堤防遇到她（要多花時間）',
@@ -77,7 +77,7 @@ export const CARDS2: Record<string, (r: RunState) => Card | null> = {
       {
         label: '顯現神蹟', hours: 1, miracle: true,
         result: '龍骨當場合起來，洪師傅逢人就說',
-        apply: (s) => { s.b.hong = 'fixed'; return '一道金光落在王船上。洪師傅跪了下來：「千歲爺有聽到。」'; },
+        apply: (s) => { s.b.hong = 'fixed'; return '一道金光落在王船上。洪師傅跪了下來：「{smile}千歲爺有聽到。」'; },
       },
     ],
     ignore: '今晚龍骨會再裂：最後一戰王船船身少三成（第三天還有一次機會）',
@@ -108,7 +108,7 @@ export const CARDS2: Record<string, (r: RunState) => Card | null> = {
       {
         label: '顯現神蹟', hours: 2, miracle: true,
         result: '阿嬤當場退燒',
-        apply: (s) => { s.b.ama = 'cured'; return '金光一閃，阿嬤坐了起來：「阿城，我肚子餓。」'; },
+        apply: (s) => { s.b.ama = 'cured'; return '金光一閃，阿嬤坐了起來：「{smile}阿城，我肚子餓。」'; },
       },
     ],
     ignore: '今晚沒審巷子裡的影子的話：阿嬤要住院',
@@ -120,7 +120,7 @@ export const CARDS2: Record<string, (r: RunState) => Card | null> = {
       {
         label: '請她說說那個年輕人', hours: 1, gives: ['ajuan_word'],
         result: '她說了那個年輕人的事；之後也願意替他傳話',
-        apply: (s) => { s.b.ajuan = 'met'; give('ajuan_word'); return '「燈一閃，就是他。他每天晚上都把那封信拿出來，好像在等人看一眼。」阿娟嘆了一口氣。'; },
+        apply: (s) => { s.b.ajuan = 'met'; give('ajuan_word'); return '「{sad}燈一閃，就是他。他每天晚上都把那封信拿出來，好像在等人看一眼。」阿娟嘆了一口氣。'; },
       },
       {
         label: '顯現神蹟讓她看見', hours: 2, miracle: true, gives: ['ajuan_word'],

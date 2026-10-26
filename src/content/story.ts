@@ -22,9 +22,20 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   zhongjun: { name: '中軍府', tex: 'zhongjun', side: 'left', scale: 1.7 },
 };
 
+/** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */
+export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import('../art/portraits').Expr]>> = {
+  wang: ['wang', 'normal'], mei: ['mei', 'normal'], kui: ['kui', 'normal'],
+  shiju: ['shiju', 'angry'], shijuCalm: ['shiju', 'calm'],
+  god: ['decree', 'normal'], kaijiang: ['decree', 'normal'], yun: ['decree', 'normal'],
+  judge: ['judge', 'normal'], zhongjun: ['zhongjun', 'normal'],
+  heichao: ['heichao', 'angry'], heichaoCalm: ['heichao', 'calm'],
+};
+
 export interface Line {
   who: SpeakerId;
   text: string;
+  /** 表情（有立繪圖的才有用；沒寫就用 ART 的預設） */
+  expr?: import('../art/portraits').Expr;
   /** 演出效果 */
   fx?: 'shake' | 'firecracker' | 'flash';
 }

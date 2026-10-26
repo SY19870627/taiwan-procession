@@ -8,70 +8,13 @@
 import Phaser from 'phaser';
 import { C, H, W, SERIF } from '../theme';
 import { txt } from './widgets';
-import { portraitKey, type Expr } from '../art/portraits';
+import { portraitKey } from '../art/portraits';
+import { chunk, type TalkLine } from './split';
 
-export interface TalkLine {
-  /** 說話的人（沒有就是旁白） */
-  name?: string;
-  /** 立繪貼圖 */
-  tex?: string;
-  /** 鬼：立繪畫成半透明藍色 */
-  ghost?: boolean;
-  /** 表情（有立繪圖的角色才有用） */
-  expr?: Expr;
-  text: string;
-}
-
-const EXPRS = ['normal', 'sad', 'angry', 'surprised', 'smile', 'relieved'];
+export { splitStory, chunk, type TalkLine } from './split';
 
 const BOX_H = 250;
 const DEPTH = 980;
-
-/** 把一段故事拆成一句一句 */
-export function splitStory(s: string, who?: { name: string; tex?: string; ghost?: boolean }): TalkLine[] {
-  const out: TalkLine[] = [];
-  const pushNarr = (t: string) => {
-    for (const part of chunk(t)) out.push({ text: part });
-  };
-  const re = /「([^」]*)」/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(s))) {
-    const before = s.slice(last, m.index).replace(/[：:，,]\s*$/, '').trim();
-    if (before) pushNarr(before);
-    // 誰說的：引號前面那一句提到這個人（或前面沒有旁白），就算他說的；否則當成別人說的話
-    const clause = before.split(/[。！？]/).pop() ?? '';
-    const mine = !!who && (!before || clause.includes(who.name) || /^(他|她|牠)/.test(clause.trim()));
-    // 表情標記 {sad}
-    let said = m[1];
-    let expr: Expr | undefined;
-    const em = /^\{(\w+)\}/.exec(said);
-    if (em) {
-      said = said.slice(em[0].length);
-      if (EXPRS.includes(em[1])) expr = em[1] as Expr;
-    }
-    for (const part of chunk(said)) out.push(mine ? { name: who!.name, tex: who!.tex, ghost: who!.ghost, expr, text: `「${part}」` } : { text: `「${part}」` });
-    last = m.index + m[0].length;
-  }
-  const rest = s.slice(last).trim();
-  if (rest) pushNarr(rest);
-  return out.filter((l) => l.text.replace(/[「」\s。，]/g, ''));
-}
-
-/** 長句在句號、問號、驚嘆號處斷開，每段大約 40 字以內 */
-function chunk(t: string): string[] {
-  const parts = t.split(/(?<=[。！？])/).map((x) => x.trim()).filter(Boolean);
-  const out: string[] = [];
-  let cur = '';
-  for (const p of parts) {
-    if ((cur + p).length > 40 && cur) {
-      out.push(cur);
-      cur = p;
-    } else cur += p;
-  }
-  if (cur) out.push(cur);
-  return out;
-}
 
 /** 播一段對話，播完呼叫 onDone */
 export function talk(scene: Phaser.Scene, lines: TalkLine[], onDone: () => void): void {

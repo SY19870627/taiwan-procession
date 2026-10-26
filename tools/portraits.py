@@ -25,6 +25,7 @@ for f in sorted(glob.glob(os.path.join(SRC, '*.png'))):
     groups[cid].append((expr, f))
 os.makedirs(OUT, exist_ok=True)
 manifest = {}
+thumb = {}
 for cid, items in groups.items():
     ims = [(e, cut(f)) for e, f in items]
     box = None
@@ -40,4 +41,26 @@ for cid, items in groups.items():
         canvas.paste(c, ((CW - c.width) // 2, CH - c.height))
         canvas.save(os.path.join(OUT, f'{cid}_{e}.webp'), 'WEBP', quality=70, alpha_quality=50, method=4)
     manifest[cid] = sorted(e for e, _ in items)
-print(manifest)
+    # 小頭像裁切起點：用 normal（沒有就用第一張）找臉的位置
+    ref = os.path.join(OUT, f"{cid}_{'normal' if 'normal' in manifest[cid] else manifest[cid][0]}.webp")
+    a = np.asarray(Image.open(ref))[..., 3] > 200
+    h, w = a.shape
+    rows = np.where(a[:, int(w * .25):int(w * .75)].any(1))[0]
+    top = rows[0] if len(rows) else 0
+    band = a[top:top + int(h * .18)]
+    cx = np.nonzero(band)[1].mean() if band.any() else w / 2
+    size = w * 0.6
+    thumb[cid] = [round(min(max(0, (cx - size / 2) / w), 0.4), 3), round(min(max(0, top - h * .02) / h, 0.5), 3)]
+
+# 產生 src/art/portraits.data.ts
+lines = ['/** 由 tools/portraits.py 產生，請勿手動修改 */', "import type { Expr } from './portraits';", '',
+         '/** 已經有圖的角色與表情 */', 'export const SETS: Record<string, Expr[]> = {']
+for cid in sorted(manifest):
+    lines.append(f"  {cid}: [{', '.join(repr(e) for e in manifest[cid])}],")
+lines += ['};', '', '/** 小頭像的裁切起點（相對立繪寬、高的比例） */', 'export const THUMB: Record<string, [number, number]> = {']
+for cid in sorted(thumb):
+    lines.append(f"  {cid}: [{thumb[cid][0]}, {thumb[cid][1]}],")
+lines += ['};', '']
+if len(sys.argv) > 3:
+    open(sys.argv[3], 'w', encoding='utf-8').write('\n'.join(lines))
+print(len(manifest), 'characters')

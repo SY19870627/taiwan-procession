@@ -4,7 +4,8 @@
  */
 import Phaser from 'phaser';
 import { C, H, W, SERIF } from '../theme';
-import { SPEAKERS, type Line } from '../content/story';
+import { ART, SPEAKERS, type Line } from '../content/story';
+import { portraitKey } from '../art/portraits';
 import { txt } from './widgets';
 
 /** 對話框高度 */
@@ -53,22 +54,39 @@ export class Dialogue {
     this.next();
   }
 
-  private portrait(who: Exclude<Line['who'], 'narrator'>): Phaser.GameObjects.Container {
+  private portrait(line: Line & { who: Exclude<Line['who'], 'narrator'> }): Phaser.GameObjects.Container {
+    const who = line.who;
     const sp = SPEAKERS[who];
-    const key = sp.tex + sp.side;
+    // 有立繪圖就用圖（同一個角色換表情時直接換圖）
+    const art = ART[who];
+    const artKey = art ? portraitKey(this.scene, art[0], line.expr ?? art[1]) : undefined;
+    const key = (artKey ? art![0] : sp.tex) + sp.side;
     let c = this.portraits.get(key);
-    if (c) return c;
+    if (c) {
+      const img = c.getAt(0) as Phaser.GameObjects.Image;
+      if (artKey && img.texture.key !== artKey) img.setTexture(artKey);
+      return c;
+    }
     const x = sp.side === 'left' ? W * 0.25 : W * 0.75;
     const y = H - BOX_H - 30;
     c = this.scene.add.container(x, y).setDepth(400);
-    const img = this.scene.add.image(0, 0, sp.tex).setOrigin(0.5, 1).setScale(sp.scale);
-    // 立繪面向畫面中央：右邊的角色往左看
-    if (sp.side === 'right' && sp.tex !== 'decree') img.setFlipX(true);
-    c.add(img);
-    if (sp.tex === 'decree') {
-      img.setOrigin(0.5, 0.5).setY(-130);
-      c.add(txt(this.scene, 0, -130, '令', 64, 0x8a1b14, { serif: true }).setOrigin(0.5));
-      this.scene.tweens.add({ targets: img, scale: sp.scale * 1.08, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    if (artKey) {
+      const img = this.scene.add.image(0, 40, artKey).setOrigin(0.5, 1);
+      const sc = Math.min(500 / img.height, 360 / img.width);
+      img.setScale(sc);
+      // 立繪面向畫面中央：右邊的角色往左看（旨意是物件，不翻）
+      if (sp.side === 'right' && art![0] !== 'decree') img.setFlipX(true);
+      c.add(img);
+      if (art![0] === 'decree') this.scene.tweens.add({ targets: img, scale: sc * 1.04, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    } else {
+      const img = this.scene.add.image(0, 0, sp.tex).setOrigin(0.5, 1).setScale(sp.scale);
+      if (sp.side === 'right' && sp.tex !== 'decree') img.setFlipX(true);
+      c.add(img);
+      if (sp.tex === 'decree') {
+        img.setOrigin(0.5, 0.5).setY(-130);
+        c.add(txt(this.scene, 0, -130, '令', 64, 0x8a1b14, { serif: true }).setOrigin(0.5));
+        this.scene.tweens.add({ targets: img, scale: sp.scale * 1.08, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      }
     }
     c.setAlpha(0);
     this.portraits.set(key, c);
@@ -87,7 +105,7 @@ export class Dialogue {
     const line = this.lines[this.i];
     // 立繪：說話的人亮、其他人暗
     let active: Phaser.GameObjects.Container | undefined;
-    if (line.who !== 'narrator') active = this.portrait(line.who);
+    if (line.who !== 'narrator') active = this.portrait(line as Line & { who: Exclude<Line['who'], 'narrator'> });
     for (const c of this.portraits.values()) {
       if (c === active) {
         this.scene.tweens.add({ targets: c, alpha: 1, duration: 200 });
