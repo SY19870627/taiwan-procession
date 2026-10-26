@@ -116,7 +116,9 @@ export class TrialScene extends Phaser.Scene {
     this.tweens.add({ targets: img, y: 470, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     const known = st.truths.length > 0;
     this.add2(txt(this, W / 2, 96, known ? `${k.name}（${k.dayName}）` : k.dayName, 26, 0x9fd0ff, { serif: true }).setOrigin(0.5, 0));
-    this.add2(txt(this, W / 2, 134, `已查明 ${st.truths.length}／${k.truths.length}　怨氣 ${held.grudge}／3`, 18, C.muted, { bold: false }).setOrigin(0.5, 0));
+    const mute = held.grudge >= 3;
+    this.add2(txt(this, W / 2, 134, `已查明 ${st.truths.length}／${k.truths.length}　怨氣 ${held.grudge}／3`, 18, held.grudge >= 2 ? 0xff9a8a : C.muted, { bold: !!held.grudge }).setOrigin(0.5, 0));
+    this.add2(txt(this, W / 2, 164, mute ? '怨氣衝天，牠不肯再開口：只能下判決，或押回去（天亮就會掙脫）' : '出示錯的證據，怨氣 +1；怨氣到 3，牠就不肯再開口', 15, mute ? 0xff9a8a : C.muted, { bold: false, align: 'center', wordWrap: { width: W - 120, useAdvancedWrap: true } }).setOrigin(0.5, 0));
 
     // 最新的回應
     const p = { x: 16, y: 530, w: W - 32, h: H - 546 };
@@ -147,9 +149,9 @@ export class TrialScene extends Phaser.Scene {
           const hint = has ? '◆ 疑點：手上的證據對得上' : `◇ 疑點：缺證據（${EVIDENCE[t.evidence[0]].where}）`;
           this.add2(txt(this, p.x + 30, y + rowH - 32, hint, 14, has ? 0xffd76a : 0xff9a8a, { bold: false, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
         }
-        this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, '追問', () => this.say(k, k.press[i]), { size: 18, fill: 0x3a3442 }));
+        this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, '追問', () => this.say(k, k.press[i]), { size: 18, fill: 0x3a3442 })).setEnabled(!mute);
         const pb = this.add2(button(this, p.x + p.w - 76, y + rowH / 2 - 4, 92, 50, '出示', () => this.present(k, i), { size: 18, fill: has ? 0x8a6a10 : 0x2f6f5a }));
-        pb.setEnabled(has);
+        pb.setEnabled(has && !mute);
       }
       y += rowH;
     });
@@ -196,8 +198,12 @@ export class TrialScene extends Phaser.Scene {
       this.say(k, `${k.truths[ti].reveal}\n\n文判官提筆記下：${k.truths[ti].summary}`);
       return;
     }
-    this.cameras.main.shake(150, 0.004);
-    this.say(k, `【${EVIDENCE[evId].name}】\n${k.wrong}\n（文判官：「這件跟這句話對不上，換一件看看。」）`);
+    // 出示錯了：鬼起疑，怨氣 +1；到 3 就不肯再開口
+    const held = this.heldOf(k);
+    held.grudge = Math.min(3, held.grudge + 1);
+    this.cameras.main.shake(200, 0.006);
+    const tail = held.grudge >= 3 ? '牠怨氣衝天，不肯再開口了。' : '對不上。鬼起了疑心，怨氣 +1。';
+    this.say(k, `【${EVIDENCE[evId].name}】\n${k.wrong}\n（${tail}）`);
   }
 
   // ---------- 判決 ----------

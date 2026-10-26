@@ -245,14 +245,15 @@ export class DayScene extends Phaser.Scene {
 
   /** 一個選項列：左邊按鈕、右邊花費與結果 */
   private optionRow(p: { x: number; w: number }, y: number, label: string, cost: string, result: string, why: string, onPick: () => void, gold = false): number {
-    const optH = 92;
+    // 花費和結果都可能換行：先排字，再依高度畫底色
     const g = this.add2(this.add.graphics());
+    const costT = this.add2(txt(this, p.x + 200, y + 12, cost, 15, gold ? 0xffd76a : C.muted, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    const resT = this.add2(txt(this, p.x + 200, costT.y + costT.height + 6, why ? `✕ ${why}` : result, 16, why ? 0xff9a8a : 0x9fe8c0, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    const optH = Math.max(92, resT.y + resT.height + 14 - y);
     g.fillStyle(gold ? 0x5a3a10 : 0x2f3a4a, why ? 0.35 : 0.8);
     g.fillRoundedRect(p.x + 16, y, p.w - 32, optH - 8, 10);
-    const b = this.add2(button(this, p.x + 106, y + 40, 164, 52, label, onPick, { size: label.length > 6 ? 16 : 20, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
+    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, 52, label, onPick, { size: label.length > 6 ? 16 : 20, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
     b.setEnabled(!why);
-    this.add2(txt(this, p.x + 200, y + 10, cost, 15, gold ? 0xffd76a : C.muted, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
-    this.add2(txt(this, p.x + 200, y + 34, why ? `✕ ${why}` : result, 16, why ? 0xff9a8a : 0x9fe8c0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
     return y + optH;
   }
 
