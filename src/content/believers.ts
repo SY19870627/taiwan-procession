@@ -97,7 +97,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       {
         label: '收驚', hours: 1, gives: ['axiu'],
         result: '阿弟暫時好一點，明天不會加重。要根治，得找出夜裡纏著他的東西',
-        apply: (s) => { s.b.axiu = 'eased'; give('axiu'); return '七爺的扇子在阿弟頭上輕輕一搧。阿秀嬸說：「每晚子時哭，摸他額頭冰冰的，可是又在燒。」'; },
+        apply: (s) => { s.b.axiu = 'eased'; give('axiu'); return '七爺的扇子在阿弟頭上輕輕一搧。阿秀嬸說：「{sad}每晚子時哭，摸他額頭冰冰的，可是又在燒。」'; },
       },
     ],
     ignore: '明天阿弟會燒到住院',
@@ -115,7 +115,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       {
         label: '問夜裡的情形', hours: 1, gives: ['axiu'],
         result: '得到證詞。要救阿弟，今晚得審古井邊的鬼',
-        apply: (s) => { give('axiu'); void s; return '「每晚子時哭，摸他額頭冰冰的，可是又在燒。」阿秀嬸說著又紅了眼眶。'; },
+        apply: (s) => { give('axiu'); void s; return '「{sad}每晚子時哭，摸他額頭冰冰的，可是又在燒。」阿秀嬸說著又紅了眼眶。'; },
       },
     ],
     ignore: '今晚沒審古井邊的鬼的話：阿弟要住院一週',
@@ -127,12 +127,12 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       {
         label: '請阿土伯跟他聊聊', hours: 1, gives: ['azhe'],
         result: '他態度軟化；也說出店裡的怪事',
-        apply: (s) => { s.b.azhe = 'softened'; give('azhe'); return '阿哲嘆氣：「冰庫半夜自己斷電，客人說店裡很冷、坐不住。這樣怎麼做下去？」'; },
+        apply: (s) => { s.b.azhe = 'softened'; give('azhe'); return '阿哲嘆氣：「{sad}冰庫半夜自己斷電，客人說店裡很冷、坐不住。這樣怎麼做下去？」'; },
       },
       {
         label: '顯現神蹟', hours: 2, miracle: true, gives: ['azhe'],
         result: '他親眼看到七爺八爺，當場信了',
-        apply: (s) => { s.b.azhe = 'believer'; give('azhe'); return '一陣冷風掠過，七爺的扇子一擋。那一瞬間，阿哲看見了。他愣了很久才說：「……冰庫半夜斷電，是不是也是……」'; },
+        apply: (s) => { s.b.azhe = 'believer'; give('azhe'); return '一陣冷風掠過，七爺的扇子一擋。那一瞬間，阿哲看見了。他愣了很久才說：「{surprised}……冰庫半夜斷電，是不是也是……」'; },
       },
     ],
     ignore: '第三天，冰果室恐怕要收掉',
@@ -144,7 +144,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       {
         label: '讓八爺給她一張平安符', hours: 1, gives: ['yun_river'],
         result: '她記住了這支隊伍；也說了河邊看到的東西',
-        apply: (s) => { s.b.xiaoyun = 'met'; give('yun_river'); return '八爺把平安符放進她手心。小芸小聲說：「河邊有一個濕濕的叔叔，一直叫我下去幫他撿球。」'; },
+        apply: (s) => { s.b.xiaoyun = 'met'; give('yun_river'); return '八爺把平安符放進她手心。小芸小聲說：「{surprised}河邊有一個濕濕的叔叔，一直叫我下去幫他撿球。」'; },
       },
     ],
     ignore: '明天要保護她會多花時間',
@@ -164,7 +164,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
         who: '小芸',
         text: '小芸的媽媽很擔心：女兒說有黑黑的東西在看她，已經兩天不肯睡覺。',
         deadline: '今天',
-        options: [{ label: '收驚＋安符', hours: 2, gives: ['yun_river', 'yun_pot'], result: '小芸得到保護；說了河邊和冰果室看到的東西', apply: (s) => { s.b.xiaoyun = 'protected'; give('yun_river', 'yun_pot'); return '小芸終於肯說話了：「河邊有一個濕濕的叔叔……還有冰果室裡，有個阿公每天晚上拿出一個大鍋子。」'; } }],
+        options: [{ label: '收驚＋安符', hours: 2, gives: ['yun_river', 'yun_pot'], result: '小芸得到保護；說了河邊和冰果室看到的東西', apply: (s) => { s.b.xiaoyun = 'protected'; give('yun_river', 'yun_pot'); return '小芸終於肯說話了：「{sad}河邊有一個濕濕的叔叔……還有冰果室裡，有個阿公每天晚上拿出一個大鍋子。」'; } }],
         ignore: '她從此不敢再說自己看到什麼',
       };
     }
@@ -239,7 +239,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       return {
         who: '阿哲', text: '阿哲在店門口猶豫：「我還在想要不要把店收掉。」',
         deadline: '今天',
-        options: [{ label: '停轎說說話', hours: 1, gives: ['azhe'], result: '他決定再做做看', apply: (s) => { s.b.azhe = 'stayed'; give('azhe'); return '阿土伯拍拍他的肩：「你阿公當年也是這樣猶豫過。」阿哲笑了：「那就再做做看。」'; } }],
+        options: [{ label: '停轎說說話', hours: 1, gives: ['azhe'], result: '他決定再做做看', apply: (s) => { s.b.azhe = 'stayed'; give('azhe'); return '阿土伯拍拍他的肩：「你阿公當年也是這樣猶豫過。」阿哲笑了：「{smile}那就再做做看。」'; } }],
         ignore: '遺憾：冰果室收掉',
       };
     }

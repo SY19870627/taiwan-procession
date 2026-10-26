@@ -3,10 +3,12 @@
  * 說話的人有立繪和名字；旁白沒有名字、用明體。點一下：字還在跑就全部顯示，跑完就下一句。
  *
  * splitStory 把一段故事拆成一句一句：「」裡的話算說話的人說的，其他是旁白；太長的句子在句號處斷開。
+ * 「」開頭可以加表情標記，例如「{sad}我只是……」：說話的人有立繪圖時會換成那個表情（標記不會顯示）。
  */
 import Phaser from 'phaser';
 import { C, H, W, SERIF } from '../theme';
 import { txt } from './widgets';
+import { portraitKey, type Expr } from '../art/portraits';
 
 export interface TalkLine {
   /** 說話的人（沒有就是旁白） */
@@ -15,8 +17,12 @@ export interface TalkLine {
   tex?: string;
   /** 鬼：立繪畫成半透明藍色 */
   ghost?: boolean;
+  /** 表情（有立繪圖的角色才有用） */
+  expr?: Expr;
   text: string;
 }
+
+const EXPRS = ['normal', 'sad', 'angry', 'surprised', 'smile', 'relieved'];
 
 const BOX_H = 250;
 const DEPTH = 980;
@@ -36,7 +42,15 @@ export function splitStory(s: string, who?: { name: string; tex?: string; ghost?
     // 誰說的：引號前面那一句提到這個人（或前面沒有旁白），就算他說的；否則當成別人說的話
     const clause = before.split(/[。！？]/).pop() ?? '';
     const mine = !!who && (!before || clause.includes(who.name) || /^(他|她|牠)/.test(clause.trim()));
-    for (const part of chunk(m[1])) out.push(mine ? { name: who!.name, tex: who!.tex, ghost: who!.ghost, text: `「${part}」` } : { text: `「${part}」` });
+    // 表情標記 {sad}
+    let said = m[1];
+    let expr: Expr | undefined;
+    const em = /^\{(\w+)\}/.exec(said);
+    if (em) {
+      said = said.slice(em[0].length);
+      if (EXPRS.includes(em[1])) expr = em[1] as Expr;
+    }
+    for (const part of chunk(said)) out.push(mine ? { name: who!.name, tex: who!.tex, ghost: who!.ghost, expr, text: `「${part}」` } : { text: `「${part}」` });
     last = m.index + m[0].length;
   }
   const rest = s.slice(last).trim();
@@ -87,22 +101,40 @@ export function talk(scene: Phaser.Scene, lines: TalkLine[], onDone: () => void)
   let typing: Phaser.Time.TimerEvent | undefined;
   let done = false;
 
+  let portraitWho: string | undefined;
   const showPortrait = (l: TalkLine) => {
-    if (!l.tex) {
+    // 有立繪圖就用圖（依表情），沒有就用程式畫的小人
+    const art = portraitKey(scene, l.name, l.expr ?? 'normal');
+    const k = art ?? l.tex;
+    if (!k) {
       portrait?.setAlpha(0.5);
       return;
     }
-    if (!portrait || portrait.texture.key !== l.tex) {
+    if (art && portrait && portraitWho === l.name) {
+      // 同一個人換表情：直接換圖，輕輕彈一下
+      if (portrait.texture.key !== k) {
+        portrait.setTexture(k);
+        scene.tweens.add({ targets: portrait, scaleX: portrait.scaleX * 1.02, scaleY: portrait.scaleY * 1.02, duration: 90, yoyo: true });
+      }
+    } else if (!portrait || portrait.texture.key !== k) {
       portrait?.destroy();
-      portrait = scene.add.image(W * 0.3, by - 10, l.tex).setOrigin(0.5, 1).setDepth(DEPTH + 1);
-      const sc = Math.min(380 / portrait.height, 300 / portrait.width);
-      portrait.setScale(sc);
-      if (l.ghost) portrait.setTint(0x9ad0ff).setAlpha(0.85);
+      portraitWho = l.name;
+      if (art) {
+        // 立繪：大張、站在對話框後面
+        portrait = scene.add.image(232, by + 40, k).setOrigin(0.5, 1).setDepth(DEPTH + 1);
+        portrait.setScale(Math.min(560 / portrait.height, 440 / portrait.width));
+      } else {
+        portrait = scene.add.image(W * 0.3, by - 10, k).setOrigin(0.5, 1).setDepth(DEPTH + 1);
+        const sc = Math.min(380 / portrait.height, 300 / portrait.width);
+        portrait.setScale(sc);
+        if (l.ghost) portrait.setTint(0x9ad0ff);
+      }
       objs.push(portrait);
+      const y1 = portrait.y;
       portrait.y += 20;
-      scene.tweens.add({ targets: portrait, y: by - 10, duration: 180, ease: 'Quad.out' });
+      scene.tweens.add({ targets: portrait, y: y1, duration: 180, ease: 'Quad.out' });
     }
-    portrait.setAlpha(l.ghost ? 0.85 : 1);
+    portrait.setAlpha(l.ghost ? (art ? 0.93 : 0.85) : 1);
   };
 
   const next = () => {

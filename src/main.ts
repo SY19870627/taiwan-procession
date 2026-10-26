@@ -14,6 +14,7 @@ import { BandScene } from './scenes/BandScene';
 import { TrialScene } from './scenes/TrialScene';
 import { BossHud, BossScene } from './scenes/BossScene';
 import { EndScene } from './scenes/EndScene';
+import { AssetScene } from './scenes/AssetScene';
 
 async function start() {
   setupMobile();
@@ -38,7 +39,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, ChapterScene, CutScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene],
+    scene: [BootScene, TitleScene, ChapterScene, CutScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene, AssetScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;

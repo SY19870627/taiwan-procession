@@ -16,6 +16,8 @@ export class BootScene extends Phaser.Scene {
     makeTemple(this, 'temple_zhuang', '福安宮');
     makeTemple(this, 'temple_huize', '惠澤宮');
     makeHarbor(this);
+    // 立繪圖檔在背景載入
+    this.scene.launch('assets');
     // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）
     const q = new URLSearchParams(location.search);
     const jump = q.get('scene');

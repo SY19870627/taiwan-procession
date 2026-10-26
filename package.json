@@ -1,6 +1,6 @@
 {
   "name": "taiwan-procession",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "遶境：台灣環島進香 × 斬妖 × 廟宇經營（Phaser 3 + TypeScript）",
   "private": true,
   "type": "module",

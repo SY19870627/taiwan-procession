@@ -12,6 +12,7 @@ import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
 import { splitStory, talk } from '../ui/talk';
+import { portraitKey, portraitThumb } from '../art/portraits';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -327,10 +328,22 @@ export class DayScene extends Phaser.Scene {
   }
 
   /** 共用的卡片外框：（立繪）標題、地點、說明 */
-  private cardHead(title: string, place: string, text: string, tag?: { s: string; color: string }, tex?: string, ghost = false): { p: { x: number; y: number; w: number; h: number }; y: number } {
+  private cardHead(title: string, place: string, text: string, tag?: { s: string; color: string }, tex?: string, ghost = false, who?: string): { p: { x: number; y: number; w: number; h: number }; y: number } {
     const p = this.resetSide();
     let tx = p.x + 24;
-    if (tex) {
+    const art = portraitKey(this, who ?? title);
+    if (art) {
+      // 立繪圖：左上角放頭像
+      const g = this.add2(this.add.graphics());
+      g.fillStyle(ghost ? 0x1e2a44 : 0x3a2e24, 1);
+      g.fillRoundedRect(p.x + 16, p.y + 10, 96, 96, 12);
+      const img = this.add2(portraitThumb(this, art, p.x + 16, p.y + 10, 96));
+      if (ghost) img.setAlpha(0.9);
+      const frame = this.add2(this.add.graphics());
+      frame.lineStyle(2, ghost ? 0x7fb8ff : C.gold, 0.8);
+      frame.strokeRoundedRect(p.x + 16, p.y + 10, 96, 96, 12);
+      tx = p.x + 124;
+    } else if (tex) {
       // 立繪放在左上角，標題往右
       const img = this.add2(this.add.image(p.x + 64, p.y + 100, tex).setOrigin(0.5, 1));
       img.setScale(Math.min(88 / img.height, 80 / img.width));
@@ -441,7 +454,7 @@ export class DayScene extends Phaser.Scene {
       `證據 ${have.length}／${evs.length}・${later.length ? `之後在${later[0]}還會遇到` : '今天不收，之後就遇不到了'}`,
     ].join('\n');
     const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
-    const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' }, k.tex, true);
+    const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' }, k.tex, true, k.id);
     const full = run.held.length >= run.slots;
     const why = full ? '收容格滿了' : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));

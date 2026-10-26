@@ -13,6 +13,7 @@ import { CH, evidenceOf, verdictName } from '../content/chapter';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { flashback } from '../ui/talk';
+import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
 
 const WATCHES = 3;
 const DEFECT_COLOR: Record<string, number> = { 塗改: 0xff9a6a, 缺頁: 0xd9b0ff, 模糊: 0x9fd0ff };
@@ -98,8 +99,12 @@ export class TrialScene extends Phaser.Scene {
       const g = this.add2(this.add.graphics());
       g.fillStyle(0x241d32, 1);
       g.fillRoundedRect(p.x + 16, y, p.w - 32, 108, 12);
-      const img = this.add2(this.add.image(p.x + 70, y + 102, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.7));
-      img.setScale(Math.min(96 / img.height, 70 / img.width));
+      const art = portraitKey(this, k.id);
+      if (art) this.add2(portraitThumb(this, art, p.x + 26, y + 8, 92)).setAlpha(0.92);
+      else {
+        const img = this.add2(this.add.image(p.x + 70, y + 102, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.7));
+        img.setScale(Math.min(96 / img.height, 70 / img.width));
+      }
       this.add2(txt(this, p.x + 124, y + 12, k.dayName, 24, 0x9fd0ff));
       this.add2(txt(this, p.x + 124, y + 52, `已查明 ${st.truths.length}／${k.truths.length}・怨氣 ${h.grudge}／3`, 20, C.muted, { bold: false }));
       this.add2(button(this, p.x + p.w - 90, y + 54, 130, 56, '升堂', () => this.open(k), { size: 22, fill: 0x8a1b14 }));
@@ -118,22 +123,25 @@ export class TrialScene extends Phaser.Scene {
 
   private open(k: GhostCase): void {
     this.watch++;
-    this.say(k, CH().trial.open(k.dayName));
+    this.say(k, CH().trial.open(k.dayName), 'normal');
   }
 
   /** 畫審問畫面；line 是最新的一句回應 */
-  private say(k: GhostCase, line: string): void {
+  private say(k: GhostCase, line: string, expr: Expr = 'normal'): void {
     this.reset();
     const T = CH().trial;
     const dossier = T.style === 'dossier';
     const st = this.caseState(k);
     const held = this.heldOf(k);
-    // 鬼
-    const glow = this.add2(this.add.circle(W / 2, 330, 120, 0x7fd6ff, 0.1));
+    // 鬼：有立繪圖就用圖（依表情），沒有就用程式畫的小人
+    const glow = this.add2(this.add.circle(W / 2, 360, 130, 0x7fd6ff, 0.1));
     this.tweens.add({ targets: glow, scale: 1.1, duration: 1400, yoyo: true, repeat: -1 });
-    const img = this.add2(this.add.image(W / 2, dossier ? 440 : 480, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.75));
-    img.setScale(Math.min((dossier ? 260 : 300) / img.height, 220 / img.width));
-    this.tweens.add({ targets: img, y: img.y - 10, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    const art = portraitKey(this, k.id, held.grudge >= 3 ? 'angry' : expr);
+    const img = art
+      ? this.add2(this.add.image(W / 2, 532, art).setOrigin(0.5, 1).setAlpha(0.95))
+      : this.add2(this.add.image(W / 2, dossier ? 440 : 480, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.75));
+    img.setScale(art ? 320 / img.height : Math.min((dossier ? 260 : 300) / img.height, 220 / img.width));
+    this.tweens.add({ targets: img, y: img.y - (art ? 6 : 10), duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     const known = st.truths.length > 0;
     this.add2(txt(this, W / 2, 96, `${dossier ? '案卷：' : ''}${known ? `${k.name}（${k.dayName}）` : k.dayName}`, 26, 0x9fd0ff, { serif: true }).setOrigin(0.5, 0));
     const mute = held.grudge >= 3;
@@ -227,8 +235,8 @@ export class TrialScene extends Phaser.Scene {
       st.truths.push(ti);
       const t = k.truths[ti];
       // 揭開真相：先播一段回憶，再回到堂上
-      flashback(this, { tex: k.tex, name: k.name, reveal: t.reveal, summary: t.summary, fx: k.memory }, () => {
-        this.say(k, `${T.record}：${t.summary}`);
+      flashback(this, { tex: portraitKey(this, k.id, 'sad') ?? k.tex, name: k.name, reveal: t.reveal, summary: t.summary, fx: k.memory }, () => {
+        this.say(k, `${T.record}：${t.summary}`, 'sad');
       });
       return;
     }
@@ -237,7 +245,7 @@ export class TrialScene extends Phaser.Scene {
     held.grudge = Math.min(3, held.grudge + 1);
     this.cameras.main.shake(200, 0.006);
     const tail = held.grudge >= 3 ? '牠怨氣衝天，不肯再開口了。' : T.wrongTail;
-    this.say(k, `【${CH().evidence[evId].name}】\n${k.wrong}\n（${tail}）`);
+    this.say(k, `【${CH().evidence[evId].name}】\n${k.wrong}\n（${tail}）`, 'angry');
   }
 
   // ---------- 判決 ----------
@@ -339,6 +347,16 @@ export class TrialScene extends Phaser.Scene {
     // 判決對信徒的影響（每一章自己的）
     lines.push(...CH().verdictEffects(run, k.id, v.verdict));
     this.reset();
+    // 判決後的神情
+    const face: Partial<Record<VerdictDef['verdict'], Expr>> = { release: 'relieved', recruit: 'relieved', ship: 'relieved', free: 'relieved', escort: 'sad', slay: 'surprised' };
+    const art = portraitKey(this, k.id, face[v.verdict] ?? 'normal');
+    if (art) {
+      const img = this.add2(this.add.image(W / 2, 556, art).setOrigin(0.5, 1));
+      img.setScale(340 / img.height);
+      if (v.verdict === 'release' || v.verdict === 'ship') this.tweens.add({ targets: img, alpha: 0.3, delay: 1800, duration: 2600 });
+      else if (v.verdict === 'slay') this.tweens.add({ targets: img, alpha: 0, delay: 500, duration: 900 });
+      else img.setAlpha(0.95);
+    }
     const p = { x: 16, y: 560, w: W - 32, h: H - 576 };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     this.add2(txt(this, p.x + 24, p.y + 18, verdictName(v.verdict), 32, v.verdict === 'slay' ? 0xff8a8a : C.gold, { serif: true }));
