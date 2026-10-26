@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { C, H, W, FIELD_W as FW, FIELD_H as FH, GROUND_Y, TIME_SCALE } from '../theme';
 import { BossBattle, BLESS_CD, FRONT_MAX, SKILLS, SMITE_CD, type BossEvent, type SkillId, type Unit } from '../core/boss';
 import { FINALE_ROUNDS, FINALE_WRONG, MEMBER_STATS, finaleSetup } from '../content/finale';
-import { EVIDENCE, evidenceOf } from '../content/cases';
+import { EVIDENCE } from '../content/cases';
 import { run } from '../state';
 import { button, floatText, fullscreenButton, panel, txt, type Button } from '../ui/widgets';
 
@@ -493,53 +493,73 @@ export class BossHud extends Phaser.Scene {
   }
 
   // ---------- 陣前審問 ----------
+  /**
+   * 陣前審問：自動出示手上對得上的證據（或請人上前），戰鬥不暫停。
+   * 戰鬥帶上方播一段動畫：石駒說話 → 證據卡飛入 → 結果。
+   */
   trial(round: number): void {
     const r = FINALE_ROUNDS[round - 1];
-    const m = this.add.container(0, 0).setDepth(900);
-    m.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.6).setOrigin(0).setInteractive());
-    const x = 16;
-    const y = 160;
-    const pw = W - 32;
-    const ph = H - 200;
-    m.add(panel(this, x, y, pw, ph));
-    m.add(txt(this, x + 24, y + 18, `陣前審問（${round}／3）`, 30, C.gold, { serif: true }));
-    m.add(txt(this, x + 24, y + 66, `石駒：${r.line}`, 22, 0xd9b0ff, { wordWrap: { width: pw - 48, useAdvancedWrap: true } }));
-    m.add(txt(this, x + 24, y + 140, `出示證據或請人上前。對了：${r.effect}；錯了：石駒更兇。`, 16, C.muted, { bold: false, wordWrap: { width: pw - 48, useAdvancedWrap: true } }));
-    let yy = y + 200;
-    const pick = (ok: boolean, say: string) => {
-      m.destroy();
-      this.ok[round - 1] = ok;
-      this.result(round, ok, say);
-    };
-    for (const p of r.people ?? []) {
-      if (!p.test(run)) continue;
-      m.add(button(this, W / 2, yy + 30, pw - 48, 60, p.label, () => pick(true, p.say), { size: 22, fill: 0x8a6a10 }));
-      yy += 72;
-    }
-    const mine = evidenceOf('fu').filter((id) => run.evidence.includes(id));
-    for (const id of mine) {
-      const ev = EVIDENCE[id];
-      m.add(button(this, W / 2, yy + 30, pw - 48, 60, `【${ev.kind}】${ev.name}`, () => pick(r.evidence.includes(id), `你出示了【${ev.name}】。`), { size: 20, fill: 0x2a3a4a }));
-      yy += 72;
-    }
-    if (!mine.length && !(r.people ?? []).some((p) => p.test(run))) {
-      m.add(txt(this, x + 24, yy, '手上沒有跟石駒有關的證據……', 18, 0xff9a8a, { bold: false }));
-      yy += 40;
-    }
-    m.add(button(this, W / 2, y + ph - 56, 300, 64, '什麼都不說', () => pick(false, '你沒有說話。'), { size: 20, fill: 0x3a3442 }));
+    // 依序找：到場的人 → 對得上的證據
+    const person = (r.people ?? []).find((p) => p.test(run));
+    const ev = r.evidence.find((id) => run.evidence.includes(id));
+    const ok = !!person || !!ev;
+    this.ok[round - 1] = ok;
+    this.battle.answer(round, ok);
+    const used = person ? { tag: '上前', name: person.label.replace('請', '').replace('上前', ''), say: person.say } : ev ? { tag: EVIDENCE[ev].kind, name: EVIDENCE[ev].name, say: EVIDENCE[ev].text } : null;
+    this.playTrial(round, r.line, used, ok ? `${r.ok}\n${r.effect}` : `手上沒有能說動牠的證據。\n${FINALE_WRONG}`, ok);
   }
 
-  private result(round: number, ok: boolean, say: string): void {
-    const r = FINALE_ROUNDS[round - 1];
-    const m = this.add.container(0, 0).setDepth(900);
-    m.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.5).setOrigin(0).setInteractive());
-    m.add(panel(this, 16, 300, W - 32, 420));
-    m.add(txt(this, 40, 326, say, 20, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: W - 80, useAdvancedWrap: true } }));
-    m.add(txt(this, 40, 420, ok ? `${r.ok}\n\n${r.effect}` : FINALE_WRONG, 21, ok ? 0x9fe8c0 : 0xff9a8a, { lineSpacing: 6, wordWrap: { width: W - 80, useAdvancedWrap: true } }));
-    m.add(button(this, W / 2, 650, 240, 66, '繼續戰鬥', () => {
-      m.destroy();
-      this.battle.answer(round, ok);
-    }, { size: 24, fill: 0x8a1b14 }));
+  private playTrial(round: number, line: string, used: { tag: string; name: string; say: string } | null, result: string, ok: boolean): void {
+    // 動畫期間先把提示字收起來，避免疊在一起
+    this.tweens.killTweensOf(this.toastTxt);
+    this.toastTxt.setAlpha(0);
+    const c = this.add.container(0, 0).setDepth(800);
+    const top = BAND_Y + 8;
+    const h = BAND_H - 16;
+    // 底：半透明黑幕從左滑入
+    const bg = this.add.rectangle(0, top, W, h, 0x0a0614, 0.82).setOrigin(0);
+    const edge = this.add.graphics();
+    edge.lineStyle(3, C.gold, 0.9);
+    edge.lineBetween(0, top, W, top);
+    edge.lineBetween(0, top + h, W, top + h);
+    const title = txt(this, 24, top + 14, `陣前審問　${round}／3`, 24, C.gold, { serif: true });
+    const say = txt(this, 24, top + 54, `石駒：${line}`, 20, 0xd9b0ff, { wordWrap: { width: W - 48, useAdvancedWrap: true } });
+    c.add([bg, edge, title, say]);
+    c.x = -W;
+    this.tweens.add({ targets: c, x: 0, duration: 260, ease: 'Cubic.out' });
+    // 證據卡：從下方飛上來、放大、蓋章
+    const card = this.add.container(W / 2, top + h + 120);
+    const cw = W - 120;
+    const ch = 120;
+    const g = this.add.graphics();
+    g.fillStyle(used ? 0xeee0bd : 0x3a3442, 1);
+    g.fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 10);
+    g.lineStyle(3, used ? 0xa3261c : 0x6a6070, 1);
+    g.strokeRoundedRect(-cw / 2, -ch / 2, cw, ch, 10);
+    card.add(g);
+    if (used) {
+      card.add(txt(this, -cw / 2 + 18, -ch / 2 + 12, `【${used.tag}】${used.name}`, 22, 0xa3261c, { serif: true }));
+      card.add(txt(this, -cw / 2 + 18, -ch / 2 + 46, used.say, 16, 0x2a1a10, { serif: true, lineSpacing: 2, wordWrap: { width: cw - 36, useAdvancedWrap: true } }));
+    } else {
+      card.add(txt(this, 0, 0, '（沒有證據）', 22, 0x9a8fae).setOrigin(0.5));
+    }
+    card.setScale(0.6).setAlpha(0);
+    c.add(card);
+    this.tweens.add({ targets: card, y: top + 110 + ch / 2, scale: 1, alpha: 1, delay: 500, duration: 380, ease: 'Back.out' });
+    // 結果：蓋章＋一行字
+    const stamp = txt(this, W - 90, top + 96, ok ? '說動' : '無效', 30, ok ? 0x2f8f5a : 0xb3261e, { serif: true, backgroundColor: '#eee0bd', padding: { x: 8, y: 4 } }).setOrigin(0.5).setAngle(-12).setScale(2.4).setAlpha(0);
+    const res = txt(this, 24, top + h - 62, result, 17, ok ? 0x9fe8c0 : 0xff9a8a, { lineSpacing: 4, wordWrap: { width: W - 48, useAdvancedWrap: true } }).setAlpha(0);
+    c.add([stamp, res]);
+    this.tweens.add({ targets: stamp, scale: 1, alpha: 1, delay: 1100, duration: 220, ease: 'Quad.in', onComplete: () => this.cameras.main.shake(120, 0.004) });
+    this.tweens.add({ targets: res, alpha: 1, delay: 1300, duration: 300 });
+    // 石駒的反應（戰場那邊）
+    this.time.delayedCall(1200, () => {
+      if (ok) this.boss.cameras.main.flash(250, 255, 240, 200);
+      else this.boss.cameras.main.shake(300, 0.006);
+      this.boss.ft(this.battle.boss.x, GROUND_Y - 260, ok ? '動搖了' : '更兇了', ok ? 0xfff3c4 : 0xff6a6a, 34);
+    });
+    // 幾秒後滑出
+    this.tweens.add({ targets: c, x: W, delay: 4200, duration: 300, ease: 'Cubic.in', onComplete: () => c.destroy() });
   }
 
   // ---------- 結束 ----------

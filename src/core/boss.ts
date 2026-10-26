@@ -7,7 +7,7 @@
  *  - 後排：不挨打；近戰在後排慢慢回血；遠程、輔助在後排照常出手。
  *  - 換位要走 2 秒，走路時不能出手。前排沒人，妖怪就直接打神轎。
  * 石駒的節奏：近身纏鬥 → 退開刨地（預告 2.5 秒）→ 衝鋒撞前排所有人 → 喘息（這時打肚子傷害大增）。
- * 煞氣打到 70%、40%、10% 時暫停，進入陣前審問（由畫面處理，結果用 answer() 告訴戰鬥）。
+ * 煞氣打到 70%、40%、10% 時陣前審問：不暫停，畫面自動出示手上的證據（或請人上前），結果用 answer() 告訴戰鬥。
  */
 import { ENEMIES, type EnemyId } from './units';
 
@@ -283,7 +283,7 @@ export class BossBattle {
     if (this.trialRound >= TRIAL_AT.length) return;
     if (this.boss.hp <= this.boss.maxHp * TRIAL_AT[this.trialRound]) {
       this.trialRound++;
-      this.paused = true;
+      // 陣前審問不再暫停：畫面自動出示證據，用 answer() 回報結果
       this.events.push({ type: 'trial', round: this.trialRound });
     }
   }
