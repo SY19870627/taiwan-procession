@@ -11,6 +11,8 @@ const ZOOM = W / FW;
 /** 隊伍裡的人物放大一點，縮小後才看得清楚 */
 const BIG = 1.5;
 const SPEED = 260;
+/** 天空上面切掉一段（街景、隊伍都在下半部），讓下方面板的字可以放大 */
+const CROP = 150;
 
 export interface BandData {
   y: number;
@@ -42,7 +44,7 @@ export class BandScene extends Phaser.Scene {
   }
 
   static height(): number {
-    return Math.round(FH * ZOOM);
+    return Math.round((FH - CROP) * ZOOM);
   }
 
   create(data: BandData): void {
@@ -50,7 +52,7 @@ export class BandScene extends Phaser.Scene {
     this.walking = false;
     this.visitor = undefined;
     this.arrive = undefined;
-    this.cameras.main.setViewport(0, data.y, W, BandScene.height()).setZoom(ZOOM).centerOn(FW / 2, FH / 2);
+    this.cameras.main.setViewport(0, data.y, W, BandScene.height()).setZoom(ZOOM).centerOn(FW / 2, CROP + (FH - CROP) / 2);
     this.cameras.main.fadeIn(400, 10, 8, 18);
     this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour });
     // 隊伍（每一章不同，見 content/chapter.ts 的 band）

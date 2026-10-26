@@ -502,7 +502,7 @@ export class BossHud extends Phaser.Scene {
     bg.fillRect(0, py, W, H - py);
     let y = py + 16;
     txt(this, 24, y, esc ? '王船離沙灘' : '石駒的煞氣', 20, esc ? 0x9fd0ff : 0xd9b0ff);
-    this.goalTxt = txt(this, 190, y + 2, '', 17, C.muted, { bold: false });
+    this.goalTxt = txt(this, 190, y, '', 19, C.muted, { bold: false });
     const sp = button(this, W - 90, y + 14, 140, 48, '速度 x1', () => {
       this.boss.speed = this.boss.speed === 1 ? 2 : 1;
       sp.setLabel(`速度 x${this.boss.speed}`);
@@ -514,7 +514,7 @@ export class BossHud extends Phaser.Scene {
     this.palBar = this.add.graphics().setData('y', y + 30);
     y += 62;
     this.frontTxt = txt(this, 24, y, '', 18, C.paper);
-    txt(this, W - 24, y + 2, '點陣頭：換前排／後排（走 2 秒）', 15, C.muted, { bold: false }).setOrigin(1, 0);
+    txt(this, W - 24, y + 2, '點卡片換前後排（走 2 秒）', 18, C.muted, { bold: false }).setOrigin(1, 0);
     y += 32;
     // 陣頭卡片：位置固定，方便點；卡片上標前排、後排
     const units = this.battle.units;
@@ -530,7 +530,7 @@ export class BossHud extends Phaser.Scene {
       icon.setScale(Math.min((cardH - 14) / icon.height, 64 / icon.width));
       if (F.ghostMembers.includes(u.key)) icon.setTint(0x9ad0ff);
       const name = txt(this, cx + 80, cy + 10, st.name, st.name.length > 6 ? 17 : 20, C.paper);
-      const state = txt(this, cx + 80, cy + 36, '', 15, C.muted, { bold: false });
+      const state = txt(this, cx + 80, cy + 36, '', 17, C.muted, { bold: false });
       const bar = this.add.graphics();
       const hit = this.add.rectangle(cx, cy, colW, cardH, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => {
@@ -552,14 +552,14 @@ export class BossHud extends Phaser.Scene {
       const b = button(this, x, by, this.skillW, skillH, SPELLS[id].name, () => this.battle.cast(i), { size: 34, fill: (esc ? fillsEsc : fills)[i] });
       this.spellBtns.push(b);
       this.spellFills.push(this.add.rectangle(x - this.skillW / 2, by - skillH / 2, this.skillW, skillH, 0x000000, 0.45).setOrigin(0).setDepth(5));
-      txt(this, x, by - skillH / 2 - 18, SPELLS[id].desc, 15, C.muted, { bold: false }).setOrigin(0.5);
+      txt(this, x, by - skillH / 2 - 18, SPELLS[id].desc, 17, C.muted, { bold: false, align: 'center', wordWrap: { width: this.skillW, useAdvancedWrap: true } }).setOrigin(0.5);
     });
     // 超渡的鬼回報的技能
     this.skillBtns = [];
     if (skills.length) {
       const sy = by - skillH / 2 - 76;
       const sw = (W - 48 - 12 * (skills.length - 1)) / skills.length;
-      txt(this, 24, sy - 60, '超渡亡魂，神威增長：', 15, 0xffd76a, { bold: false });
+      txt(this, 24, sy - 60, '超渡亡魂，神威增長：', 18, 0xffd76a, { bold: false });
       skills.forEach((id, i) => {
         const btn = button(this, 24 + sw / 2 + i * (sw + 12), sy, sw, 60, SKILLS[id].name, () => this.battle.skill(id), { size: 22, fill: 0x7a5a10 });
         this.skillBtns.push({ id, btn });
@@ -681,7 +681,7 @@ export class BossHud extends Phaser.Scene {
     edge.lineBetween(0, top, W, top);
     edge.lineBetween(0, top + h, W, top + h);
     const title = txt(this, 24, top + 14, `陣前審問　${round}／3`, 24, C.gold, { serif: true });
-    const say = txt(this, 24, top + 54, line, 20, 0xd9b0ff, { wordWrap: { width: W - 48, useAdvancedWrap: true } });
+    const say = txt(this, 24, top + 54, line, 23, 0xd9b0ff, { wordWrap: { width: W - 48, useAdvancedWrap: true } });
     c.add([bg, edge, title, say]);
     c.x = -W;
     this.tweens.add({ targets: c, x: 0, duration: 260, ease: 'Cubic.out' });
@@ -697,7 +697,7 @@ export class BossHud extends Phaser.Scene {
     card.add(g);
     if (used) {
       card.add(txt(this, -cw / 2 + 18, -ch / 2 + 12, `【${used.tag}】${used.name}`, 22, 0xa3261c, { serif: true }));
-      card.add(txt(this, -cw / 2 + 18, -ch / 2 + 46, used.say, 16, 0x2a1a10, { serif: true, lineSpacing: 2, wordWrap: { width: cw - 36, useAdvancedWrap: true } }));
+      card.add(txt(this, -cw / 2 + 18, -ch / 2 + 46, used.say, 18, 0x2a1a10, { serif: true, lineSpacing: 3, wordWrap: { width: cw - 36, useAdvancedWrap: true } }));
     } else {
       card.add(txt(this, 0, 0, '（沒有證據）', 22, 0x9a8fae).setOrigin(0.5));
     }
@@ -706,7 +706,7 @@ export class BossHud extends Phaser.Scene {
     this.tweens.add({ targets: card, y: top + 110 + ch / 2, scale: 1, alpha: 1, delay: 500, duration: 380, ease: 'Back.out' });
     // 結果：蓋章＋一行字
     const stamp = txt(this, W - 90, top + 96, ok ? '說動' : '無效', 30, ok ? 0x2f8f5a : 0xb3261e, { serif: true, backgroundColor: '#eee0bd', padding: { x: 8, y: 4 } }).setOrigin(0.5).setAngle(-12).setScale(2.4).setAlpha(0);
-    const res = txt(this, 24, top + h - 62, result, 17, ok ? 0x9fe8c0 : 0xff9a8a, { lineSpacing: 4, wordWrap: { width: W - 48, useAdvancedWrap: true } }).setAlpha(0);
+    const res = txt(this, 24, top + h - 70, result, 20, ok ? 0x9fe8c0 : 0xff9a8a, { lineSpacing: 4, wordWrap: { width: W - 48, useAdvancedWrap: true } }).setAlpha(0);
     c.add([stamp, res]);
     this.tweens.add({ targets: stamp, scale: 1, alpha: 1, delay: 1100, duration: 220, ease: 'Quad.in', onComplete: () => this.cameras.main.shake(120, 0.004) });
     this.tweens.add({ targets: res, alpha: 1, delay: 1300, duration: 300 });

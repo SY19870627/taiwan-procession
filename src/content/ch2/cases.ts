@@ -16,7 +16,7 @@ export const EVIDENCE2: Record<string, Evidence> = {
   rudder: { id: 'rudder', kind: '物證', name: '斷舵', text: '一截斷掉的舵，木頭泡得發黑。舵柄上刻著三個字：「金順發」。', ghost: 'haibo', where: '收容海伯時一起帶回' },
   caisao_net: { id: 'caisao_net', kind: '證詞', name: '蔡嫂的話（最後一網）', text: '「那天颱風要來了。船長說：『最後一網就回來。』我老公就跟著去了。」', ghost: 'haibo', where: '蔡嫂（第一天魚市場／第三天堤防）' },
   paper: { id: 'paper', kind: '文獻', name: '港務的舊報紙', text: '三年前的剪報：「颱風夜，漁船金順發號失聯。船員五人下落不明，僅船長一人被沖上岸獲救。」', ghost: 'haibo', where: '港務所的老伯（第一天港口線）' },
-  typhoon: { id: 'typhoon', kind: '文獻', name: '東津舊聞・颱風那年', text: '黃曆舊聞：是歲秋，颱風夜，港口一船未歸。船主獨生還，翌年病歿。', ghost: 'haibo', where: '第二天的黃曆' },
+  typhoon: { id: 'typhoon', kind: '文獻', name: '東津舊聞・颱風那年', text: '黃曆上寫的：三年前的颱風夜，港口有一艘船沒回來，只有船長活著上岸，隔年就病死了。', ghost: 'haibo', where: '第二天的黃曆' },
   // 阿迪
   dutylog: { id: 'dutylog', kind: '物證', name: '被塗掉的值班表', text: '宿舍的值班表，三年前那一格被立可白塗掉了。對著光，還看得出底下寫著「落海」兩個字。', ghost: 'adi', where: '船員宿舍・值班室的線索（第二天宿舍線）' },
   ajuan_word: { id: 'ajuan_word', kind: '證詞', name: '阿娟的話', text: '「宿舍的燈一閃，就是他。他每天晚上都把那封信拿出來，好像在等人看一眼。」', ghost: 'adi', where: '阿娟（第二天雜貨店／第三天市街線）' },
@@ -34,7 +34,7 @@ export const EVIDENCE2: Record<string, Evidence> = {
 
 export const CASES2: Record<string, GhostCase> = {
   haibo: {
-    id: 'haibo', name: '海伯', dayName: '抓著斷舵的老人', shortName: '斷舵老人', tex: 'g_haibo',
+    id: 'haibo', memory: 'rain', name: '海伯', dayName: '抓著斷舵的老人', shortName: '斷舵老人', tex: 'g_haibo',
     daySight: '港口最邊邊的繫船柱旁，一個老人雙手抓著一截斷掉的舵，一直望著海。漁船進進出出，沒有人往他那裡看。',
     harm: '最後一戰少了一個認得黑潮的人',
     affects: '最後一戰的黑潮；蔡嫂',
@@ -68,7 +68,7 @@ export const CASES2: Record<string, GhostCase> = {
     ],
   },
   adi: {
-    id: 'adi', name: '阿迪', dayName: '坐在冰櫃上的年輕人', shortName: '冰櫃青年', tex: 'g_adi',
+    id: 'adi', memory: 'sea', name: '阿迪', dayName: '坐在冰櫃上的年輕人', shortName: '冰櫃青年', tex: 'g_adi',
     daySight: '外籍船員宿舍外，一個年輕人坐在舊冰櫃上，手裡捏著一封信。宿舍的燈閃了一下，他抬頭看了看，又低下頭。',
     harm: '宿舍的燈還會一直閃，舍監打算把他留下的東西丟掉',
     affects: '阿娟與宿舍的船員',

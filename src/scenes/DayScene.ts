@@ -11,6 +11,7 @@ import { CH, collectHours, evidenceFor, evidenceOf, ghostMood, laterSightings, s
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
+import { splitStory, talk } from '../ui/talk';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -131,8 +132,8 @@ export class DayScene extends Phaser.Scene {
     c.add(g);
     // 令旗
     c.add(this.add.image(48, top + h - 8, CH().held.icon).setOrigin(0.5, 1).setScale(0.42 * 150 / Math.max(150, this.textures.get(CH().held.icon).getSourceImage().height)));
-    c.add(txt(this, 74, top + 14, CH().held.label, 15, 0x9fd0ff));
-    c.add(txt(this, 74, top + 38, CH().held.sub, 13, C.muted, { bold: false }));
+    c.add(txt(this, 72, top + 12, CH().held.label, 17, 0x9fd0ff));
+    c.add(txt(this, 72, top + 40, CH().held.sub, 14, C.muted, { bold: false }));
     const x0 = 132;
     const sw = (W - 32 - (x0 - 16) - 12 - 8 * (run.slots - 1)) / run.slots;
     for (let i = 0; i < run.slots; i++) {
@@ -148,7 +149,7 @@ export class DayScene extends Phaser.Scene {
         sg.lineBetween(sx, sy, sx, sy + sh);
         sg.lineBetween(sx + sw, sy, sx + sw, sy + sh);
         c.add(sg);
-        c.add(txt(this, sx + sw / 2, sy + sh / 2, '空位', 15, 0x4a5a72).setOrigin(0.5));
+        c.add(txt(this, sx + sw / 2, sy + sh / 2, '空位', 18, 0x4a5a72).setOrigin(0.5));
         continue;
       }
       const k = CH().cases[h1.id];
@@ -161,10 +162,10 @@ export class DayScene extends Phaser.Scene {
       const img = this.add.image(sx + 24, sy + sh - 2, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.85);
       img.setScale(Math.min((sh - 6) / img.height, 36 / img.width));
       c.add(img);
-      c.add(txt(this, sx + 46, sy + 6, st.truths.length ? k.name : k.shortName, 15, 0xd8ecff));
+      c.add(txt(this, sx + 44, sy + 4, st.truths.length ? k.name : k.shortName, 18, 0xd8ecff));
       const grudge = '●'.repeat(h1.grudge) + '○'.repeat(3 - h1.grudge);
-      c.add(txt(this, sx + 46, sy + 30, `查明${st.truths.length}／${k.truths.length}`, 12, 0x9fe8c0, { bold: false }));
-      c.add(txt(this, sx + sw - 6, sy + 30, grudge, 12, h1.grudge ? 0xff9a8a : 0x6a7a92, { bold: false }).setOrigin(1, 0));
+      c.add(txt(this, sx + 44, sy + 32, `查明${st.truths.length}／${k.truths.length}`, 15, 0x9fe8c0, { bold: false }));
+      c.add(txt(this, sx + sw - 6, sy + 32, grudge, 14, h1.grudge ? 0xff9a8a : 0x6a7a92, { bold: false }).setOrigin(1, 0));
       const hit = this.add.rectangle(sx, sy, sw, sh, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => this.showHeld(h1.id));
       c.add(hit);
@@ -186,7 +187,7 @@ export class DayScene extends Phaser.Scene {
       img.setScale(Math.min(200 / img.height, 160 / img.width));
       add(img);
       let y = y0 + 240;
-      const para = (s: string, color: number = C.paper, size = 18) => {
+      const para = (s: string, color: number = C.paper, size = 21) => {
         const t = txt(this, x + 30, y, s, size, color, { bold: false, lineSpacing: 5, wordWrap: { width: pw - 60, useAdvancedWrap: true } });
         add(t);
         y += t.height + 14;
@@ -194,12 +195,12 @@ export class DayScene extends Phaser.Scene {
       para(k.daySight);
       para(`牽連：${k.affects}`, 0xffd76a);
       para(`審清楚：${k.payoff}`, 0x9fe8c0);
-      if (st.truths.length) para(`已查明：\n${st.truths.map((i) => `・${k.truths[i].summary}`).join('\n')}`, 0x9fe8c0, 16);
+      if (st.truths.length) para(`已查明：\n${st.truths.map((i) => `・${k.truths[i].summary}`).join('\n')}`, 0x9fe8c0, 19);
       const evs = evidenceOf(id);
       const have = evs.filter((e) => run.evidence.includes(e));
       para(`證據 ${have.length}／${evs.length}`, C.gold);
-      for (const e of evs) para(run.evidence.includes(e) ? `✓ ${CH().evidence[e].name}` : `✗ ${CH().evidence[e].name}（${CH().evidence[e].where}）`, run.evidence.includes(e) ? 0x9fe8c0 : 0xff9a8a, 16);
-      if (h1) para(`怨氣 ${h1.grudge}／3（每過一夜沒審 +1，到 3 會掙脫）`, 0xff9a8a, 16);
+      for (const e of evs) para(run.evidence.includes(e) ? `✓ ${CH().evidence[e].name}` : `✗ ${CH().evidence[e].name}（${CH().evidence[e].where}）`, run.evidence.includes(e) ? 0x9fe8c0 : 0xff9a8a, 19);
+      if (h1) para(`怨氣 ${h1.grudge}／3（每過一夜沒審 +1，到 3 會掙脫）`, 0xff9a8a, 19);
     });
   }
 
@@ -223,27 +224,27 @@ export class DayScene extends Phaser.Scene {
   private panelMsg(title: string, body: string): void {
     const p = this.resetSide();
     this.add2(txt(this, p.x + 24, p.y + 18, title, 30, C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 68, body, 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.add2(txt(this, p.x + 24, p.y + 70, body, 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
   }
 
-  /** 「前方」清單：接下來會遇到的事（只看得到這條路上的） */
+  /** 「前方」清單：接下來會遇到的事（只看得到這條路上的，列兩件） */
   private drawAhead(p: { x: number; y: number; w: number; h: number }): void {
-    const rest = this.queue.slice(this.idx).filter((e): e is Encounter => e !== 'fork' && visible(run, e)).slice(0, 3);
-    const top = p.y + p.h - 26 - Math.max(1, rest.length) * 34;
+    const rest = this.queue.slice(this.idx).filter((e): e is Encounter => e !== 'fork' && visible(run, e)).slice(0, 2);
+    const top = p.y + p.h - 22 - Math.max(1, rest.length) * 38;
     const g = this.add2(this.add.graphics());
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 20, top - 10, p.x + p.w - 20, top - 10);
-    this.add2(txt(this, p.x + 24, top - 4, '前方', 16, C.muted));
+    this.add2(txt(this, p.x + 24, top - 2, '前方', 19, C.muted));
     if (!rest.length) {
-      this.add2(txt(this, p.x + 90, top - 4, this.queue[this.idx] === 'fork' ? '岔路' : '（這條路快走完了）', 16, C.muted, { bold: false }));
+      this.add2(txt(this, p.x + 90, top - 2, this.queue[this.idx] === 'fork' ? '岔路' : '（這條路快走完了）', 19, C.muted, { bold: false }));
       return;
     }
     rest.forEach((e, i) => {
       const s = summary(run, e);
-      const y = top + i * 34;
-      this.add2(txt(this, p.x + 90, y - 4, s.icon, 16, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 5, y: 1 } }));
-      this.add2(txt(this, p.x + 126, y - 2, s.title, 17, C.paper, { bold: false }));
-      this.add2(txt(this, p.x + p.w - 24, y - 2, s.cost, 16, C.muted, { bold: false }).setOrigin(1, 0));
+      const y = top + i * 38;
+      this.add2(txt(this, p.x + 90, y - 4, s.icon, 19, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 5, y: 1 } }));
+      this.add2(txt(this, p.x + 128, y - 2, s.title, 20, C.paper, { bold: false }));
+      this.add2(txt(this, p.x + p.w - 24, y, s.cost, 17, C.muted, { bold: false }).setOrigin(1, 0));
     });
   }
 
@@ -271,21 +272,32 @@ export class DayScene extends Phaser.Scene {
     }
   }
 
-  private after(story: string, gained: string[]): void {
-    const p = this.resetSide();
-    this.add2(txt(this, p.x + 24, p.y + 24, story, 21, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
-    let y = p.y + p.h - 260;
-    for (const id of gained) {
-      const ev = CH().evidence[id];
-      this.add2(txt(this, p.x + 24, y, `證物袋 ＋ 【${ev.kind}】${ev.name}`, 19, 0x9fe8c0));
-      this.add2(txt(this, p.x + 24, y + 28, `　→ 審「${evidenceFor(id)}」時用得上（${this.ghostStatus(ev.ghost)}）`, 16, C.muted, { bold: false }));
-      y += 64;
-    }
-    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => {
-      if (this.busy) return;
-      this.busy = true;
-      this.band.pass(false, () => { this.busy = false; this.next(); });
-    }, { size: 26, fill: 0x8a1b14 }));
+  /**
+   * 處理完一件事：故事用對話演出一句一句播（說話的人有立繪），
+   * 播完如果拿到證據，面板列出來；沒有就直接繼續走。
+   */
+  private after(story: string, gained: string[], who?: { name: string; tex?: string; ghost?: boolean }): void {
+    talk(this, splitStory(story, who), () => {
+      if (!gained.length) {
+        this.busy = true;
+        this.band.pass(false, () => { this.busy = false; this.next(); });
+        return;
+      }
+      const p = this.resetSide();
+      this.add2(txt(this, p.x + 24, p.y + 20, '證物袋', 28, C.gold, { serif: true }));
+      let y = p.y + 76;
+      for (const id of gained) {
+        const ev = CH().evidence[id];
+        this.add2(txt(this, p.x + 24, y, `＋【${ev.kind}】${ev.name}`, 23, 0x9fe8c0));
+        const t = this.add2(txt(this, p.x + 24, y + 36, `審「${evidenceFor(id)}」時用得上（${this.ghostStatus(ev.ghost)}）`, 20, C.muted, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+        y = t.y + t.height + 24;
+      }
+      this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => {
+        if (this.busy) return;
+        this.busy = true;
+        this.band.pass(false, () => { this.busy = false; this.next(); });
+      }, { size: 26, fill: 0x8a1b14 }));
+    });
   }
 
   /** 這隻鬼現在的狀態（給證據、線索看的） */
@@ -314,13 +326,21 @@ export class DayScene extends Phaser.Scene {
     }
   }
 
-  /** 共用的卡片外框：標題、地點、說明 */
-  private cardHead(title: string, place: string, text: string, tag?: { s: string; color: string }): { p: { x: number; y: number; w: number; h: number }; y: number } {
+  /** 共用的卡片外框：（立繪）標題、地點、說明 */
+  private cardHead(title: string, place: string, text: string, tag?: { s: string; color: string }, tex?: string, ghost = false): { p: { x: number; y: number; w: number; h: number }; y: number } {
     const p = this.resetSide();
-    this.add2(txt(this, p.x + 24, p.y + 14, title, 30, C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 54, place, 17, C.muted));
-    if (tag) this.add2(txt(this, p.x + p.w - 24, p.y + 20, tag.s, 17, 0xffffff, { backgroundColor: tag.color, padding: { x: 8, y: 4 } }).setOrigin(1, 0));
-    const body = this.add2(txt(this, p.x + 24, p.y + 84, text, 19, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    let tx = p.x + 24;
+    if (tex) {
+      // 立繪放在左上角，標題往右
+      const img = this.add2(this.add.image(p.x + 64, p.y + 100, tex).setOrigin(0.5, 1));
+      img.setScale(Math.min(88 / img.height, 80 / img.width));
+      if (ghost) img.setTint(0x9ad0ff).setAlpha(0.8);
+      tx = p.x + 118;
+    }
+    this.add2(txt(this, tx, p.y + 14, title, 30, C.gold, { serif: true }));
+    this.add2(txt(this, tx, p.y + 58, place, 20, C.muted));
+    if (tag) this.add2(txt(this, p.x + p.w - 24, p.y + 18, tag.s, 19, 0xffffff, { backgroundColor: tag.color, padding: { x: 8, y: 4 } }).setOrigin(1, 0));
+    const body = this.add2(txt(this, p.x + 24, p.y + 112, text, 22, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.drawAhead(p);
     return { p, y: body.y + body.height + 16 };
   }
@@ -329,12 +349,12 @@ export class DayScene extends Phaser.Scene {
   private optionRow(p: { x: number; w: number }, y: number, label: string, cost: string, result: string, why: string, onPick: () => void, gold = false): number {
     // 花費和結果都可能換行：先排字，再依高度畫底色
     const g = this.add2(this.add.graphics());
-    const costT = this.add2(txt(this, p.x + 200, y + 12, cost.replace(/(\d) /g, '$1\u00a0'), 15, gold ? 0xffd76a : C.muted, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
-    const resT = this.add2(txt(this, p.x + 200, costT.y + costT.height + 6, why ? `✕ ${why}` : result, 16, why ? 0xff9a8a : 0x9fe8c0, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
-    const optH = Math.max(92, resT.y + resT.height + 14 - y);
+    const costT = this.add2(txt(this, p.x + 200, y + 12, cost.replace(/(\d) /g, '$1\u00a0'), 18, gold ? 0xffd76a : C.muted, { bold: false, lineSpacing: 3, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    const resT = this.add2(txt(this, p.x + 200, costT.y + costT.height + 6, why ? `✕ ${why}` : result, 20, why ? 0xff9a8a : 0x9fe8c0, { bold: false, lineSpacing: 3, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    const optH = Math.max(96, resT.y + resT.height + 14 - y);
     g.fillStyle(gold ? 0x5a3a10 : 0x2f3a4a, why ? 0.35 : 0.8);
     g.fillRoundedRect(p.x + 16, y, p.w - 32, optH - 8, 10);
-    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, 52, label, onPick, { size: label.length > 6 ? 16 : 20, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
+    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, 52, label, onPick, { size: label.length > 6 ? 18 : label.length > 4 ? 20 : 24, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
     b.setEnabled(!why);
     return y + optH;
   }
@@ -343,8 +363,8 @@ export class DayScene extends Phaser.Scene {
     const g = this.add2(this.add.graphics());
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 24, y + 2, p.x + p.w - 24, y + 2);
-    this.add2(button(this, p.x + 106, y + 40, 164, 50, '略過，繼續走', onSkip, { size: 17, fill: 0x3a3442 }));
-    this.add2(txt(this, p.x + 200, y + 20, `不處理：${ignore}`, 16, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    this.add2(button(this, p.x + 106, y + 40, 164, 52, '略過', onSkip, { size: 22, fill: 0x3a3442 }));
+    this.add2(txt(this, p.x + 200, y + 18, `不處理：${ignore}`, 19, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
   }
 
   private hoursWhy(h: number): string {
@@ -366,23 +386,23 @@ export class DayScene extends Phaser.Scene {
 
   private costLine(o: Option): string {
     const parts = [`${o.hours} 時辰`];
-    if (o.miracle) parts.push('神蹟・最後一戰小妖 +1 波');
+    if (o.miracle) parts.push('神蹟（最後一戰小妖 +1 波）');
     const newEv = (o.gives ?? []).filter((id) => !run.evidence.includes(id));
-    if (newEv.length) parts.push(`得到證據：${newEv.map((id) => `${CH().evidence[id].name}（審「${evidenceFor(id)}」用）`).join('、')}`);
+    if (newEv.length) parts.push(`得到：${newEv.map((id) => CH().evidence[id].name).join('、')}`);
     return parts.join('・');
   }
 
   private showPerson(e: Extract<Encounter, { kind: 'person' }>): void {
     const card = CH().cards[e.card](run) as Card;
-    const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? { s: `期限：${card.deadline}`, color: '#b3261e' } : undefined);
+    const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? { s: `期限：${card.deadline}`, color: '#b3261e' } : undefined, e.tex);
     let y = y0;
     for (const o of card.options) {
-      y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o), !!o.miracle);
+      y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }), !!o.miracle);
     }
     this.skipRow(p, y, card.ignore, () => this.skip());
   }
 
-  private choosePerson(o: Option): void {
+  private choosePerson(o: Option, who: { name: string; tex: string }): void {
     if (this.blocked(o) || this.busy) return;
     const before = run.evidence.length;
     this.spend(o.hours);
@@ -393,7 +413,7 @@ export class DayScene extends Phaser.Scene {
     }
     const story = o.apply(run);
     this.refreshHeader();
-    this.after(story, run.evidence.slice(before));
+    this.after(story, run.evidence.slice(before), who);
   }
 
   // ----- 鬼 -----
@@ -402,8 +422,8 @@ export class DayScene extends Phaser.Scene {
     const mood = ghostMood(run, e.caseId);
     if (mood === 'fled') {
       const p = this.resetSide();
-      this.add2(txt(this, p.x + 24, p.y + 18, k.dayName, 28, 0x9fd0ff, { serif: true }));
-      this.add2(txt(this, p.x + 24, p.y + 70, `隊伍身上的戾氣太重。牠一感覺到，就逃走了。\n\n今天收不到牠：${k.harm}。`, 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+      this.add2(txt(this, p.x + 24, p.y + 18, k.dayName, 30, 0x9fd0ff, { serif: true }));
+      this.add2(txt(this, p.x + 24, p.y + 72, `隊伍身上的戾氣太重。牠一感覺到，就逃走了。\n\n今天收不到牠：${k.harm}。`, 23, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
       this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => {
         if (this.busy) return;
         this.busy = true;
@@ -415,19 +435,17 @@ export class DayScene extends Phaser.Scene {
     const evs = evidenceOf(k.id);
     const have = evs.filter((id) => run.evidence.includes(id));
     const later = laterSightings(k.id, this.plan.day);
+    // 細節（審清楚的好處、缺哪些證據）收在令旗下的格子裡，點了看
     const info = [
       `牽連：${k.affects}`,
-      `審清楚：${k.payoff}`,
-      `證據已有 ${have.length}／${evs.length}${have.length ? `：${have.map((id) => CH().evidence[id].name).join('、')}` : ''}`,
-      ...(have.length < evs.length ? [`還缺：${evs.filter((id) => !have.includes(id)).map((id) => CH().evidence[id].name).join('、')}`] : []),
-      later.length ? `今天不收，${later.join('、')}還會遇到` : '今天不收，之後就遇不到了',
+      `證據 ${have.length}／${evs.length}・${later.length ? `之後在${later[0]}還會遇到` : '今天不收，之後就遇不到了'}`,
     ].join('\n');
     const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
-    const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' });
+    const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' }, k.tex, true);
     const full = run.held.length >= run.slots;
     const why = full ? '收容格滿了' : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));
-    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔收容格 1（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到證據：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
+    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔 1 格（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
     const y = this.optionRow(p, y0, '收容', cost, `帶回${CH().held.label}，今晚夜審`, why, () => this.collect(e, hours));
     this.skipRow(p, y, k.harm, () => this.skip());
   }
@@ -451,7 +469,7 @@ export class DayScene extends Phaser.Scene {
   private showImp(e: Extract<Encounter, { kind: 'imp' }>): void {
     const rule = CH().imp;
     if (rule.mode === 'scatter') {
-      const { p, y: y0 } = this.cardHead('小妖', e.place, e.text);
+      const { p, y: y0 } = this.cardHead('小妖', e.place, e.text, undefined, e.tex);
       const y = this.optionRow(p, y0, rule.verb, `${rule.hours} 時辰`, rule.result, this.hoursWhy(rule.hours), () => {
         if (this.busy || !this.spend(rule.hours)) return;
         this.busy = true;
@@ -462,7 +480,7 @@ export class DayScene extends Phaser.Scene {
       return;
     }
     // 押煞上船：用王令，不花時辰；王令每天有限
-    const { p, y: y0 } = this.cardHead('小妖', e.place, `${e.text}\n\n今天的王令還有 ${run.decrees}／${rule.perDay} 道。`);
+    const { p, y: y0 } = this.cardHead('小妖', e.place, `${e.text}\n今天的王令還有 ${run.decrees}／${rule.perDay} 道。`, undefined, e.tex);
     const why = run.decrees <= 0 ? '今天的王令用完了' : '';
     const y = this.optionRow(p, y0, rule.verb, `王令 1 道・不花時辰`, rule.result, why, () => {
       if (this.busy || run.decrees <= 0) return;
@@ -483,7 +501,7 @@ export class DayScene extends Phaser.Scene {
   // ----- 線索 -----
   private showClue(e: Extract<Encounter, { kind: 'clue' }>): void {
     const g = CH().evidence[e.evidence].ghost;
-    const { p, y: y0 } = this.cardHead('線索', e.place, `${e.text}\n\n跟「${CH().cases[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
+    const { p, y: y0 } = this.cardHead('線索', e.place, `${e.text}\n跟「${CH().cases[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
     const y = this.optionRow(p, y0, '查看', `${e.hours} 時辰・得到物證`, `晚上審「${CH().cases[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       this.busy = true;
@@ -498,17 +516,17 @@ export class DayScene extends Phaser.Scene {
     if (talkBlocked(run)) {
       const p = this.resetSide();
       this.add2(txt(this, p.x + 24, p.y + 18, e.who, 28, C.gold, { serif: true }));
-      this.add2(txt(this, p.x + 24, p.y + 70, '凡人看不見戾氣，卻覺得這支隊伍「氣很重」。他看了一眼，就轉身走開了。', 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+      this.add2(txt(this, p.x + 24, p.y + 72, '凡人看不見戾氣，卻覺得這支隊伍「氣很重」。他看了一眼，就轉身走開了。', 23, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
       this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.skip(), { size: 26, fill: 0x3a3442 }));
       return;
     }
     const g = CH().evidence[e.evidence].ghost;
-    const { p, y: y0 } = this.cardHead(e.who, e.place, `${e.text}\n\n跟「${CH().cases[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
+    const { p, y: y0 } = this.cardHead(e.who, e.place, `${e.text}\n跟「${CH().cases[g].dayName}」的案子有關（${this.ghostStatus(g)}）`, undefined, e.tex);
     const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到${CH().evidence[e.evidence].kind}`, `晚上審「${CH().cases[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       gainEvidence(e.evidence);
       this.refreshHeader();
-      this.after(CH().evidence[e.evidence].text, [e.evidence]);
+      this.after(CH().evidence[e.evidence].text, [e.evidence], { name: e.who, tex: e.tex });
     });
     this.skipRow(p, y, '少一件證據', () => this.skip());
   }
@@ -517,7 +535,7 @@ export class DayScene extends Phaser.Scene {
   private showFork(): void {
     const p = this.resetSide();
     this.add2(txt(this, p.x + 24, p.y + 14, '岔路', 30, C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 56, '時辰只夠走一條。另一條路上的人和鬼，今天就錯過了。', 17, C.paper, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.add2(txt(this, p.x + 24, p.y + 56, '時辰只夠走一條。另一條路上的人和鬼，今天就錯過了。', 20, C.paper, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     const routes = this.plan.routes;
     const blockH = (p.h - 100) / routes.length;
     routes.forEach((route, i) => {
@@ -529,14 +547,15 @@ export class DayScene extends Phaser.Scene {
       g.strokeRoundedRect(p.x + 16, by, p.w - 32, blockH - 12, 10);
       this.add2(txt(this, p.x + 32, by + 10, `${route.id}・${route.name}`, 24, 0xffffff, { serif: true }));
       const list = [...route.encounters, ...this.plan.post].filter((e) => visible(run, e));
-      list.slice(0, 8).forEach((e, k) => {
+      const max = Math.max(1, Math.floor((blockH - 12 - 50 - 58) / 36));
+      list.slice(0, max).forEach((e, k) => {
         const s = summary(run, e);
-        const y = by + 48 + k * 30;
-        this.add2(txt(this, p.x + 32, y, s.icon, 15, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 4, y: 1 } }));
-        this.add2(txt(this, p.x + 64, y + 1, s.title, 16, C.paper, { bold: false }));
-        this.add2(txt(this, p.x + p.w - 200, y + 1, s.cost, 15, C.muted, { bold: false }).setOrigin(1, 0));
+        const y = by + 50 + k * 36;
+        this.add2(txt(this, p.x + 32, y, s.icon, 18, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 4, y: 1 } }));
+        this.add2(txt(this, p.x + 68, y + 1, s.title, 20, C.paper, { bold: false }));
       });
-      this.add2(button(this, p.x + p.w - 100, by + blockH - 50, 150, 52, `走${route.id}線`, () => this.chooseRoute(route), { size: 20, fill: route.color }));
+      if (list.length > max) this.add2(txt(this, p.x + 32, by + 50 + max * 36, `……還有 ${list.length - max} 件`, 18, C.muted, { bold: false }));
+      this.add2(button(this, p.x + p.w - 100, by + blockH - 48, 160, 56, `走${route.id}線`, () => this.chooseRoute(route), { size: 24, fill: route.color }));
     });
   }
 
@@ -562,7 +581,7 @@ export class DayScene extends Phaser.Scene {
     const lines = run.held.length
       ? `${CH().held.label}收容了 ${run.held.length} 個鬼：\n${run.held.map((h) => `・${CH().cases[h.id].dayName}`).join('\n')}\n\n今晚升堂夜審。`
       : '今天沒有收容任何鬼。';
-    this.add2(txt(this, p.x + 24, p.y + 100, lines, 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.add2(txt(this, p.x + 24, p.y + 100, lines, 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.band.setHour(18);
     const day = this.plan.day;
     if (day === 3) CH().endOfDay3(run);
@@ -570,21 +589,46 @@ export class DayScene extends Phaser.Scene {
   }
 
   // ---------- 因果簿、證物袋 ----------
+  /** 蓋在畫面上的清單（因果簿、證物袋、鬼的故事）。內容太長可以上下拖動 */
   private overlay(title: string, build: (x: number, y: number, w: number, add: (o: Phaser.GameObjects.GameObject) => void) => void): void {
     const objs: Phaser.GameObjects.GameObject[] = [];
     const pw = W - 32;
     const ph = H - 80;
     const x = 16;
     const y = 40;
-    objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.75).setOrigin(0).setDepth(960).setInteractive());
+    const top = y + 76;
+    const viewH = ph - 76 - 100;
+    const scrim = this.add.rectangle(0, 0, W, H, 0x000000, 0.75).setOrigin(0).setDepth(960).setInteractive();
+    objs.push(scrim);
     objs.push(panel(this, x, y, pw, ph).setDepth(961));
     objs.push(txt(this, x + 30, y + 20, title, 32, C.gold, { serif: true }).setDepth(962));
-    build(x, y + 76, pw, (o) => { (o as unknown as { setDepth: (d: number) => void }).setDepth(962); objs.push(o); });
+    const content = this.add.container(0, 0).setDepth(962);
+    objs.push(content);
+    build(x, top, pw, (o) => content.add(o));
+    const maskG = this.make.graphics({}, false);
+    maskG.fillRect(x, top - 4, pw, viewH + 8);
+    content.setMask(maskG.createGeometryMask());
+    objs.push(maskG);
+    // 內容高度超過可視範圍：拖動捲動
+    const b = content.getBounds();
+    const overflow = Math.max(0, b.bottom - (top + viewH));
+    if (overflow > 0) {
+      const tip = txt(this, x + pw - 24, y + 30, '上下拖動看更多', 18, C.muted, { bold: false }).setOrigin(1, 0).setDepth(962);
+      objs.push(tip);
+      let lastY: number | null = null;
+      scrim.on('pointerdown', (p: Phaser.Input.Pointer) => { lastY = p.y; });
+      scrim.on('pointermove', (p: Phaser.Input.Pointer) => {
+        if (lastY === null || !p.isDown) return;
+        content.y = Phaser.Math.Clamp(content.y + (p.y - lastY), -overflow - 20, 0);
+        lastY = p.y;
+      });
+      scrim.on('pointerup', () => { lastY = null; });
+    }
     let close: Button | null = null;
     close = button(this, x + pw / 2, y + ph - 50, 220, 60, '關閉', () => {
       for (const o of objs) o.destroy();
       close?.destroy();
-    }, { size: 22, fill: 0x3a3442 });
+    }, { size: 24, fill: 0x3a3442 });
     close.setDepth(963);
   }
 
@@ -593,41 +637,41 @@ export class DayScene extends Phaser.Scene {
       const color = { good: 0x9fe8c0, warn: 0xffd76a, bad: 0xff9a8a, none: C.paper };
       let y = y0;
       for (const l of CH().ledger(run)) {
-        add(txt(this, x + 30, y, l.who, 22, C.paper, { serif: true }));
-        const t = txt(this, x + 140, y + 3, l.state, 18, color[l.tone], { bold: false, lineSpacing: 4, wordWrap: { width: pw - 170, useAdvancedWrap: true } });
+        add(txt(this, x + 30, y, l.who, 24, C.paper, { serif: true }));
+        const t = txt(this, x + 140, y + 3, l.state, 21, color[l.tone], { bold: false, lineSpacing: 4, wordWrap: { width: pw - 170, useAdvancedWrap: true } });
         add(t);
-        y += Math.max(34, t.height) + 14;
+        y += Math.max(36, t.height) + 16;
       }
       y += 10;
       add(txt(this, x + 30, y, `${CH().held.label}的鬼`, 22, C.gold, { serif: true }));
       y += 36;
       const held = run.held.length ? run.held.map((h) => `・${CH().cases[h.id].dayName}（怨氣 ${h.grudge}／3）`).join('\n') : '（沒有）';
-      const t1 = txt(this, x + 30, y, held, 18, 0x9fd0ff, { bold: false, lineSpacing: 6 });
+      const t1 = txt(this, x + 30, y, held, 21, 0x9fd0ff, { bold: false, lineSpacing: 6 });
       add(t1);
       y += t1.height + 20;
-      add(txt(this, x + 30, y, `戾氣 ${run.liqi}／3：${LIQI_TEXT[run.liqi]}`, 18, 0xff9a8a, { bold: false }));
+      add(txt(this, x + 30, y, `戾氣 ${run.liqi}／3：${LIQI_TEXT[run.liqi]}`, 21, 0xff9a8a, { bold: false }));
       y += 40;
       add(txt(this, x + 30, y, '最後一戰', 22, C.gold, { serif: true }));
-      add(txt(this, x + 30, y + 36, CH().bossEffects(run).map((s) => `・${s}`).join('\n'), 17, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
+      add(txt(this, x + 30, y + 36, CH().bossEffects(run).map((s) => `・${s}`).join('\n'), 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
     });
   }
 
   private showEvidence(): void {
     this.overlay(`證物袋（${run.evidence.length}）`, (x, y0, pw, add) => {
       let y = y0;
-      if (!run.evidence.length) add(txt(this, x + 30, y, '還沒有證據。路上的線索、問話，和信徒說的話都會收進來。', 18, C.muted, { bold: false, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
+      if (!run.evidence.length) add(txt(this, x + 30, y, '還沒有證據。路上的線索、問話，和信徒說的話都會收進來。', 21, C.muted, { bold: false, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
       // 依案子分組：每一隻鬼底下列出拿到的證據
       for (const k of Object.values(CH().cases)) {
         const mine = evidenceOf(k.id).filter((id) => run.evidence.includes(id));
         if (!mine.length) continue;
-        add(txt(this, x + 30, y, `${k.dayName}（${this.ghostStatus(k.id)}）`, 20, 0x9fd0ff));
-        y += 32;
+        add(txt(this, x + 30, y, `${k.dayName}（${this.ghostStatus(k.id)}）`, 23, 0x9fd0ff, { wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
+        y += 40;
         for (const id of mine) {
           const ev = CH().evidence[id];
-          add(txt(this, x + 40, y, `【${ev.kind}】${ev.name}`, 17, 0x9fe8c0));
-          const t = txt(this, x + 40, y + 24, ev.text, 15, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 80, useAdvancedWrap: true } });
+          add(txt(this, x + 40, y, `【${ev.kind}】${ev.name}`, 21, 0x9fe8c0));
+          const t = txt(this, x + 40, y + 32, ev.text, 20, C.paper, { bold: false, lineSpacing: 5, wordWrap: { width: pw - 80, useAdvancedWrap: true } });
           add(t);
-          y += 24 + t.height + 10;
+          y += 32 + t.height + 16;
         }
         y += 8;
       }

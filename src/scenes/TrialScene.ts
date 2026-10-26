@@ -12,6 +12,7 @@ import { DEFECT_NEEDS, type GhostCase, type VerdictDef } from '../content/cases'
 import { CH, evidenceOf, verdictName } from '../content/chapter';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
+import { flashback } from '../ui/talk';
 
 const WATCHES = 3;
 const DEFECT_COLOR: Record<string, number> = { 塗改: 0xff9a6a, 缺頁: 0xd9b0ff, 模糊: 0x9fd0ff };
@@ -81,11 +82,11 @@ export class TrialScene extends Phaser.Scene {
     const T = CH().trial;
     const left = WATCHES - this.watch;
     this.add2(txt(this, W / 2, 90, T.lobbyTitle(this.n), 34, C.gold, { serif: true }).setOrigin(0.5, 0));
-    this.add2(txt(this, W / 2, 140, `今夜還剩 ${left} 更（審一個花一更）`, 20, C.paper, { bold: false }).setOrigin(0.5, 0));
+    this.add2(txt(this, W / 2, 140, `今夜還剩 ${left} 更（審一個花一更）`, 23, C.paper, { bold: false }).setOrigin(0.5, 0));
     const p = { x: 16, y: 560, w: W - 32, h: H - 576 };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     if (!run.held.length || left <= 0) {
-      this.add2(txt(this, p.x + 24, p.y + 24, run.held.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要審的鬼了。`, 22, C.paper, { bold: false }));
+      this.add2(txt(this, p.x + 24, p.y + 24, run.held.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要審的鬼了。`, 24, C.paper, { bold: false }));
       this.add2(button(this, W / 2, p.y + p.h - 70, 280, 76, this.n === 3 ? T.finalLabel : '天亮', () => this.finish(), { size: 28, fill: 0x8a1b14 }));
       return;
     }
@@ -99,8 +100,8 @@ export class TrialScene extends Phaser.Scene {
       g.fillRoundedRect(p.x + 16, y, p.w - 32, 108, 12);
       const img = this.add2(this.add.image(p.x + 70, y + 102, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.7));
       img.setScale(Math.min(96 / img.height, 70 / img.width));
-      this.add2(txt(this, p.x + 124, y + 14, k.dayName, 22, 0x9fd0ff));
-      this.add2(txt(this, p.x + 124, y + 48, `已查明 ${st.truths.length}／${k.truths.length}・怨氣 ${h.grudge}／3`, 17, C.muted, { bold: false }));
+      this.add2(txt(this, p.x + 124, y + 12, k.dayName, 24, 0x9fd0ff));
+      this.add2(txt(this, p.x + 124, y + 52, `已查明 ${st.truths.length}／${k.truths.length}・怨氣 ${h.grudge}／3`, 20, C.muted, { bold: false }));
       this.add2(button(this, p.x + p.w - 90, y + 54, 130, 56, '升堂', () => this.open(k), { size: 22, fill: 0x8a1b14 }));
     });
     this.add2(button(this, W / 2, p.y + p.h - 60, 300, 64, '今夜不再審，天亮', () => this.finish(), { size: 20, fill: 0x3a3442 }));
@@ -136,22 +137,22 @@ export class TrialScene extends Phaser.Scene {
     const known = st.truths.length > 0;
     this.add2(txt(this, W / 2, 96, `${dossier ? '案卷：' : ''}${known ? `${k.name}（${k.dayName}）` : k.dayName}`, 26, 0x9fd0ff, { serif: true }).setOrigin(0.5, 0));
     const mute = held.grudge >= 3;
-    this.add2(txt(this, W / 2, 134, `已查明 ${st.truths.length}／${k.truths.length}　怨氣 ${held.grudge}／3`, 18, held.grudge >= 2 ? 0xff9a8a : C.muted, { bold: !!held.grudge }).setOrigin(0.5, 0));
-    this.add2(txt(this, W / 2, 164, mute ? '怨氣衝天，牠不肯再開口：只能下判決，或押回去（天亮就會掙脫）' : T.rule, 15, mute ? 0xff9a8a : C.muted, { bold: false, align: 'center', wordWrap: { width: W - 120, useAdvancedWrap: true } }).setOrigin(0.5, 0));
+    this.add2(txt(this, W / 2, 134, `已查明 ${st.truths.length}／${k.truths.length}　怨氣 ${held.grudge}／3`, 18, held.grudge >= 2 ? 0xff9a8a : C.muted, { bold: !!held.grudge }).setOrigin(0.5, 0).setFontSize(20));
+    this.add2(txt(this, W / 2, 164, mute ? '怨氣衝天，牠不肯再開口：只能下判決，或押回去（天亮就會掙脫）' : T.rule, 18, mute ? 0xff9a8a : C.muted, { bold: false, align: 'center', wordWrap: { width: W - 120, useAdvancedWrap: true } }).setOrigin(0.5, 0));
 
     // 最新的回應
     const p = { x: 16, y: 530, w: W - 32, h: H - 546 };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
-    const resp = this.add2(txt(this, p.x + 24, p.y + 18, line, 19, 0xfff3c4, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    const resp = this.add2(txt(this, p.x + 24, p.y + 18, line, 24, 0xfff3c4, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     let y = Math.max(p.y + 110, resp.y + resp.height + 16);
     const g = this.add2(this.add.graphics());
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 20, y - 8, p.x + p.w - 20, y - 8);
-    this.add2(txt(this, p.x + 24, y, T.listTitle, 18, C.muted));
-    if (dossier) this.add2(txt(this, p.x + p.w - 24, y + 2, '塗改→物證　缺頁→文獻　模糊→證詞', 14, C.muted, { bold: false }).setOrigin(1, 0));
-    y += 30;
+    this.add2(txt(this, p.x + 24, y, T.listTitle, 21, C.muted));
+    if (dossier) this.add2(txt(this, p.x + p.w - 24, y + 2, '塗改→物證　缺頁→文獻　模糊→證詞', 17, C.muted, { bold: false }).setOrigin(1, 0));
+    y += 36;
     // 一句一句：已戳破（補正）的換成真相
-    const rowH = Math.min(96, Math.floor((p.y + p.h - 120 - y) / k.statements.length));
+    const rowH = Math.min(128, Math.floor((p.y + p.h - 120 - y) / k.statements.length));
     k.statements.forEach((s, i) => {
       const ti = k.truths.findIndex((t) => t.stmt === i);
       const solved = ti >= 0 && st.truths.includes(ti);
@@ -159,26 +160,25 @@ export class TrialScene extends Phaser.Scene {
       bg.fillStyle(solved ? 0x2f4a3a : dossier ? 0x1e2638 : 0x2a2236, 1);
       bg.fillRoundedRect(p.x + 16, y, p.w - 32, rowH - 8, 10);
       if (solved) {
-        this.add2(txt(this, p.x + 30, y + 8, `${dossier ? '補正：' : '真相：'}${k.truths[ti].summary}`, 16, 0x9fe8c0, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 60, useAdvancedWrap: true } }));
+        this.add2(txt(this, p.x + 30, y + 8, `${dossier ? '補正：' : '真相：'}${k.truths[ti].summary}`, 19, 0x9fe8c0, { bold: false, lineSpacing: 3, wordWrap: { width: p.w - 60, useAdvancedWrap: true } }));
       } else {
-        this.add2(txt(this, p.x + 30, y + 8, `「${s}」`, dossier ? 17 : 18, C.paper, { bold: false, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
+        this.add2(txt(this, p.x + 30, y + 8, `「${s}」`, 21, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: p.w - 250, useAdvancedWrap: true } }));
         const t = ti >= 0 ? k.truths[ti] : null;
         const has = t ? t.evidence.some((id) => run.evidence.includes(id)) : false;
-        const where = t ? CH().evidence[t.evidence[0]].where : '';
-        if (dossier) {
+                if (dossier) {
           // 案卷：標出毛病和該用哪一種證據
           const d = k.dossier?.[i] ?? null;
-          const hint = !d ? '・記載無誤' : `【${d}】要用${DEFECT_NEEDS[d]}補正：${has ? '手上有' : `缺（${where}）`}`;
-          this.add2(txt(this, p.x + 30, y + rowH - 32, hint, 14, !d ? C.muted : has ? DEFECT_COLOR[d] : 0xff9a8a, { bold: !!d, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
+          const hint = !d ? '・記載無誤' : `【${d}】要${DEFECT_NEEDS[d]}・${has ? '手上有' : '還沒有'}`;
+          this.add2(txt(this, p.x + 30, y + rowH - 36, hint, 18, !d ? C.muted : has ? DEFECT_COLOR[d] : 0xff9a8a, { bold: !!d }));
         } else if (t) {
           // 有疑點的句子：手上有對得上的證據就標出來；沒有就寫去哪裡找
-          const hint = has ? '◆ 疑點：手上的證據對得上' : `◇ 疑點：缺證據（${where}）`;
-          this.add2(txt(this, p.x + 30, y + rowH - 32, hint, 14, has ? 0xffd76a : 0xff9a8a, { bold: false, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
+          const hint = has ? '◆ 疑點・手上有證據' : '◇ 疑點・還缺證據';
+          this.add2(txt(this, p.x + 30, y + rowH - 36, hint, 18, has ? 0xffd76a : 0xff9a8a, { bold: false }));
         }
-        this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, T.ask, () => this.say(k, k.press[i]), { size: 18, fill: 0x3a3442 })).setEnabled(!mute);
+        this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, T.ask, () => this.say(k, `${k.dayName}：${k.press[i]}`), { size: 21, fill: 0x3a3442 })).setEnabled(!mute);
         // 案卷上「記載無誤」的那一筆不用補正
         const fixable = !dossier || !!k.dossier?.[i];
-        const pb = this.add2(button(this, p.x + p.w - 76, y + rowH / 2 - 4, 92, 50, T.show, () => this.present(k, i), { size: 18, fill: has ? 0x8a6a10 : 0x2f6f5a }));
+        const pb = this.add2(button(this, p.x + p.w - 76, y + rowH / 2 - 4, 92, 50, T.show, () => this.present(k, i), { size: 21, fill: has ? 0x8a6a10 : 0x2f6f5a }));
         pb.setEnabled(has && !mute && fixable);
       }
       y += rowH;
@@ -186,7 +186,7 @@ export class TrialScene extends Phaser.Scene {
     // 證據不足可以先押著：已查明的真相會保留，明天白天再去找證據
     this.add2(button(this, p.x + 24 + 150, p.y + p.h - 56, 300, 70, '先押著，改日再審', () => this.postpone(k), { size: 20, fill: 0x3a3442 }));
     this.add2(button(this, p.x + p.w - 24 - 150, p.y + p.h - 56, 300, 70, '下判決', () => this.verdicts(k), { size: 26, fill: 0x8a1b14 }));
-    if (this.n < 3) this.add2(txt(this, p.x + 24 + 150, p.y + p.h - 98, '真相會保留・天亮時怨氣 +1', 14, C.muted, { bold: false }).setOrigin(0.5, 1));
+    if (this.n < 3) this.add2(txt(this, p.x + 24 + 150, p.y + p.h - 98, '真相會保留・天亮時怨氣 +1', 17, C.muted, { bold: false }).setOrigin(0.5, 1));
   }
 
   /** 出示（補正）證據：列出這個案子相關的證據，挑一件 */
@@ -199,20 +199,20 @@ export class TrialScene extends Phaser.Scene {
     const ph = H - 120;
     objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.6).setOrigin(0).setDepth(900).setInteractive());
     objs.push(panel(this, x, y, pw, ph).setDepth(901));
-    objs.push(txt(this, x + 24, y + 18, `${T.show}：「${k.statements[stmt]}」`, 20, C.gold, { wordWrap: { width: pw - 48, useAdvancedWrap: true } }).setDepth(902));
+    objs.push(txt(this, x + 24, y + 18, `${T.show}：「${k.statements[stmt]}」`, 23, C.gold, { wordWrap: { width: pw - 48, useAdvancedWrap: true } }).setDepth(902));
     const close = () => { for (const o of objs) o.destroy(); };
-    let yy = y + 110;
+    let yy = y + 130;
     const d = k.dossier?.[stmt];
-    objs.push(txt(this, x + 24, y + 72, d ? `這一筆是【${d}】，要用${DEFECT_NEEDS[d]}。跟這個案子有關的證據：` : '跟這個案子有關的證據：', 16, C.muted, { bold: false, wordWrap: { width: pw - 48, useAdvancedWrap: true } }).setDepth(902));
+    objs.push(txt(this, x + 24, y + 84, d ? `這一筆是【${d}】，要用${DEFECT_NEEDS[d]}。跟這個案子有關的證據：` : '跟這個案子有關的證據：', 19, C.muted, { bold: false, wordWrap: { width: pw - 48, useAdvancedWrap: true } }).setDepth(902));
     const mine = evidenceOf(k.id).filter((id) => run.evidence.includes(id));
     for (const id of mine) {
       const ev = CH().evidence[id];
-      const b: Button = button(this, x + pw / 2, yy + 30, pw - 40, 60, `【${ev.kind}】${ev.name}`, () => { close(); this.check(k, stmt, id); }, { size: 18, fill: 0x2a3a4a });
+      const b: Button = button(this, x + pw / 2, yy + 30, pw - 40, 60, `【${ev.kind}】${ev.name}`, () => { close(); this.check(k, stmt, id); }, { size: 21, fill: 0x2a3a4a });
       b.setDepth(903);
       objs.push(b);
-      const t = txt(this, x + 34, yy + 66, ev.text, 15, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 68, useAdvancedWrap: true } }).setDepth(902);
+      const t = txt(this, x + 34, yy + 68, ev.text, 19, C.paper, { bold: false, lineSpacing: 4, wordWrap: { width: pw - 68, useAdvancedWrap: true } }).setDepth(902);
       objs.push(t);
-      yy += 78 + t.height;
+      yy += 84 + t.height;
     }
     const cb = button(this, x + pw / 2, y + ph - 50, 200, 56, '收回', close, { size: 20, fill: 0x3a3442 });
     cb.setDepth(903);
@@ -225,8 +225,11 @@ export class TrialScene extends Phaser.Scene {
     const ti = k.truths.findIndex((t) => t.stmt === stmt && t.evidence.includes(evId));
     if (ti >= 0 && !st.truths.includes(ti)) {
       st.truths.push(ti);
-      this.cameras.main.flash(200, 255, 240, 200);
-      this.say(k, `${k.truths[ti].reveal}\n\n${T.record}：${k.truths[ti].summary}`);
+      const t = k.truths[ti];
+      // 揭開真相：先播一段回憶，再回到堂上
+      flashback(this, { tex: k.tex, name: k.name, reveal: t.reveal, summary: t.summary, fx: k.memory }, () => {
+        this.say(k, `${T.record}：${t.summary}`);
+      });
       return;
     }
     // 出示錯了：鬼起疑，怨氣 +1；到 3 就不肯再開口
@@ -254,9 +257,9 @@ export class TrialScene extends Phaser.Scene {
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     this.add2(txt(this, p.x + 24, p.y + 16, `判決：${st.truths.length ? k.name : k.dayName}`, 28, C.gold, { serif: true }));
     const unsolved = k.truths.length - st.truths.length;
-    this.add2(txt(this, p.x + 24, p.y + 58, unsolved ? `還有 ${unsolved} 層真相未明。` : '真相都查明了。', 17, unsolved ? 0xffd76a : 0x9fe8c0, { bold: false }));
+    this.add2(txt(this, p.x + 24, p.y + 58, unsolved ? `還有 ${unsolved} 層真相未明。` : '真相都查明了。', 20, unsolved ? 0xffd76a : 0x9fe8c0, { bold: false }));
     let y = p.y + 96;
-    const boxH = k.verdicts.length > 4 ? 104 : 112;
+    const boxH = k.verdicts.length > 4 ? 112 : 128;
     for (const v of k.verdicts) {
       const why = this.why(k, v);
       let result = v.result;
@@ -270,12 +273,12 @@ export class TrialScene extends Phaser.Scene {
       const fill = v.verdict === 'slay' ? 0x8a1b14 : v.verdict === 'release' ? 0x2f6f5a : v.verdict === 'ship' ? 0x1f5a8a : 0x4a3a6a;
       const b = this.add2(button(this, p.x + 100, y + boxH / 2, 150, 60, name, () => this.judge(k, v), { size: name.length > 4 ? 18 : 22, fill }));
       b.setEnabled(!why);
-      this.add2(txt(this, p.x + 190, y + 12, why ? `✕ ${why}` : result, 17, why ? 0xff9a8a : C.paper, { bold: false, lineSpacing: 4, wordWrap: { width: p.w - 214, useAdvancedWrap: true } }));
+      this.add2(txt(this, p.x + 190, y + 10, why ? `✕ ${why}` : result, 19, why ? 0xff9a8a : C.paper, { bold: false, lineSpacing: 4, wordWrap: { width: p.w - 214, useAdvancedWrap: true } }));
       y += boxH + 12;
     }
-    this.add2(button(this, p.x + p.w / 2 - 150, p.y + p.h - 56, 260, 62, '◀ 再問問', () => this.say(k, CH().trial.again), { size: 20, fill: 0x3a3442 }));
-    this.add2(button(this, p.x + p.w / 2 + 150, p.y + p.h - 56, 260, 62, '改日再審', () => this.postpone(k), { size: 20, fill: 0x3a3442 }));
-    this.add2(txt(this, p.x + p.w / 2 + 150, p.y + p.h - 16, '怨氣 +1，明天可以再找證據', 14, C.muted, { bold: false }).setOrigin(0.5));
+    this.add2(button(this, p.x + p.w / 2 - 150, p.y + p.h - 56, 260, 62, '◀ 再問問', () => this.say(k, CH().trial.again), { size: 22, fill: 0x3a3442 }));
+    this.add2(button(this, p.x + p.w / 2 + 150, p.y + p.h - 56, 260, 62, '改日再審', () => this.postpone(k), { size: 22, fill: 0x3a3442 }));
+    this.add2(txt(this, p.x + p.w / 2 + 150, p.y + p.h - 14, '怨氣 +1，明天可以再找證據', 16, C.muted, { bold: false }).setOrigin(0.5));
   }
 
   private postpone(k: GhostCase): void {
@@ -285,7 +288,7 @@ export class TrialScene extends Phaser.Scene {
     const left = k.truths.length - st.truths.length;
     if (left) {
       const miss = k.truths.filter((_, i) => !st.truths.includes(i)).map((t) => CH().evidence[t.evidence[0]].where);
-      this.add2(txt(this, W / 2, 190, `${k.dayName}先押在${CH().held.label}。\n還缺的證據可以到：\n${[...new Set(miss)].join('\n')}`, 17, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
+      this.add2(txt(this, W / 2, 190, `${k.dayName}先押在${CH().held.label}。\n還缺的證據可以到：\n${[...new Set(miss)].join('\n')}`, 20, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
     }
   }
 
@@ -339,7 +342,7 @@ export class TrialScene extends Phaser.Scene {
     const p = { x: 16, y: 560, w: W - 32, h: H - 576 };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     this.add2(txt(this, p.x + 24, p.y + 18, verdictName(v.verdict), 32, v.verdict === 'slay' ? 0xff8a8a : C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 72, lines.join('\n'), 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.add2(txt(this, p.x + 24, p.y + 72, lines.join('\n'), 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.add2(button(this, W / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.lobby(), { size: 24, fill: 0x8a1b14 }));
   }
 

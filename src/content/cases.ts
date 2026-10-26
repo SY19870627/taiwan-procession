@@ -28,7 +28,7 @@ export const EVIDENCE: Record<string, Evidence> = {
   censer: { id: 'censer', kind: '物證', name: '古井邊的小香爐', text: '古井鐵蓋下藏著一個沒人認的小香爐，香早就斷了。', ghost: 'gui', where: '菜市場古井的線索（第一天）' },
   cloth: { id: 'cloth', kind: '證詞', name: '布莊老闆娘的話', text: '「早年井邊有個賣粿的阿桂。她的囝仔發燒，那晚沒有醫生肯來……後來她也走了。」', ghost: 'gui', where: '布莊老闆娘（第一、二天）' },
   // 阿標
-  jiaoti: { id: 'jiaoti', kind: '文獻', name: '抓交替', text: '黃曆舊聞：河岸舊多溺者。俗謂水鬼須得替身，乃去，謂之「抓交替」。', ghost: 'biao', where: '第一天的黃曆' },
+  jiaoti: { id: 'jiaoti', kind: '文獻', name: '抓交替', text: '黃曆上寫的：河邊淹死的人，要找到替身才能離開，叫做「抓交替」。', ghost: 'biao', where: '第一天的黃曆' },
   yun_river: { id: 'yun_river', kind: '證詞', name: '小芸的話（河邊）', text: '「河邊有一個濕濕的叔叔，一直叫我下去幫他撿球。」', ghost: 'biao', where: '小芸（第一天國小／第二天小芸家）' },
   ribbon: { id: 'ribbon', kind: '物證', name: '河堤的紅布條', text: '河堤欄杆上一條新綁的紅布條。上個月有人在這裡差點溺水，家屬綁的。', ghost: 'biao', where: '河堤的線索（第一、二天）' },
   elder: { id: 'elder', kind: '證詞', name: '長輩的話', text: '「阿標喔？那年喝醉酒跳下去游，誰勸都不聽，就沒再上來了。」', ghost: 'biao', where: '老人會的長輩（第一天）／河堤釣魚的老伯（第二天）' },
@@ -103,6 +103,8 @@ export interface GhostCase {
   timid: number;
   /** 有冤的鬼：斬了算斬錯 */
   innocent: boolean;
+  /** 回憶的天氣（揭開真相時的演出） */
+  memory?: 'rain' | 'sea';
   /** 收容時一起得到的證據 */
   onCollect?: string[];
   /** 夜審供詞（第二章：案卷上的記載） */
@@ -119,7 +121,7 @@ export interface GhostCase {
 
 export const CASES: Record<string, GhostCase> = {
   gui: {
-    id: 'gui', shortName: '井邊女人', name: '阿桂', dayName: '古井邊的女人', tex: 'folk3',
+    id: 'gui', memory: 'rain', shortName: '井邊女人', name: '阿桂', dayName: '古井邊的女人', tex: 'folk3',
     daySight: '菜市場角落有一口用鐵板蓋住的古井。井邊蹲著一個穿大襟衫的女人，一直望著阿秀嬸的攤子。',
     harm: '她今晚還會去阿秀嬸家；阿弟的燒不會退',
     affects: '阿秀嬸的孫子阿弟（夜夜發燒）',
@@ -151,7 +153,7 @@ export const CASES: Record<string, GhostCase> = {
     ],
   },
   biao: {
-    id: 'biao', shortName: '河堤濕男', name: '阿標', dayName: '河堤下的濕男人', tex: 'folk1',
+    id: 'biao', memory: 'sea', shortName: '河堤濕男', name: '阿標', dayName: '河堤下的濕男人', tex: 'folk1',
     daySight: '河堤下的水裡站著一個男人，全身濕透，對著路過的孩子招手。凡人只看到一片水光。',
     harm: '他會繼續在河邊招孩子下水',
     affects: '小芸（被引誘下水）',
