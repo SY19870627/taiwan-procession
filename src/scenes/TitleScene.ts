@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { button, fullscreenButton, go, txt } from '../ui/widgets';
-import { resetRun } from '../state';
 
 export class TitleScene extends Phaser.Scene {
   rebuildable = true;
@@ -52,10 +51,7 @@ export class TitleScene extends Phaser.Scene {
     title.setShadow(0, 6, '#000000', 12, true, true);
     txt(this, W / 2, 238, '青嶺王暗訪・原型試玩', 30, C.paper, { serif: true }).setOrigin(0.5);
     txt(this, W / 2, 280, '白天祈福，晚上斬妖。凡人什麼都看不見。', 22, C.muted, { bold: false }).setOrigin(0.5);
-    button(this, W / 2, H - 110, 300, 90, '起　駕', () => {
-      resetRun();
-      go(this, 'almanac', { prologue: true });
-    }, { size: 38, fill: 0x8a1b14 });
+    button(this, W / 2, H - 110, 300, 90, '起　駕', () => go(this, 'chapters'), { size: 38, fill: 0x8a1b14 });
     fullscreenButton(this);
     // 版本號（左下角小字）
     txt(this, 12, H - 12, __VERSION__, 14, C.muted, { bold: false }).setOrigin(0, 1).setAlpha(0.7);

@@ -5,6 +5,7 @@ import { CASES } from './content/cases';
 import { setupMobile, watchOrientation } from './mobile';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
+import { ChapterScene } from './scenes/ChapterScene';
 import { StoryScene } from './scenes/StoryScene';
 import { AlmanacScene } from './scenes/AlmanacScene';
 import { DayScene } from './scenes/DayScene';
@@ -36,7 +37,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene],
+    scene: [BootScene, TitleScene, ChapterScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;
