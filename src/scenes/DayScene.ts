@@ -13,7 +13,7 @@ import { button, floatText, fullscreenButton, go, panel, txt, type Button } from
 import { BandScene, type Visitor } from './BandScene';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
-const BAND_Y = 186;
+const BAND_Y = 226;
 const LIQI_TEXT = ['平靜', '鬼魂會躲起來', '鬼魂會逃走', '鬼魂都躲著隊伍'];
 
 export class DayScene extends Phaser.Scene {
@@ -23,7 +23,7 @@ export class DayScene extends Phaser.Scene {
   private miracleDots: Phaser.GameObjects.Arc[] = [];
   private liqiPips: Phaser.GameObjects.Rectangle[] = [];
   private liqiTxt!: Phaser.GameObjects.Text;
-  private slotTxt!: Phaser.GameObjects.Text;
+  private slotBox?: Phaser.GameObjects.Container;
   private side!: Phaser.GameObjects.Container;
   private queue: (Encounter | 'fork')[] = [];
   private idx = 0;
@@ -81,29 +81,26 @@ export class DayScene extends Phaser.Scene {
   private drawHeader(): void {
     txt(this, 20, 16, `${this.plan.title}・白天`, 28, C.gold, { serif: true });
     txt(this, 20, 58, this.plan.area, 18, C.paper, { bold: false });
+    button(this, 424, 40, 104, 44, '因果簿', () => this.showLedger(), { size: 18, fill: 0x4a2a3a });
+    button(this, 538, 40, 104, 44, '證物袋', () => this.showEvidence(), { size: 18, fill: 0x2a4a3a });
     fullscreenButton(this);
     const g = this.add.graphics();
     g.fillStyle(0x1d1726, 0.88);
-    g.fillRoundedRect(16, 88, W - 32, 90, 12);
+    g.fillRoundedRect(16, 86, W - 32, 50, 12);
     g.lineStyle(2, C.gold, 0.7);
-    g.strokeRoundedRect(16, 88, W - 32, 90, 12);
-    // 第一列：時辰、神蹟
-    txt(this, 30, 112, '時辰', 18, C.muted).setOrigin(0, 0.5);
+    g.strokeRoundedRect(16, 86, W - 32, 50, 12);
+    // 時辰、神蹟、戾氣
+    txt(this, 30, 111, '時辰', 17, C.muted).setOrigin(0, 0.5);
     for (let i = 0; i < this.plan.hours; i++) {
-      this.hourBoxes.push(txt(this, 78 + i * 42, 112, HOUR_NAMES[i], 22, '#1d1726', { serif: true, backgroundColor: '#e9b949', padding: { x: 6, y: 2 } }).setOrigin(0, 0.5));
+      this.hourBoxes.push(txt(this, 72 + i * 38, 111, HOUR_NAMES[i], 20, '#1d1726', { serif: true, backgroundColor: '#e9b949', padding: { x: 5, y: 2 } }).setOrigin(0, 0.5));
     }
-    txt(this, 350, 112, '神蹟', 18, C.muted).setOrigin(0, 0.5);
+    txt(this, 310, 111, '神蹟', 17, C.muted).setOrigin(0, 0.5);
     for (let i = 0; i < this.plan.miracles; i++) {
-      this.miracleDots.push(this.add.circle(410 + i * 28, 112, 10, 0xffd76a).setStrokeStyle(2, 0xb3261e));
+      this.miracleDots.push(this.add.circle(364 + i * 26, 111, 9, 0xffd76a).setStrokeStyle(2, 0xb3261e));
     }
-    txt(this, 470, 112, '每次：最後一戰小妖 +1 波', 14, C.muted, { bold: false }).setOrigin(0, 0.5);
-    // 第二列：戾氣、收容格、因果簿、證物袋
-    txt(this, 30, 152, '戾氣', 18, 0xff9a8a).setOrigin(0, 0.5);
-    for (let i = 0; i < 3; i++) this.liqiPips.push(this.add.rectangle(84 + i * 22, 152, 16, 16, 0x3a3442).setStrokeStyle(1, 0x9a6a6a));
-    this.liqiTxt = txt(this, 152, 152, '', 15, C.muted, { bold: false }).setOrigin(0, 0.5);
-    this.slotTxt = txt(this, 316, 152, '', 16, 0x9fd0ff).setOrigin(0, 0.5);
-    button(this, 532, 152, 108, 38, '因果簿', () => this.showLedger(), { size: 17, fill: 0x4a2a3a });
-    button(this, 646, 152, 100, 38, '證物袋', () => this.showEvidence(), { size: 17, fill: 0x2a4a3a });
+    txt(this, 430, 111, '戾氣', 17, 0xff9a8a).setOrigin(0, 0.5);
+    for (let i = 0; i < 3; i++) this.liqiPips.push(this.add.rectangle(482 + i * 20, 111, 14, 14, 0x3a3442).setStrokeStyle(1, 0x9a6a6a));
+    this.liqiTxt = txt(this, 546, 111, '', 14, C.muted, { bold: false }).setOrigin(0, 0.5);
     this.refreshHeader();
   }
 
@@ -113,8 +110,95 @@ export class DayScene extends Phaser.Scene {
     this.miracleDots.forEach((d, i) => d.setFillStyle(i < run.miracles ? 0xffd76a : 0x3a3442));
     this.liqiPips.forEach((p, i) => p.setFillStyle(i < run.liqi ? 0xd23a2a : 0x3a3442));
     this.liqiTxt.setText(LIQI_TEXT[run.liqi]);
-    this.slotTxt.setText(`收容 ${run.held.length}/${run.slots}`);
+    this.drawSlots();
     this.band?.setHour?.(this.hourNow());
+  }
+
+  /** 令旗下：收容的鬼一個一格，畫出樣子、名字、查明幾層、怨氣；點了看牠的故事 */
+  private drawSlots(pulse?: string): void {
+    this.slotBox?.destroy();
+    const c = this.add.container(0, 0).setDepth(6);
+    this.slotBox = c;
+    const top = 144;
+    const h = 74;
+    const g = this.add.graphics();
+    g.fillStyle(0x16202e, 0.92);
+    g.fillRoundedRect(16, top, W - 32, h, 12);
+    g.lineStyle(2, 0x6a8ab8, 0.8);
+    g.strokeRoundedRect(16, top, W - 32, h, 12);
+    c.add(g);
+    // 令旗
+    c.add(this.add.image(48, top + h - 8, 'flag1').setOrigin(0.5, 1).setScale(0.42));
+    c.add(txt(this, 74, top + 14, '令旗下', 15, 0x9fd0ff));
+    c.add(txt(this, 74, top + 38, '今晚審', 13, C.muted, { bold: false }));
+    const x0 = 132;
+    const sw = (W - 32 - (x0 - 16) - 12 - 8 * (run.slots - 1)) / run.slots;
+    for (let i = 0; i < run.slots; i++) {
+      const sx = x0 + i * (sw + 8);
+      const sy = top + 7;
+      const sh = h - 14;
+      const h1 = run.held[i];
+      const sg = this.add.graphics();
+      if (!h1) {
+        sg.lineStyle(2, 0x4a5a72, 1);
+        for (let d = 0; d < sw; d += 12) sg.lineBetween(sx + d, sy, sx + Math.min(sw, d + 6), sy);
+        for (let d = 0; d < sw; d += 12) sg.lineBetween(sx + d, sy + sh, sx + Math.min(sw, d + 6), sy + sh);
+        sg.lineBetween(sx, sy, sx, sy + sh);
+        sg.lineBetween(sx + sw, sy, sx + sw, sy + sh);
+        c.add(sg);
+        c.add(txt(this, sx + sw / 2, sy + sh / 2, '空位', 15, 0x4a5a72).setOrigin(0.5));
+        continue;
+      }
+      const k = CASES[h1.id];
+      const st = run.cases[h1.id] ?? { truths: [] };
+      sg.fillStyle(0x223450, 1);
+      sg.fillRoundedRect(sx, sy, sw, sh, 8);
+      sg.lineStyle(2, h1.grudge >= 2 ? 0xd2503a : 0x7fb0e0, 1);
+      sg.strokeRoundedRect(sx, sy, sw, sh, 8);
+      c.add(sg);
+      const img = this.add.image(sx + 24, sy + sh - 2, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.85);
+      img.setScale(Math.min((sh - 6) / img.height, 36 / img.width));
+      c.add(img);
+      c.add(txt(this, sx + 46, sy + 6, st.truths.length ? k.name : k.shortName, 15, 0xd8ecff));
+      const grudge = '●'.repeat(h1.grudge) + '○'.repeat(3 - h1.grudge);
+      c.add(txt(this, sx + 46, sy + 30, `查明${st.truths.length}／${k.truths.length}`, 12, 0x9fe8c0, { bold: false }));
+      c.add(txt(this, sx + sw - 6, sy + 30, grudge, 12, h1.grudge ? 0xff9a8a : 0x6a7a92, { bold: false }).setOrigin(1, 0));
+      const hit = this.add.rectangle(sx, sy, sw, sh, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
+      hit.on('pointerup', () => this.showHeld(h1.id));
+      c.add(hit);
+      if (pulse === h1.id) {
+        const glow = this.add.rectangle(sx + sw / 2, sy + sh / 2, sw, sh, 0x9fd0ff, 0.5);
+        c.add(glow);
+        this.tweens.add({ targets: glow, alpha: 0, scaleX: 1.15, scaleY: 1.3, duration: 700, onComplete: () => glow.destroy() });
+      }
+    }
+  }
+
+  /** 點令旗下的鬼：看牠的故事和證據 */
+  private showHeld(id: string): void {
+    const k = CASES[id];
+    const st = run.cases[id] ?? { truths: [] };
+    const h1 = run.held.find((h) => h.id === id);
+    this.overlay(st.truths.length ? `${k.name}（${k.dayName}）` : k.dayName, (x, y0, pw, add) => {
+      const img = this.add.image(x + pw / 2, y0 + 220, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.8);
+      img.setScale(Math.min(200 / img.height, 160 / img.width));
+      add(img);
+      let y = y0 + 240;
+      const para = (s: string, color: number = C.paper, size = 18) => {
+        const t = txt(this, x + 30, y, s, size, color, { bold: false, lineSpacing: 5, wordWrap: { width: pw - 60, useAdvancedWrap: true } });
+        add(t);
+        y += t.height + 14;
+      };
+      para(k.daySight);
+      para(`牽連：${k.affects}`, 0xffd76a);
+      para(`審清楚：${k.payoff}`, 0x9fe8c0);
+      if (st.truths.length) para(`已查明：\n${st.truths.map((i) => `・${k.truths[i].summary}`).join('\n')}`, 0x9fe8c0, 16);
+      const evs = evidenceOf(id);
+      const have = evs.filter((e) => run.evidence.includes(e));
+      para(`證據 ${have.length}／${evs.length}`, C.gold);
+      for (const e of evs) para(run.evidence.includes(e) ? `✓ ${EVIDENCE[e].name}` : `✗ ${EVIDENCE[e].name}（${EVIDENCE[e].where}）`, run.evidence.includes(e) ? 0x9fe8c0 : 0xff9a8a, 16);
+      if (h1) para(`怨氣 ${h1.grudge}／3（每過一夜沒審 +1，到 3 會掙脫）`, 0xff9a8a, 16);
+    });
   }
 
   // ---------- 下方面板 ----------
@@ -356,6 +440,7 @@ export class DayScene extends Phaser.Scene {
     this.refreshHeader();
     this.band.collect(() => {
       this.busy = false;
+      this.drawSlots(e.caseId);
       this.after(`七爺的鎖鏈一甩，${k.dayName}沒有掙扎，跟著回到了令旗下。\n今晚升堂再審。`, gained);
     });
   }

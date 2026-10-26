@@ -82,6 +82,8 @@ export interface GhostCase {
   name: string;
   /** 白天看到時的稱呼 */
   dayName: string;
+  /** 短稱（令旗下的格子用） */
+  shortName: string;
   /** 外觀用的貼圖 */
   tex: string;
   /** 白天看到的樣子 */
@@ -110,7 +112,7 @@ export interface GhostCase {
 
 export const CASES: Record<string, GhostCase> = {
   gui: {
-    id: 'gui', name: '阿桂', dayName: '古井邊的女人', tex: 'folk3',
+    id: 'gui', shortName: '井邊女人', name: '阿桂', dayName: '古井邊的女人', tex: 'folk3',
     daySight: '菜市場角落有一口用鐵板蓋住的古井。井邊蹲著一個穿大襟衫的女人，一直望著阿秀嬸的攤子。',
     harm: '她今晚還會去阿秀嬸家；阿弟的燒不會退',
     affects: '阿秀嬸的孫子阿弟（夜夜發燒）',
@@ -142,7 +144,7 @@ export const CASES: Record<string, GhostCase> = {
     ],
   },
   biao: {
-    id: 'biao', name: '阿標', dayName: '河堤下的濕男人', tex: 'folk1',
+    id: 'biao', shortName: '河堤濕男', name: '阿標', dayName: '河堤下的濕男人', tex: 'folk1',
     daySight: '河堤下的水裡站著一個男人，全身濕透，對著路過的孩子招手。凡人只看到一片水光。',
     harm: '他會繼續在河邊招孩子下水',
     affects: '小芸（被引誘下水）',
@@ -174,7 +176,7 @@ export const CASES: Record<string, GhostCase> = {
     ],
   },
   tian: {
-    id: 'tian', name: '阿添公', dayName: '冰果室裡擦桌子的老人', tex: 'folk4',
+    id: 'tian', shortName: '擦桌老人', name: '阿添公', dayName: '冰果室裡擦桌子的老人', tex: 'folk4',
     daySight: '冰果室最裡面那張桌子，一個穿汗衫的老人一直在擦桌子，擦完又擦。阿哲從他身邊走過，什麼都沒看到。',
     harm: '冰庫還會半夜斷電，客人越來越少',
     affects: '阿哲與冰果室',
@@ -204,7 +206,7 @@ export const CASES: Record<string, GhostCase> = {
     ],
   },
   fu: {
-    id: 'fu', name: '阿福', dayName: '拿著斷韁繩的老人', tex: 'folk5',
+    id: 'fu', shortName: '拿繩老人', name: '阿福', dayName: '拿著斷韁繩的老人', tex: 'folk5',
     daySight: '蹄印旁邊站著一個老人，手裡拿著一截斷掉的韁繩，一直往山上看。',
     harm: '最後一戰少了一個認得石駒的人',
     affects: '最後一戰的石駒',
