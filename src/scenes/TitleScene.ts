@@ -57,5 +57,7 @@ export class TitleScene extends Phaser.Scene {
       go(this, 'almanac', { prologue: true });
     }, { size: 38, fill: 0x8a1b14 });
     fullscreenButton(this);
+    // 版本號（左下角小字）
+    txt(this, 12, H - 12, __VERSION__, 14, C.muted, { bold: false }).setOrigin(0, 1).setAlpha(0.7);
   }
 }
