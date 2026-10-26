@@ -7,7 +7,6 @@ import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { CASES, EVIDENCE, VERDICT_NAME, evidenceOf, type GhostCase, type VerdictDef } from '../content/cases';
 import { dawn } from '../content/days';
-import { gain } from '../content/believers';
 import { RELEASE_SKILL } from '../content/finale';
 import { SKILLS } from '../core/boss';
 import { run } from '../state';
@@ -264,8 +263,7 @@ export class TrialScene extends Phaser.Scene {
     switch (v.verdict) {
       case 'release':
         run.liqi = Math.max(0, run.liqi - 1);
-        gain(run, { followers: 6, incense: 5 });
-        lines.push(`${k.name}對著王爺拜了三拜，身影慢慢淡去。`, '戾氣 -1・信徒 +6・香火 +5');
+        lines.push(`${k.name}對著王爺拜了三拜，身影慢慢淡去。`, '戾氣 -1');
         if (RELEASE_SKILL[k.id]) lines.push('', `亡魂得渡，王爺的神威增長了。`, `最後一戰多一個技能「${SKILLS[RELEASE_SKILL[k.id]].name}」：${SKILLS[RELEASE_SKILL[k.id]].desc}`);
         break;
       case 'recruit':
@@ -282,9 +280,8 @@ export class TrialScene extends Phaser.Scene {
         lines.push(`武判官手起刀落。${st.truths.length ? k.name : k.dayName}化成一縷青煙，散了。`, '戾氣 +1');
         if (k.innocent) {
           run.liqi = Math.min(3, run.liqi + 1);
-          gain(run, { morale: -10 });
           run.flags[`wronged_${k.id}`] = true;
-          lines.push('文判官放下了筆，很久沒有說話。', '牠是有冤的：戾氣再 +1・士氣 -10・記遺憾');
+          lines.push('文判官放下了筆，很久沒有說話。', '牠是有冤的：戾氣再 +1・記遺憾');
         }
         break;
       }

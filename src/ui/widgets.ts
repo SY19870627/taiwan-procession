@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { FONT, SERIF, C, hex, W } from '../theme';
-import { run } from '../state';
 import { canFullscreen, isFullscreen, toggleFullscreen } from '../mobile';
 
 export function txt(
@@ -94,44 +93,6 @@ export function fullscreenButton(scene: Phaser.Scene): void {
     scene.time.delayedCall(300, () => b.setLabel(isFullscreen() ? '縮小' : '全螢幕'));
   }, { size: 16, fill: 0x2a2236 });
   b.setDepth(1000).setAlpha(0.85);
-}
-
-/** 上方資源列：香火、信徒、士氣 */
-export class ResourceBar {
-  private scene: Phaser.Scene;
-  private texts: Phaser.GameObjects.Text[] = [];
-  private last = { incense: -1, followers: -1, morale: -1 };
-
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    this.scene = scene;
-    const items = ['香火', '信徒', '士氣'];
-    const g = scene.add.graphics().setDepth(900);
-    g.fillStyle(0x1d1726, 0.82);
-    g.fillRoundedRect(x, y, 420, 50, 12);
-    g.lineStyle(2, C.gold, 0.7);
-    g.strokeRoundedRect(x, y, 420, 50, 12);
-    items.forEach((label, i) => {
-      txt(scene, x + 18 + i * 140, y + 25, label, 18, C.muted).setOrigin(0, 0.5).setDepth(901);
-      this.texts.push(txt(scene, x + 66 + i * 140, y + 25, '0', 24, C.gold).setOrigin(0, 0.5).setDepth(901));
-    });
-    this.refresh();
-  }
-
-  refresh(incenseOverride?: number): void {
-    const now = { incense: incenseOverride ?? run.incense, followers: run.followers, morale: run.morale };
-    const vals = [now.incense, now.followers, now.morale];
-    const keys = ['incense', 'followers', 'morale'] as const;
-    vals.forEach((v, i) => {
-      const prev = this.last[keys[i]];
-      this.texts[i].setText(String(Math.round(v)));
-      if (prev >= 0 && v !== prev) {
-        this.texts[i].setColor(v > prev ? '#8ff0a4' : '#ff8a8a');
-        this.scene.tweens.add({ targets: this.texts[i], scale: 1.3, duration: 120, yoyo: true });
-        this.scene.time.delayedCall(700, () => this.texts[i].setColor(hex(C.gold)));
-      }
-    });
-    this.last = now;
-  }
 }
 
 /** 淡出後切換場景 */

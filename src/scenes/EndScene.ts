@@ -65,7 +65,7 @@ export class EndScene extends Phaser.Scene {
     row(sj.who, sj.good, sj.text);
     txt(this, W / 2, py + ph - 56, `照顧了 ${good}／${list.length} 位信徒・化解了 ${eased}／${ghosts.length} 個鬼`, 24, RED, { serif: true }).setOrigin(0.5);
 
-    txt(this, W / 2, H - 150, `戾氣 ${run.liqi}・剩餘香火 ${run.incense}・信徒 ${run.followers}・重整再戰 ${run.retries} 次`, 17, C.muted, { bold: false }).setOrigin(0.5);
+    txt(this, W / 2, H - 150, `戾氣 ${run.liqi}・重整再戰 ${run.retries} 次`, 17, C.muted, { bold: false }).setOrigin(0.5);
     button(this, W / 2, H - 70, 300, 80, '再走一次', () => go(this, 'title'), { size: 30, fill: 0x8a1b14 });
   }
 }

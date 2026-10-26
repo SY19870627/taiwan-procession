@@ -26,16 +26,13 @@ export function newBelievers(): BelieverState {
   return { axiu: 'sick', xiaoyun: 'unmet', azhe: 'unmet', axiong: 'angry', linbo: 'unmet' };
 }
 
-export const MIRACLE_COST = 20;
 
 // ---------- 信徒卡 ----------
 export interface Option {
   label: string;
   /** 花幾個時辰 */
   hours: number;
-  /** 花多少香火 */
-  incense?: number;
-  /** 要用掉一次神蹟（另外扣香火 20、最後一戰小妖 +1 波） */
+  /** 要用掉一次神蹟（最後一戰小妖 +1 波） */
   miracle?: boolean;
   /** 選了會得到的證據 */
   gives?: string[];
@@ -68,12 +65,6 @@ export interface Almanac {
   text: string;
 }
 
-export const gain = (r: RunState, d: { incense?: number; followers?: number; morale?: number }) => {
-  if (d.incense) r.incense = Math.max(0, r.incense + d.incense);
-  if (d.followers) r.followers = Math.max(0, r.followers + d.followers);
-  if (d.morale) r.morale = Math.max(0, Math.min(100, r.morale + d.morale));
-};
-
 const give = (...ids: string[]) => { for (const id of ids) gainEvidence(id); };
 
 // ---------- 序章 ----------
@@ -89,10 +80,10 @@ export const PROLOGUE: Almanac = {
 export const PROLOGUE_JIAO = {
   ask: '明日是否照常暗訪？',
   times: 3,
-  holy: { text: '王爺應允。', morale: 5, incense: 5 },
-  laugh: { text: '王爺在笑我們多問。', morale: 0, incense: 5 },
-  yin: { text: '王爺要大家更小心。', morale: -5, incense: 0 },
-  allHoly: { text: '連得三個聖杯！眾人振奮。', morale: 10 },
+  holy: { text: '王爺應允。' },
+  laugh: { text: '王爺在笑我們多問。' },
+  yin: { text: '王爺要大家更小心。' },
+  allHoly: { text: '連得三個聖杯！眾人振奮。' },
   done: '不管結果如何，暗訪照常。阿土伯：「王爺都聽到了，明天起駕。」',
 };
 
@@ -104,7 +95,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
     deadline: '明日',
     options: [
       {
-        label: '收驚', hours: 1, incense: 5, gives: ['axiu'],
+        label: '收驚', hours: 1, gives: ['axiu'],
         result: '阿弟暫時好一點，明天不會加重。要根治，得找出夜裡纏著他的東西',
         apply: (s) => { s.b.axiu = 'eased'; give('axiu'); return '七爺的扇子在阿弟頭上輕輕一搧。阿秀嬸說：「每晚子時哭，摸他額頭冰冰的，可是又在燒。」'; },
       },
@@ -118,8 +109,8 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
     options: [
       {
         label: '顯現神蹟', hours: 2, miracle: true, gives: ['axiu'],
-        result: '阿弟當場退燒，阿秀嬸逢人就說：信徒 +12',
-        apply: (s) => { s.b.axiu = 'cured'; gain(s, { followers: 12 }); give('axiu'); return '神轎停在診所門口。阿弟忽然睜開眼睛，說：「阿嬤，我肚子餓。」'; },
+        result: '阿弟當場退燒，阿秀嬸逢人就說',
+        apply: (s) => { s.b.axiu = 'cured'; give('axiu'); return '神轎停在診所門口。阿弟忽然睜開眼睛，說：「阿嬤，我肚子餓。」'; },
       },
       {
         label: '問夜裡的情形', hours: 1, gives: ['axiu'],
@@ -140,8 +131,8 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       },
       {
         label: '顯現神蹟', hours: 2, miracle: true, gives: ['azhe'],
-        result: '他親眼看到七爺八爺，當場信了：信徒 +10',
-        apply: (s) => { s.b.azhe = 'believer'; gain(s, { followers: 10 }); give('azhe'); return '一陣冷風掠過，七爺的扇子一擋。那一瞬間，阿哲看見了。他愣了很久才說：「……冰庫半夜斷電，是不是也是……」'; },
+        result: '他親眼看到七爺八爺，當場信了',
+        apply: (s) => { s.b.azhe = 'believer'; give('azhe'); return '一陣冷風掠過，七爺的扇子一擋。那一瞬間，阿哲看見了。他愣了很久才說：「……冰庫半夜斷電，是不是也是……」'; },
       },
     ],
     ignore: '第三天，冰果室恐怕要收掉',
@@ -179,19 +170,13 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
     }
     return null;
   },
-  longling: () => ({
-    who: '寺方',
-    text: '寺方在門口擺了香案，請青嶺王停轎會香。',
-    options: [{ label: '停轎會香', hours: 1, result: '香火 +15', apply: (s) => { gain(s, { incense: 15 }); return '兩邊的鑼鼓一起響，信眾擠滿了寺前廣場。'; } }],
-    ignore: '沒什麼影響',
-  }),
   farm: (r) => r.b.axiong !== 'angry' ? null : {
     who: '阿雄',
     text: '菜園一夜被啃得只剩梗，泥地上是比牛還大的蹄印。阿雄扛著捕獸夾：「我今晚就上山，抓那頭畜生！」',
     deadline: '今天',
     options: [
       {
-        label: '祭解並勸阻', hours: 2, incense: 10, gives: ['axiong'],
+        label: '祭解並勸阻', hours: 2, gives: ['axiong'],
         result: '他放棄上山；也說了蹄印的方向',
         apply: (s) => { s.b.axiong = 'calmed'; give('axiong'); return '阿雄放下捕獸夾，蹲下來指著蹄印：「全部都是往北，一路往龍嶺寺那邊去。不像在找吃的，像在找路。」'; },
       },
@@ -226,7 +211,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
     who: '阿雄',
     text: '阿雄昨夜上山，腳被自己的捕獸夾夾住，困在山徑上。',
     deadline: '今天',
-    options: [{ label: '救他下山', hours: 1, result: '阿雄平安下山（石駒仍然暴怒）', apply: (s) => { s.b.axiong = 'rescued'; gain(s, { followers: 3 }); return '八將合力扳開捕獸夾。阿雄紅著眼眶：「是我太衝動了。」'; } }],
+    options: [{ label: '救他下山', hours: 1, result: '阿雄平安下山（石駒仍然暴怒）', apply: (s) => { s.b.axiong = 'rescued'; return '八將合力扳開捕獸夾。阿雄紅著眼眶：「是我太衝動了。」'; } }],
     ignore: '遺憾：傷了腳，菜園荒廢一季',
   },
   school3: (r) => r.b.xiaoyun !== 'protected' ? null : {
@@ -246,7 +231,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
     if (z === 'believer') {
       return {
         who: '阿哲', text: '冰果室門口擺了香案。阿哲舉著手機：「我想把遶境拍下來。」',
-        options: [{ label: '停轎', hours: 1, result: '他把影片傳上網：信徒 +15', apply: (s) => { s.b.azhe = 'stayed'; gain(s, { followers: 15 }); return '影片一晚上被轉了好幾千次。很多人留言：「我小時候也在那間冰果室吃過剉冰。」'; } }],
+        options: [{ label: '停轎', hours: 1, result: '他把影片傳上網，老店的名聲傳開了', apply: (s) => { s.b.azhe = 'stayed'; return '影片一晚上被轉了好幾千次。很多人留言：「我小時候也在那間冰果室吃過剉冰。」'; } }],
         ignore: '他還是會留下老店，只是少了這段影片',
       };
     }
@@ -254,7 +239,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       return {
         who: '阿哲', text: '阿哲在店門口猶豫：「我還在想要不要把店收掉。」',
         deadline: '今天',
-        options: [{ label: '停轎說說話', hours: 1, gives: ['azhe'], result: '他決定再做做看：信徒 +6', apply: (s) => { s.b.azhe = 'stayed'; gain(s, { followers: 6 }); give('azhe'); return '阿土伯拍拍他的肩：「你阿公當年也是這樣猶豫過。」阿哲笑了：「那就再做做看。」'; } }],
+        options: [{ label: '停轎說說話', hours: 1, gives: ['azhe'], result: '他決定再做做看', apply: (s) => { s.b.azhe = 'stayed'; give('azhe'); return '阿土伯拍拍他的肩：「你阿公當年也是這樣猶豫過。」阿哲笑了：「那就再做做看。」'; } }],
         ignore: '遺憾：冰果室收掉',
       };
     }
@@ -262,7 +247,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
       return {
         who: '阿哲', text: '冰果室的鐵門上貼了「頂讓」。阿哲在裡面打包。',
         deadline: '今天',
-        options: [{ label: '顯現神蹟', hours: 2, miracle: true, gives: ['azhe'], result: '他決定留下老店：信徒 +10', apply: (s) => { s.b.azhe = 'stayed'; gain(s, { followers: 10 }); give('azhe'); return '一陣金光掠過店門口。阿哲撕下了「頂讓」的紙。'; } }],
+        options: [{ label: '顯現神蹟', hours: 2, miracle: true, gives: ['azhe'], result: '他決定留下老店', apply: (s) => { s.b.azhe = 'stayed'; give('azhe'); return '一陣金光掠過店門口。阿哲撕下了「頂讓」的紙。'; } }],
         ignore: '遺憾：冰果室收掉',
       };
     }
@@ -271,7 +256,7 @@ export const CARDS: Record<string, (r: RunState) => Card | null> = {
   huize: (r) => r.allied ? null : {
     who: '惠澤宮廟方',
     text: '惠澤宮的廟方帶著令旗隊在山門口等候。「聽說石駒的事了。今晚，一起吧。」',
-    options: [{ label: '會香，結為交陪', hours: 1, result: '惠澤宮令旗隊今晚助陣；香火 +10', apply: (s) => { s.allied = true; gain(s, { incense: 10 }); return '兩廟互換香旗。開疆聖王的令旗隊，今晚會站在你這邊。'; } }],
+    options: [{ label: '會香，結為交陪', hours: 1, result: '惠澤宮令旗隊今晚助陣', apply: (s) => { s.allied = true; return '兩廟互換香旗。開疆聖王的令旗隊，今晚會站在你這邊。'; } }],
     ignore: '今晚沒有令旗隊助陣',
   },
 };

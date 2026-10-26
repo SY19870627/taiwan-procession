@@ -4,12 +4,6 @@ import { newBelievers, type BelieverState } from './content/believers';
 export interface RunState {
   /** 第幾天（1–3） */
   day: number;
-  /** 香火：法術與升級用的資源 */
-  incense: number;
-  /** 信徒人數：鞭炮組的火力來源 */
-  followers: number;
-  /** 士氣 0–100：影響陣頭出手速度 */
-  morale: number;
   /** 判官審出的情報 */
   intel: {
     /** 醒獅震擊對石屑傀加倍 */
@@ -62,9 +56,6 @@ export interface RunState {
 export function newRun(): RunState {
   return {
     day: 1,
-    incense: 40,
-    followers: 12,
-    morale: 60,
     intel: {},
     allied: false,
     shijuJoined: false,
@@ -96,12 +87,6 @@ export function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-/** 套用事件結果，數值自動夾在合理範圍 */
-export function applyDelta(d: { incense?: number; followers?: number; morale?: number }): void {
-  if (d.incense) run.incense = Math.max(0, run.incense + d.incense);
-  if (d.followers) run.followers = Math.max(0, run.followers + d.followers);
-  if (d.morale) run.morale = clamp(run.morale + d.morale, 0, 100);
-}
 
 /** 拿到證據（重複的不算），回傳是不是新的 */
 export function gainEvidence(id: string): boolean {

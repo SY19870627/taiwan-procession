@@ -46,19 +46,19 @@ describe('最後一戰平衡', () => {
     console.log('plain/rotate', o);
   });
   it('準備充分：交陪、收編三隻鬼、舊傷、小芸、審問全對', () => {
-    const r = run((r) => { r.allied = true; r.flags.recruit_biao = r.flags.recruit_gui = r.flags.recruit_tian = true; r.intel.bellyWound = true; r.b.xiaoyun = 'invited'; r.followers = 40; r.morale = 75; });
+    const r = run((r) => { r.allied = true; r.flags.recruit_biao = r.flags.recruit_gui = r.flags.recruit_tian = true; r.intel.bellyWound = true; r.b.xiaoyun = 'invited'; });
     const o = avg(r, { rotate: true, spells: true, answers: true });
     console.log('prepared', o);
     expect(o.win).toBe(6);
   });
   it('很糟：暴怒、小妖多 4 波、審問全錯、不換位', () => {
-    const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; r.morale = 45; });
+    const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; });
     const o = avg(r, { rotate: false, spells: true, answers: false });
     console.log('bad', o);
     expect(o.win).toBeLessThanOrEqual(2);
   });
   it('中等：交陪、收編阿標、知道舊傷、審問全對', () => {
-    const r = run((r) => { r.allied = true; r.flags.recruit_biao = true; r.intel.bellyWound = true; r.followers = 25; r.morale = 65; });
+    const r = run((r) => { r.allied = true; r.flags.recruit_biao = true; r.intel.bellyWound = true; });
     console.log('medium/spells', avg(r, { rotate: false, spells: true, answers: true }));
     const o = avg(r, { rotate: true, spells: true, answers: true });
     console.log('medium/rotate', o);
@@ -72,11 +72,11 @@ describe('最後一戰平衡', () => {
     console.log('plain+release/rotate', avg(r, { rotate: true, spells: true, answers: true }));
   });
   it('很糟、重來三次', () => {
-    const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; r.morale = 45; r.retries = 3; });
+    const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; r.retries = 3; });
     console.log('bad/retry3', avg(r, { rotate: true, spells: true, answers: false }));
   });
   it('很糟但會換位', () => {
-    const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; r.morale = 45; });
+    const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; });
     console.log('bad/rotate', avg(r, { rotate: true, spells: true, answers: false }));
   });
 });

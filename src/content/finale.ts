@@ -10,7 +10,7 @@ export const MEMBER_STATS: Record<string, MemberStats & { tex: string[]; desc: s
   bajiang: { key: 'bajiang', name: '八將團', role: 'melee', hp: 280, atk: 22, cd: 1.3, range: 170, aoe: 0, guard: 1, trait: 'block', tex: ['bajiang0', 'bajiang1'], desc: '肉盾：橫掃，25% 格擋' },
   qiye: { key: 'qiye', name: '七爺八爺', role: 'melee', hp: 140, atk: 16, cd: 1.0, range: 190, aoe: 0, guard: 1, trait: 'chain', tex: ['qiye', 'baye'], desc: '近戰：勾魂鎖拉來小妖' },
   xingshi: { key: 'xingshi', name: '醒獅團', role: 'melee', hp: 160, atk: 18, cd: 1.8, range: 170, aoe: 90, guard: 1, trait: 'quake', tex: ['lion'], desc: '近戰：範圍震擊，石屑傀最怕' },
-  paoshou: { key: 'paoshou', name: '鞭炮組', role: 'ranged', hp: 90, atk: 9, cd: 1.4, range: 560, aoe: 50, guard: 1, trait: 'slow', tex: ['paoshou', 'folk2'], desc: '遠程：後排也能炸，嚇得小妖變慢' },
+  paoshou: { key: 'paoshou', name: '鞭炮組', role: 'ranged', hp: 90, atk: 13, cd: 1.4, range: 560, aoe: 50, guard: 1, trait: 'slow', tex: ['paoshou', 'folk2'], desc: '遠程：後排也能炸，嚇得小妖變慢' },
   kaijiang: { key: 'kaijiang', name: '惠澤宮令旗隊', role: 'ranged', hp: 220, atk: 18, cd: 1.6, range: 440, aoe: 50, guard: 1, trait: 'haste', tex: ['kaijiang'], desc: '交陪援軍：全隊出手加快' },
   biao: { key: 'biao', name: '前鋒阿標', role: 'melee', hp: 360, atk: 20, cd: 1.4, range: 170, aoe: 0, guard: 0.75, tex: ['folk1'], desc: '收編：最耐打的前排' },
   gui: { key: 'gui', name: '護嬰娘阿桂', role: 'support', hp: 120, atk: 16, cd: 2.0, range: 0, aoe: 0, guard: 1, trait: 'heal', tex: ['folk3'], desc: '收編：照顧血最少的陣頭' },
@@ -31,7 +31,6 @@ export function finaleSetup(r: RunState): BossSetup {
   let front = 0;
   const members = keys.map((k) => {
     const st = { ...MEMBER_STATS[k] };
-    if (k === 'paoshou') st.atk = Math.round(st.atk * (1 + r.followers / 30));
     const melee = st.role === 'melee' && k !== 'biao';
     const row: Row = melee && front < 3 ? 'front' : 'back';
     if (row === 'front') front++;
@@ -53,7 +52,6 @@ export function finaleSetup(r: RunState): BossSetup {
     extraWaves: Math.min(3, r.bossAdds),
     // 超渡的亡魂讓王爺神威增長：每超渡一個，多一個技能
     skills: (Object.keys(RELEASE_SKILL)).filter((g) => r.cases[g]?.verdict === 'release').map((g) => RELEASE_SKILL[g]),
-    morale: r.morale,
     duration: 180,
   };
 }

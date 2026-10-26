@@ -4,7 +4,7 @@
  */
 import type { RunState } from '../state';
 import { caseDone, gainEvidence, isHeld } from '../state';
-import { CARDS, gain, type Almanac, type Card } from './believers';
+import { CARDS, type Almanac, type Card } from './believers';
 import { CASES, EVIDENCE } from './cases';
 
 export type Encounter =
@@ -17,7 +17,7 @@ export type Encounter =
   /** 線索：得到物證 */
   | { kind: 'clue'; id: string; place: string; evidence: string; hours: number; text: string; needs?: string }
   /** 問話：得到證詞 */
-  | { kind: 'talk'; id: string; place: string; who: string; evidence: string; hours: number; text: string; bonus?: { incense?: number; morale?: number }; tex: string };
+  | { kind: 'talk'; id: string; place: string; who: string; evidence: string; hours: number; text: string; tex: string };
 
 export interface RouteDef {
   id: string;
@@ -65,7 +65,7 @@ const DAY1: DayPlan = {
         { kind: 'person', id: 'axiu', place: '菜市場', card: 'axiuMarket', tex: 'folk0' },
         { kind: 'clue', id: 'censer', place: '菜市場・古井', evidence: 'censer', hours: 1, text: '古井的鐵蓋下好像藏著什麼。' },
         ghost('gui1', '菜市場・古井', 'gui'),
-        { kind: 'talk', id: 'cloth', place: '布莊', who: '布莊老闆娘', evidence: 'cloth', hours: 1, tex: 'folk3', bonus: { incense: 5 }, text: '老闆娘擺好香案等隊伍。她在這條街住了一輩子。' },
+        { kind: 'talk', id: 'cloth', place: '布莊', who: '布莊老闆娘', evidence: 'cloth', hours: 1, tex: 'folk3', text: '老闆娘擺好香案等隊伍。她在這條街住了一輩子。' },
         { kind: 'person', id: 'azhe1', place: '冰果室', card: 'azheDay1', tex: 'folk1' },
         { kind: 'clue', id: 'photo1', place: '冰果室', evidence: 'photo', hours: 1, text: '冰果室牆上掛著一張很舊的照片。' },
         ghost('tian1', '冰果室', 'tian'),
@@ -78,7 +78,7 @@ const DAY1: DayPlan = {
         { kind: 'clue', id: 'ribbon1', place: '河堤', evidence: 'ribbon', hours: 1, text: '河堤欄杆上綁著一條紅布條，看起來很新。' },
         ghost('biao1', '河堤下', 'biao'),
         { kind: 'imp', id: 'nest', place: '河岸', tex: 'wang', text: '凡人只看到一片堆滿垃圾的河岸。靈界裡，這裡聚了一窩小魍。' },
-        { kind: 'talk', id: 'elder', place: '老人會', who: '老人會的長輩', evidence: 'elder', hours: 1, tex: 'folk2', bonus: { morale: 5 }, text: '長輩們搬了板凳坐在門口看醒獅。這條河的事，他們都記得。' },
+        { kind: 'talk', id: 'elder', place: '老人會', who: '老人會的長輩', evidence: 'elder', hours: 1, tex: 'folk2', text: '長輩們搬了板凳坐在門口看醒獅。這條河的事，他們都記得。' },
       ],
     },
   ],
@@ -107,7 +107,6 @@ const DAY2: DayPlan = {
         ghost('tian2', '冰果室', 'tian'),
         { kind: 'clue', id: 'photo2', place: '冰果室', evidence: 'photo', hours: 1, text: '冰果室牆上掛著一張很舊的照片。' },
         { kind: 'clue', id: 'sugar2', place: '冰果室・廚房', evidence: 'sugar', hours: 1, needs: 'yun_pot', text: '小芸說的大鍋子，就收在廚房角落。' },
-        { kind: 'person', id: 'longling', place: '龍嶺寺前', card: 'longling', tex: 'folk2' },
       ],
     },
     {
@@ -193,11 +192,6 @@ export function talkBlocked(r: RunState): boolean {
   return r.liqi >= 3;
 }
 
-/** 小妖驅散的獎勵（戾氣 2 以上拿不到香火） */
-export function impReward(r: RunState): number {
-  return r.liqi >= 2 ? 0 : 5;
-}
-
 /** 一句話摘要（「前方」清單用） */
 export function summary(r: RunState, e: Encounter): { icon: string; title: string; cost: string; color: number } {
   switch (e.kind) {
@@ -226,7 +220,6 @@ export function dawn(r: RunState, n: number): string[] {
   const guiDone = !!r.cases.gui?.verdict;
   if (guiDone && (r.b.axiu === 'sick' || r.b.axiu === 'eased' || r.b.axiu === 'worse')) {
     r.b.axiu = 'cured';
-    gain(r, { followers: 6 });
     out.push('阿弟昨夜睡得很沉，燒退了。阿秀嬸一早就在市場逢人說。');
   }
   if (n === 1) {

@@ -5,11 +5,11 @@
  */
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
-import { MIRACLE_COST, CARDS, ledger, bossEffects, type Card, type Option } from '../content/believers';
-import { DAY_PLANS, collectHours, endOfDay3, evidenceFor, ghostMood, impReward, laterSightings, summary, takeDocs, talkBlocked, visible, type DayPlan, type Encounter, type RouteDef } from '../content/days';
+import { CARDS, ledger, bossEffects, type Card, type Option } from '../content/believers';
+import { DAY_PLANS, collectHours, endOfDay3, evidenceFor, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible, type DayPlan, type Encounter, type RouteDef } from '../content/days';
 import { CASES, EVIDENCE, evidenceOf } from '../content/cases';
-import { run, applyDelta, caseDone, gainEvidence, isHeld } from '../state';
-import { ResourceBar, button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
+import { run, caseDone, gainEvidence, isHeld } from '../state';
+import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
@@ -18,7 +18,6 @@ const LIQI_TEXT = ['平靜', '鬼魂會躲起來', '鬼魂會逃走', '鬼魂都
 
 export class DayScene extends Phaser.Scene {
   private plan!: DayPlan;
-  private bar!: ResourceBar;
   private band!: BandScene;
   private hourBoxes: Phaser.GameObjects.Text[] = [];
   private miracleDots: Phaser.GameObjects.Arc[] = [];
@@ -82,7 +81,6 @@ export class DayScene extends Phaser.Scene {
   private drawHeader(): void {
     txt(this, 20, 16, `${this.plan.title}・白天`, 28, C.gold, { serif: true });
     txt(this, 20, 58, this.plan.area, 18, C.paper, { bold: false });
-    this.bar = new ResourceBar(this, W - 436 - 84, 16);
     fullscreenButton(this);
     const g = this.add.graphics();
     g.fillStyle(0x1d1726, 0.88);
@@ -98,7 +96,7 @@ export class DayScene extends Phaser.Scene {
     for (let i = 0; i < this.plan.miracles; i++) {
       this.miracleDots.push(this.add.circle(410 + i * 28, 112, 10, 0xffd76a).setStrokeStyle(2, 0xb3261e));
     }
-    txt(this, 470, 112, `香火 ${MIRACLE_COST}・最後一戰小妖 +1 波`, 14, C.muted, { bold: false }).setOrigin(0, 0.5);
+    txt(this, 470, 112, '每次：最後一戰小妖 +1 波', 14, C.muted, { bold: false }).setOrigin(0, 0.5);
     // 第二列：戾氣、收容格、因果簿、證物袋
     txt(this, 30, 152, '戾氣', 18, 0xff9a8a).setOrigin(0, 0.5);
     for (let i = 0; i < 3; i++) this.liqiPips.push(this.add.rectangle(84 + i * 22, 152, 16, 16, 0x3a3442).setStrokeStyle(1, 0x9a6a6a));
@@ -116,7 +114,6 @@ export class DayScene extends Phaser.Scene {
     this.liqiPips.forEach((p, i) => p.setFillStyle(i < run.liqi ? 0xd23a2a : 0x3a3442));
     this.liqiTxt.setText(LIQI_TEXT[run.liqi]);
     this.slotTxt.setText(`收容 ${run.held.length}/${run.slots}`);
-    this.bar.refresh();
     this.band?.setHour?.(this.hourNow());
   }
 
@@ -214,10 +211,9 @@ export class DayScene extends Phaser.Scene {
   }
 
   /** 花時辰（不夠就回傳 false） */
-  private spend(hours: number, incense = 0): boolean {
-    if (hours > run.hours || incense > run.incense) return false;
+  private spend(hours: number): boolean {
+    if (hours > run.hours) return false;
     run.hours -= hours;
-    run.incense -= incense;
     this.refreshHeader();
     return true;
   }
@@ -265,9 +261,8 @@ export class DayScene extends Phaser.Scene {
     this.add2(txt(this, p.x + 200, y + 20, `不處理：${ignore}`, 16, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
   }
 
-  private hoursWhy(h: number, incense = 0): string {
+  private hoursWhy(h: number): string {
     if (h > run.hours) return `時辰不夠（剩 ${run.hours}）`;
-    if (incense > run.incense) return `香火不夠（需要 ${incense}）`;
     return '';
   }
 
@@ -279,15 +274,13 @@ export class DayScene extends Phaser.Scene {
 
   // ----- 人 -----
   private blocked(o: Option): string {
-    const cost = (o.incense ?? 0) + (o.miracle ? MIRACLE_COST : 0);
     if (o.miracle && run.miracles <= 0) return '今天的神蹟已經用完';
-    return this.hoursWhy(o.hours, cost);
+    return this.hoursWhy(o.hours);
   }
 
   private costLine(o: Option): string {
     const parts = [`${o.hours} 時辰`];
-    if (o.incense) parts.push(`香火 ${o.incense}`);
-    if (o.miracle) parts.push(`神蹟・香火 ${MIRACLE_COST}・最後一戰小妖 +1 波`);
+    if (o.miracle) parts.push('神蹟・最後一戰小妖 +1 波');
     const newEv = (o.gives ?? []).filter((id) => !run.evidence.includes(id));
     if (newEv.length) parts.push(`得到證據：${newEv.map((id) => `${EVIDENCE[id].name}（審「${evidenceFor(id)}」用）`).join('、')}`);
     return parts.join('・');
@@ -305,17 +298,14 @@ export class DayScene extends Phaser.Scene {
 
   private choosePerson(o: Option): void {
     if (this.blocked(o) || this.busy) return;
-    const cost = (o.incense ?? 0) + (o.miracle ? MIRACLE_COST : 0);
     const before = run.evidence.length;
-    const f0 = run.followers;
-    this.spend(o.hours, cost);
+    this.spend(o.hours);
     if (o.miracle) {
       run.miracles--;
       run.bossAdds++;
       this.cameras.main.flash(500, 255, 230, 160);
     }
     const story = o.apply(run);
-    if (run.followers > f0) floatText(this, W / 2, BAND_Y + 120, `信徒 +${run.followers - f0}`, 0x8ff0a4, 28);
     this.refreshHeader();
     this.after(story, run.evidence.slice(before));
   }
@@ -372,12 +362,10 @@ export class DayScene extends Phaser.Scene {
 
   // ----- 小妖 -----
   private showImp(e: Extract<Encounter, { kind: 'imp' }>): void {
-    const reward = impReward(run);
     const { p, y: y0 } = this.cardHead('小妖', e.place, e.text);
-    const y = this.optionRow(p, y0, '驅散', '1 時辰', reward ? `當場打散；香火 +${reward}` : '當場打散（戾氣太重，拿不到香火）', this.hoursWhy(1), () => {
+    const y = this.optionRow(p, y0, '驅散', '1 時辰', '當場打散，牠們不會跟到最後一戰', this.hoursWhy(1), () => {
       if (this.busy || !this.spend(1)) return;
       this.busy = true;
-      if (reward) applyDelta({ incense: reward });
       this.refreshHeader();
       this.band.scatter(() => { this.busy = false; this.after('八將衝上前，小妖四散逃竄。', []); });
     });
@@ -409,13 +397,11 @@ export class DayScene extends Phaser.Scene {
       this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.skip(), { size: 26, fill: 0x3a3442 }));
       return;
     }
-    const bonus = e.bonus?.incense ? `；香火 +${e.bonus.incense}` : e.bonus?.morale ? `；士氣 +${e.bonus.morale}` : '';
     const g = EVIDENCE[e.evidence].ghost;
     const { p, y: y0 } = this.cardHead(e.who, e.place, `${e.text}\n\n跟「${CASES[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
-    const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到證詞`, `晚上審「${CASES[g].dayName}」時可以出示${bonus}`, this.hoursWhy(e.hours), () => {
+    const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到證詞`, `晚上審「${CASES[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       gainEvidence(e.evidence);
-      if (e.bonus) applyDelta(e.bonus);
       this.refreshHeader();
       this.after(EVIDENCE[e.evidence].text, [e.evidence]);
     });
@@ -460,19 +446,9 @@ export class DayScene extends Phaser.Scene {
 
   // ---------- 一天結束 ----------
   private endRoute(): void {
-    const n = run.hours;
-    if (n <= 0) return this.endDay();
-    const p = this.resetSide();
-    this.add2(txt(this, p.x + 24, p.y + 18, `還剩 ${n} 個時辰`, 30, C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 70, '這條路走完了。剩下的時間要怎麼用？', 19, C.paper, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
-    const finish = (d: { incense?: number; morale?: number }) => {
-      applyDelta(d);
-      run.hours = 0;
-      this.refreshHeader();
-      this.endDay();
-    };
-    this.add2(button(this, p.x + p.w / 2, p.y + 190, 340, 66, `上香祈福（香火 +${5 * n}）`, () => finish({ incense: 5 * n }), { size: 22, fill: 0x8a1b14 }));
-    this.add2(button(this, p.x + p.w / 2, p.y + 280, 340, 66, `提早休息（士氣 +${5 * n}）`, () => finish({ morale: 5 * n }), { size: 22, fill: 0x2b5aa8 }));
+    run.hours = 0;
+    this.refreshHeader();
+    this.endDay();
   }
 
   private endDay(): void {

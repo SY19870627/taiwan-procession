@@ -51,7 +51,6 @@ export interface BossSetup {
   extraWaves: number;
   /** 超渡換來的技能 */
   skills: SkillId[];
-  morale: number;
   duration: number;
   seed?: number;
 }
@@ -165,13 +164,12 @@ export class BossBattle {
     };
     this.palanquin = { x: PAL_X, hp: setup.palanquin.hp, maxHp: setup.palanquin.hp, flash: 0 };
     const haste = setup.members.some((m) => m.stats.trait === 'haste') ? 0.85 : 1;
-    const moraleMul = 1.25 - setup.morale / 200;
     for (const m of setup.members) {
       const st = m.stats;
       this.units.push({
         uid: this.uidSeq++, key: st.key, name: st.name, role: st.role, trait: st.trait,
         row: m.row, targetRow: m.row, moving: 0, slot: 0, x: 0,
-        hp: st.hp, maxHp: st.hp, atk: st.atk, cd: st.cd * moraleMul * (st.trait === 'haste' ? 1 : haste), range: st.range, aoe: st.aoe, guard: st.guard,
+        hp: st.hp, maxHp: st.hp, atk: st.atk, cd: st.cd * 0.95 * (st.trait === 'haste' ? 1 : haste), range: st.range, aoe: st.aoe, guard: st.guard,
         timer: this.rng() * st.cd, hits: 0, alive: true, flash: 0,
       });
     }
