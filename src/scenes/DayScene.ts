@@ -6,9 +6,9 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { MIRACLE_COST, CARDS, ledger, bossEffects, type Card, type Option } from '../content/believers';
-import { DAY_PLANS, collectHours, endOfDay3, ghostMood, impReward, summary, takeDocs, talkBlocked, visible, type DayPlan, type Encounter, type RouteDef } from '../content/days';
-import { CASES, EVIDENCE } from '../content/cases';
-import { run, applyDelta, gainEvidence } from '../state';
+import { DAY_PLANS, collectHours, endOfDay3, evidenceFor, ghostMood, impReward, laterSightings, summary, takeDocs, talkBlocked, visible, type DayPlan, type Encounter, type RouteDef } from '../content/days';
+import { CASES, EVIDENCE, evidenceOf } from '../content/cases';
+import { run, applyDelta, caseDone, gainEvidence, isHeld } from '../state';
 import { ResourceBar, button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
 
@@ -195,13 +195,22 @@ export class DayScene extends Phaser.Scene {
     for (const id of gained) {
       const ev = EVIDENCE[id];
       this.add2(txt(this, p.x + 24, y, `證物袋 ＋ 【${ev.kind}】${ev.name}`, 19, 0x9fe8c0));
-      y += 34;
+      this.add2(txt(this, p.x + 24, y + 28, `　→ 審「${evidenceFor(id)}」時用得上（${this.ghostStatus(ev.ghost)}）`, 16, C.muted, { bold: false }));
+      y += 64;
     }
     this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => {
       if (this.busy) return;
       this.busy = true;
       this.band.pass(false, () => { this.busy = false; this.next(); });
     }, { size: 26, fill: 0x8a1b14 }));
+  }
+
+  /** 這隻鬼現在的狀態（給證據、線索看的） */
+  private ghostStatus(caseId: string): string {
+    if (isHeld(caseId)) return '已收容';
+    if (caseDone(caseId)) return '已經審過了';
+    const later = laterSightings(caseId, this.plan.day);
+    return later.length ? `還沒收容；之後在${later[0]}會遇到` : '還沒收容';
   }
 
   /** 花時辰（不夠就回傳 false） */
@@ -279,7 +288,7 @@ export class DayScene extends Phaser.Scene {
     if (o.incense) parts.push(`香火 ${o.incense}`);
     if (o.miracle) parts.push(`神蹟・香火 ${MIRACLE_COST}・最後一戰小妖 +1 波`);
     const newEv = (o.gives ?? []).filter((id) => !run.evidence.includes(id));
-    if (newEv.length) parts.push(`得到證據：${newEv.map((id) => EVIDENCE[id].name).join('、')}`);
+    if (newEv.length) parts.push(`得到證據：${newEv.map((id) => `${EVIDENCE[id].name}（審「${evidenceFor(id)}」用）`).join('、')}`);
     return parts.join('・');
   }
 
@@ -326,7 +335,17 @@ export class DayScene extends Phaser.Scene {
       return;
     }
     const hours = collectHours(run, e.caseId);
-    const text = mood === 'hiding' ? `${k.daySight}\n牠感覺到隊伍的戾氣，躲了起來；要多花時間勸出來。` : k.daySight;
+    const evs = evidenceOf(k.id);
+    const have = evs.filter((id) => run.evidence.includes(id));
+    const later = laterSightings(k.id, this.plan.day);
+    const info = [
+      `牽連：${k.affects}`,
+      `審清楚：${k.payoff}`,
+      `證據已有 ${have.length}／${evs.length}${have.length ? `：${have.map((id) => EVIDENCE[id].name).join('、')}` : ''}`,
+      ...(have.length < evs.length ? [`還缺：${evs.filter((id) => !have.includes(id)).map((id) => EVIDENCE[id].name).join('、')}`] : []),
+      later.length ? `今天不收，${later.join('、')}還會遇到` : '今天不收，之後就遇不到了',
+    ].join('\n');
+    const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要多花時間勸出來。' : ''}\n\n${info}`;
     const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' });
     const full = run.held.length >= run.slots;
     const why = full ? '收容格滿了' : this.hoursWhy(hours);
@@ -369,8 +388,9 @@ export class DayScene extends Phaser.Scene {
 
   // ----- 線索 -----
   private showClue(e: Extract<Encounter, { kind: 'clue' }>): void {
-    const { p, y: y0 } = this.cardHead('線索', e.place, e.text);
-    const y = this.optionRow(p, y0, '查看', `${e.hours} 時辰・得到物證`, '晚上夜審時可以出示', this.hoursWhy(e.hours), () => {
+    const g = EVIDENCE[e.evidence].ghost;
+    const { p, y: y0 } = this.cardHead('線索', e.place, `${e.text}\n\n跟「${CASES[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
+    const y = this.optionRow(p, y0, '查看', `${e.hours} 時辰・得到物證`, `晚上審「${CASES[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       this.busy = true;
       gainEvidence(e.evidence);
@@ -389,8 +409,9 @@ export class DayScene extends Phaser.Scene {
       return;
     }
     const bonus = e.bonus?.incense ? `；香火 +${e.bonus.incense}` : e.bonus?.morale ? `；士氣 +${e.bonus.morale}` : '';
-    const { p, y: y0 } = this.cardHead(e.who, e.place, e.text);
-    const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到證詞`, `晚上夜審時可以出示${bonus}`, this.hoursWhy(e.hours), () => {
+    const g = EVIDENCE[e.evidence].ghost;
+    const { p, y: y0 } = this.cardHead(e.who, e.place, `${e.text}\n\n跟「${CASES[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
+    const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到證詞`, `晚上審「${CASES[g].dayName}」時可以出示${bonus}`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       gainEvidence(e.evidence);
       if (e.bonus) applyDelta(e.bonus);
@@ -513,12 +534,20 @@ export class DayScene extends Phaser.Scene {
     this.overlay(`證物袋（${run.evidence.length}）`, (x, y0, pw, add) => {
       let y = y0;
       if (!run.evidence.length) add(txt(this, x + 30, y, '還沒有證據。路上的線索、問話，和信徒說的話都會收進來。', 18, C.muted, { bold: false, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
-      for (const id of run.evidence) {
-        const ev = EVIDENCE[id];
-        add(txt(this, x + 30, y, `【${ev.kind}】${ev.name}`, 19, 0x9fe8c0));
-        const t = txt(this, x + 30, y + 28, ev.text, 16, C.paper, { bold: false, lineSpacing: 4, wordWrap: { width: pw - 60, useAdvancedWrap: true } });
-        add(t);
-        y += 28 + t.height + 14;
+      // 依案子分組：每一隻鬼底下列出拿到的證據
+      for (const k of Object.values(CASES)) {
+        const mine = evidenceOf(k.id).filter((id) => run.evidence.includes(id));
+        if (!mine.length) continue;
+        add(txt(this, x + 30, y, `${k.dayName}（${this.ghostStatus(k.id)}）`, 20, 0x9fd0ff));
+        y += 32;
+        for (const id of mine) {
+          const ev = EVIDENCE[id];
+          add(txt(this, x + 40, y, `【${ev.kind}】${ev.name}`, 17, 0x9fe8c0));
+          const t = txt(this, x + 40, y + 24, ev.text, 15, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 80, useAdvancedWrap: true } });
+          add(t);
+          y += 24 + t.height + 10;
+        }
+        y += 8;
       }
     });
   }

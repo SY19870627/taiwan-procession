@@ -15,29 +15,33 @@ export interface Evidence {
   name: string;
   /** 內容 */
   text: string;
+  /** 跟哪一隻鬼的案子有關 */
+  ghost: string;
+  /** 在哪裡拿得到（缺證據時提示用） */
+  where: string;
 }
 
 export const EVIDENCE: Record<string, Evidence> = {
   // 阿桂
-  tablet: { id: 'tablet', kind: '文獻', name: '廟誌・無主牌位', text: '青嶺宮廟誌記著一塊無主牌位「陳門阿桂」。自從管理牌位的人過世，就沒人上香了。' },
-  axiu: { id: 'axiu', kind: '證詞', name: '阿秀嬸的話', text: '「每晚子時哭，摸他額頭冰冰的，可是又在燒。」' },
-  censer: { id: 'censer', kind: '物證', name: '古井邊的小香爐', text: '古井鐵蓋下藏著一個沒人認的小香爐，香早就斷了。' },
-  cloth: { id: 'cloth', kind: '證詞', name: '布莊老闆娘的話', text: '「早年井邊有個賣粿的阿桂。她的囝仔發燒，那晚沒有醫生肯來……後來她也走了。」' },
+  tablet: { id: 'tablet', kind: '文獻', name: '廟誌・無主牌位', text: '青嶺宮廟誌記著一塊無主牌位「陳門阿桂」。自從管理牌位的人過世，就沒人上香了。', ghost: 'gui', where: '青嶺宮・問阿土伯（第一、二天出發時）' },
+  axiu: { id: 'axiu', kind: '證詞', name: '阿秀嬸的話', text: '「每晚子時哭，摸他額頭冰冰的，可是又在燒。」', ghost: 'gui', where: '阿秀嬸（第一天菜市場／第二天診所）' },
+  censer: { id: 'censer', kind: '物證', name: '古井邊的小香爐', text: '古井鐵蓋下藏著一個沒人認的小香爐，香早就斷了。', ghost: 'gui', where: '菜市場古井的線索（第一天）' },
+  cloth: { id: 'cloth', kind: '證詞', name: '布莊老闆娘的話', text: '「早年井邊有個賣粿的阿桂。她的囝仔發燒，那晚沒有醫生肯來……後來她也走了。」', ghost: 'gui', where: '布莊老闆娘（第一、二天）' },
   // 阿標
-  jiaoti: { id: 'jiaoti', kind: '文獻', name: '抓交替', text: '黃曆舊聞：河岸舊多溺者。俗謂水鬼須得替身，乃去，謂之「抓交替」。' },
-  yun_river: { id: 'yun_river', kind: '證詞', name: '小芸的話（河邊）', text: '「河邊有一個濕濕的叔叔，一直叫我下去幫他撿球。」' },
-  ribbon: { id: 'ribbon', kind: '物證', name: '河堤的紅布條', text: '河堤欄杆上一條新綁的紅布條。上個月有人在這裡差點溺水，家屬綁的。' },
-  elder: { id: 'elder', kind: '證詞', name: '長輩的話', text: '「阿標喔？那年喝醉酒跳下去游，誰勸都不聽，就沒再上來了。」' },
+  jiaoti: { id: 'jiaoti', kind: '文獻', name: '抓交替', text: '黃曆舊聞：河岸舊多溺者。俗謂水鬼須得替身，乃去，謂之「抓交替」。', ghost: 'biao', where: '第一天的黃曆' },
+  yun_river: { id: 'yun_river', kind: '證詞', name: '小芸的話（河邊）', text: '「河邊有一個濕濕的叔叔，一直叫我下去幫他撿球。」', ghost: 'biao', where: '小芸（第一天國小／第二天小芸家）' },
+  ribbon: { id: 'ribbon', kind: '物證', name: '河堤的紅布條', text: '河堤欄杆上一條新綁的紅布條。上個月有人在這裡差點溺水，家屬綁的。', ghost: 'biao', where: '河堤的線索（第一、二天）' },
+  elder: { id: 'elder', kind: '證詞', name: '長輩的話', text: '「阿標喔？那年喝醉酒跳下去游，誰勸都不聽，就沒再上來了。」', ghost: 'biao', where: '老人會的長輩（第一天）／河堤釣魚的老伯（第二天）' },
   // 阿添公
-  azhe: { id: 'azhe', kind: '證詞', name: '阿哲的話', text: '「冰庫半夜自己斷電，客人說店裡很冷、坐不住。這樣怎麼做下去？」' },
-  photo: { id: 'photo', kind: '物證', name: '開店老照片', text: '冰果室牆上的老照片：「民國五十年開幕」。照片裡站在店門口的，就是那個擦桌子的老人。' },
-  yun_pot: { id: 'yun_pot', kind: '證詞', name: '小芸的話（冰果室）', text: '「冰果室裡有個阿公，每天晚上把一個大鍋子拿出來放在桌上。」' },
-  sugar: { id: 'sugar', kind: '物證', name: '鍋底的黑糖', text: '冰果室廚房角落的大鍋，鍋底結著一層燒焦的黑糖。' },
+  azhe: { id: 'azhe', kind: '證詞', name: '阿哲的話', text: '「冰庫半夜自己斷電，客人說店裡很冷、坐不住。這樣怎麼做下去？」', ghost: 'tian', where: '阿哲（第一、三天冰果室）' },
+  photo: { id: 'photo', kind: '物證', name: '開店老照片', text: '冰果室牆上的老照片：「民國五十年開幕」。照片裡站在店門口的，就是那個擦桌子的老人。', ghost: 'tian', where: '冰果室的線索（第一、二天）' },
+  yun_pot: { id: 'yun_pot', kind: '證詞', name: '小芸的話（冰果室）', text: '「冰果室裡有個阿公，每天晚上把一個大鍋子拿出來放在桌上。」', ghost: 'tian', where: '小芸家（第二天）' },
+  sugar: { id: 'sugar', kind: '物證', name: '鍋底的黑糖', text: '冰果室廚房角落的大鍋，鍋底結著一層燒焦的黑糖。', ghost: 'tian', where: '冰果室廚房（第二、三天，要先聽小芸說）' },
   // 阿福
-  linbo: { id: 'linbo', kind: '證詞', name: '林伯說的傳說', text: '「那匹馬是跟著聖王出征的。聖王走了，牠被留在山上；後來莊裡的人鑿了牠的肚子。」' },
-  rein: { id: 'rein', kind: '物證', name: '斷掉的韁繩', text: '一截斷掉的舊韁繩，皮上刻著一個「福」字。' },
-  axiong: { id: 'axiong', kind: '證詞', name: '阿雄的話', text: '「蹄印都是往北，一路往龍嶺寺那邊去。不像在找吃的，像在找路。」' },
-  poem: { id: 'poem', kind: '文獻', name: '惠澤宮籤詩', text: '「山中石駒久無主，夜夜長嘶望北風；若得舊人呼一聲，不須鞭策自歸宮。」' },
+  linbo: { id: 'linbo', kind: '證詞', name: '林伯說的傳說', text: '「那匹馬是跟著聖王出征的。聖王走了，牠被留在山上；後來莊裡的人鑿了牠的肚子。」', ghost: 'fu', where: '林伯（第二天石材行／第三天山腳）' },
+  rein: { id: 'rein', kind: '物證', name: '斷掉的韁繩', text: '一截斷掉的舊韁繩，皮上刻著一個「福」字。', ghost: 'fu', where: '收容阿福時一起帶回' },
+  axiong: { id: 'axiong', kind: '證詞', name: '阿雄的話', text: '「蹄印都是往北，一路往龍嶺寺那邊去。不像在找吃的，像在找路。」', ghost: 'fu', where: '阿雄（第二天菜園）' },
+  poem: { id: 'poem', kind: '文獻', name: '惠澤宮籤詩', text: '「山中石駒久無主，夜夜長嘶望北風；若得舊人呼一聲，不須鞭策自歸宮。」', ghost: 'fu', where: '第三天的黃曆' },
 };
 
 // ---------- 案子 ----------
@@ -84,6 +88,10 @@ export interface GhostCase {
   daySight: string;
   /** 不收容的話會怎樣 */
   harm: string;
+  /** 牽連到誰 */
+  affects: string;
+  /** 審清楚的好處 */
+  payoff: string;
   /** 膽小程度：戾氣 ≥ timid 會躲起來，≥ timid+1 會逃走 */
   timid: number;
   /** 有冤的鬼：斬了算斬錯 */
@@ -105,6 +113,8 @@ export const CASES: Record<string, GhostCase> = {
     id: 'gui', name: '阿桂', dayName: '古井邊的女人', tex: 'folk3',
     daySight: '菜市場角落有一口用鐵板蓋住的古井。井邊蹲著一個穿大襟衫的女人，一直望著阿秀嬸的攤子。',
     harm: '她今晚還會去阿秀嬸家；阿弟的燒不會退',
+    affects: '阿秀嬸的孫子阿弟（夜夜發燒）',
+    payoff: '阿弟退燒；查清楚可以超渡（戾氣 -1）或收編為「護嬰娘」',
     timid: 1, innocent: true,
     statements: [
       '我沒有害那個囡仔。',
@@ -135,6 +145,8 @@ export const CASES: Record<string, GhostCase> = {
     id: 'biao', name: '阿標', dayName: '河堤下的濕男人', tex: 'folk1',
     daySight: '河堤下的水裡站著一個男人，全身濕透，對著路過的孩子招手。凡人只看到一片水光。',
     harm: '他會繼續在河邊招孩子下水',
+    affects: '小芸（被引誘下水）',
+    payoff: '河岸平安；全部查清楚可以收編為「前鋒」',
     timid: 3, innocent: false,
     statements: [
       '我是被人推下去的！我要找那個人討公道。',
@@ -165,6 +177,8 @@ export const CASES: Record<string, GhostCase> = {
     id: 'tian', name: '阿添公', dayName: '冰果室裡擦桌子的老人', tex: 'folk4',
     daySight: '冰果室最裡面那張桌子，一個穿汗衫的老人一直在擦桌子，擦完又擦。阿哲從他身邊走過，什麼都沒看到。',
     harm: '冰庫還會半夜斷電，客人越來越少',
+    affects: '阿哲與冰果室',
+    payoff: '查清楚並有小芸傳話，冰果室能留下來；也可以收編為「冰水伯」',
     timid: 2, innocent: true,
     statements: [
       '這間店是我的，誰都不能賣。',
@@ -193,6 +207,8 @@ export const CASES: Record<string, GhostCase> = {
     id: 'fu', name: '阿福', dayName: '拿著斷韁繩的老人', tex: 'folk5',
     daySight: '蹄印旁邊站著一個老人，手裡拿著一截斷掉的韁繩，一直往山上看。',
     harm: '最後一戰少了一個認得石駒的人',
+    affects: '最後一戰的石駒',
+    payoff: '收編後，最後一戰他能上前喊石駒的名字（喚回石駒最強的一張牌）',
     timid: 1, innocent: true,
     onCollect: ['rein'],
     statements: [
@@ -219,3 +235,8 @@ export const CASES: Record<string, GhostCase> = {
     ],
   },
 };
+
+/** 這隻鬼相關的證據 id */
+export function evidenceOf(caseId: string): string[] {
+  return Object.values(EVIDENCE).filter((e) => e.ghost === caseId).map((e) => e.id);
+}

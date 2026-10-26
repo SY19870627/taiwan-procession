@@ -494,18 +494,19 @@ export function makeFigures(scene: Phaser.Scene): void {
   });
 
   // 筊杯（擲筊用）：正面（平）、反面（凸）
-  make(scene, 'jiao_flat', 70, 40, (g, w, h) => {
+  // 筊（側面看）：平面朝上＝上面是平的、下面是弧；凸面朝上＝弧形拱起
+  make(scene, 'jiao_flat', 70, 40, (g, w) => {
     g.fillStyle(0xb3261e, 1);
-    g.slice(w / 2, h - 4, 32, Math.PI, 0, false);
+    g.slice(w / 2, 6, 32, 0, Math.PI, false);
     g.fillPath();
-    g.fillStyle(0xe15a4a, 1);
-    g.fillRect(w / 2 - 32, h - 8, 64, 5);
+    g.fillStyle(0xf0a090, 1);
+    g.fillRect(w / 2 - 32, 4, 64, 5);
   });
   make(scene, 'jiao_round', 70, 40, (g, w, h) => {
     g.fillStyle(0x8a1b14, 1);
     g.slice(w / 2, h - 4, 32, Math.PI, 0, false);
     g.fillPath();
-    g.fillStyle(0xb3261e, 1);
+    g.fillStyle(0xd84a3a, 1);
     g.slice(w / 2, h - 4, 24, Math.PI * 1.1, Math.PI * 1.6, false);
     g.fillPath();
   });

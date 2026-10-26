@@ -5,7 +5,7 @@
 import type { RunState } from '../state';
 import { caseDone, gainEvidence, isHeld } from '../state';
 import { CARDS, gain, type Almanac, type Card } from './believers';
-import { CASES } from './cases';
+import { CASES, EVIDENCE } from './cases';
 
 export type Encounter =
   /** 信徒（人的事），用 believers.ts 的信徒卡 */
@@ -93,13 +93,16 @@ const DAY2: DayPlan = {
     text: '芝嶺巖有石，狀如馬。相傳昔為開疆聖王坐騎，隨王征戰。後聖王他往，駒獨留山中，夜出食禾稼。莊人鑿其腹，駒乃不動，化為石。',
   }),
   docs: [],
-  pre: [],
+  pre: [
+    { kind: 'talk', id: 'atu2', place: '青嶺宮', who: '廟公阿土伯', evidence: 'tablet', hours: 1, tex: 'folk2', text: '出發前，阿土伯在整理廟誌。問問廟裡的舊事？' },
+  ],
   routes: [
     {
       id: '甲', name: '大路線', color: 0xb3261e,
       encounters: [
         { kind: 'person', id: 'clinic', place: '診所', card: 'clinic', tex: 'folk0' },
         ghost('gui2', '診所門口', 'gui'),
+        { kind: 'talk', id: 'cloth2', place: '布莊', who: '布莊老闆娘', evidence: 'cloth', hours: 1, tex: 'folk3', text: '布莊老闆娘在門口看熱鬧。她在這條街住了一輩子。' },
         { kind: 'person', id: 'yunhome', place: '小芸家', card: 'xiaoyunHome', tex: 'folk5' },
         ghost('tian2', '冰果室', 'tian'),
         { kind: 'clue', id: 'photo2', place: '冰果室', evidence: 'photo', hours: 1, text: '冰果室牆上掛著一張很舊的照片。' },
@@ -111,6 +114,7 @@ const DAY2: DayPlan = {
       id: '乙', name: '河堤線', color: 0x2f8f5a,
       encounters: [
         ghost('biao2', '河堤下', 'biao'),
+        { kind: 'talk', id: 'angler', place: '河堤', who: '釣魚的老伯', evidence: 'elder', hours: 1, tex: 'folk2', text: '一個老伯在河堤上釣魚，釣了幾十年。這條河的事，他都記得。' },
         { kind: 'clue', id: 'ribbon2', place: '河堤', evidence: 'ribbon', hours: 1, text: '河堤欄杆上綁著一條紅布條，看起來很新。' },
         { kind: 'imp', id: 'dike', place: '河堤', tex: 'mei', text: '幾隻疾魅在河堤上亂竄，路人都說今天風特別怪。' },
         { kind: 'person', id: 'farm', place: '芝林菜園', card: 'farm', tex: 'folk1' },
@@ -268,4 +272,23 @@ export function endOfDay3(r: RunState): void {
 /** 起駕時把黃曆上的文獻收進證物袋，回傳新得到的 */
 export function takeDocs(plan: DayPlan): string[] {
   return plan.docs.filter((id) => gainEvidence(id));
+}
+
+/** 這隻鬼之後還會在哪裡出現（今天之後） */
+export function laterSightings(caseId: string, day: number): string[] {
+  const out: string[] = [];
+  for (let d = day + 1; d <= 3; d++) {
+    const p = DAY_PLANS[d];
+    for (const r of p.routes) {
+      for (const e of [...p.pre, ...r.encounters, ...p.post]) {
+        if (e.kind === 'ghost' && e.caseId === caseId) out.push(`第${'一二三'[d - 1]}天${r.id}線・${e.place}`);
+      }
+    }
+  }
+  return out;
+}
+
+/** 證據跟哪隻鬼有關（顯示用） */
+export function evidenceFor(id: string): string {
+  return CASES[EVIDENCE[id].ghost].dayName;
 }

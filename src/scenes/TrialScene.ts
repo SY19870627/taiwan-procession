@@ -5,7 +5,7 @@
  */
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
-import { CASES, EVIDENCE, VERDICT_NAME, type GhostCase, type VerdictDef } from '../content/cases';
+import { CASES, EVIDENCE, VERDICT_NAME, evidenceOf, type GhostCase, type VerdictDef } from '../content/cases';
 import { dawn } from '../content/days';
 import { gain } from '../content/believers';
 import { run } from '../state';
@@ -132,16 +132,24 @@ export class TrialScene extends Phaser.Scene {
     k.statements.forEach((s, i) => {
       const ti = k.truths.findIndex((t) => t.stmt === i);
       const solved = ti >= 0 && st.truths.includes(ti);
-      const rowH = 84;
+      const rowH = 96;
       const bg = this.add2(this.add.graphics());
       bg.fillStyle(solved ? 0x2f4a3a : 0x2a2236, 1);
       bg.fillRoundedRect(p.x + 16, y, p.w - 32, rowH - 8, 10);
       if (solved) {
         this.add2(txt(this, p.x + 30, y + 8, `真相：${k.truths[ti].summary}`, 16, 0x9fe8c0, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 60, useAdvancedWrap: true } }));
       } else {
-        this.add2(txt(this, p.x + 30, y + 10, `「${s}」`, 18, C.paper, { bold: false, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
+        this.add2(txt(this, p.x + 30, y + 8, `「${s}」`, 18, C.paper, { bold: false, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
+        // 有疑點的句子：手上有對得上的證據就標出來；沒有就寫去哪裡找
+        const t = ti >= 0 ? k.truths[ti] : null;
+        const has = t ? t.evidence.some((id) => run.evidence.includes(id)) : false;
+        if (t) {
+          const hint = has ? '◆ 疑點：手上的證據對得上' : `◇ 疑點：缺證據（${EVIDENCE[t.evidence[0]].where}）`;
+          this.add2(txt(this, p.x + 30, y + rowH - 32, hint, 14, has ? 0xffd76a : 0xff9a8a, { bold: false, wordWrap: { width: p.w - 260, useAdvancedWrap: true } }));
+        }
         this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, '追問', () => this.say(k, k.press[i]), { size: 18, fill: 0x3a3442 }));
-        this.add2(button(this, p.x + p.w - 76, y + rowH / 2 - 4, 92, 50, '出示', () => this.present(k, i), { size: 18, fill: 0x2f6f5a }));
+        const pb = this.add2(button(this, p.x + p.w - 76, y + rowH / 2 - 4, 92, 50, '出示', () => this.present(k, i), { size: 18, fill: has ? 0x8a6a10 : 0x2f6f5a }));
+        pb.setEnabled(has);
       }
       y += rowH;
     });
@@ -159,14 +167,17 @@ export class TrialScene extends Phaser.Scene {
     objs.push(panel(this, x, y, pw, ph).setDepth(901));
     objs.push(txt(this, x + 24, y + 18, `出示證據：「${k.statements[stmt]}」`, 20, C.gold, { wordWrap: { width: pw - 48, useAdvancedWrap: true } }).setDepth(902));
     const close = () => { for (const o of objs) o.destroy(); };
-    let yy = y + 90;
-    if (!run.evidence.length) objs.push(txt(this, x + 24, yy, '證物袋是空的。', 18, C.muted).setDepth(902));
-    for (const id of run.evidence) {
+    let yy = y + 100;
+    objs.push(txt(this, x + 24, y + 60, '跟這個案子有關的證據：', 16, C.muted, { bold: false }).setDepth(902));
+    const mine = evidenceOf(k.id).filter((id) => run.evidence.includes(id));
+    for (const id of mine) {
       const ev = EVIDENCE[id];
       const b: Button = button(this, x + pw / 2, yy + 30, pw - 40, 60, `【${ev.kind}】${ev.name}`, () => { close(); this.check(k, stmt, id); }, { size: 18, fill: 0x2a3a4a });
       b.setDepth(903);
       objs.push(b);
-      yy += 70;
+      const t = txt(this, x + 34, yy + 66, ev.text, 15, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 68, useAdvancedWrap: true } }).setDepth(902);
+      objs.push(t);
+      yy += 78 + t.height;
     }
     const cb = button(this, x + pw / 2, y + ph - 50, 200, 56, '收回', close, { size: 20, fill: 0x3a3442 });
     cb.setDepth(903);
@@ -182,10 +193,8 @@ export class TrialScene extends Phaser.Scene {
       this.say(k, `${k.truths[ti].reveal}\n\n文判官提筆記下：${k.truths[ti].summary}`);
       return;
     }
-    const held = this.heldOf(k);
-    held.grudge = Math.min(3, held.grudge + 1);
-    this.cameras.main.shake(200, 0.006);
-    this.say(k, `【${EVIDENCE[evId].name}】\n${k.wrong}\n（對不上。鬼起了疑心，怨氣 +1）`);
+    this.cameras.main.shake(150, 0.004);
+    this.say(k, `【${EVIDENCE[evId].name}】\n${k.wrong}\n（文判官：「這件跟這句話對不上，換一件看看。」）`);
   }
 
   // ---------- 判決 ----------

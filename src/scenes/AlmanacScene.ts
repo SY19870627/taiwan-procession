@@ -9,7 +9,7 @@ import { PROLOGUE, PROLOGUE_JIAO, type Almanac } from '../content/believers';
 import { DAY_PLANS } from '../content/days';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt } from '../ui/widgets';
-import { JIAO_NAME, throwJiao } from '../ui/jiao';
+import { JIAO_NAME, JIAO_RULE, throwJiao } from '../ui/jiao';
 
 const INK = 0x2a1a10;
 const RED = 0xa3261c;
@@ -186,9 +186,9 @@ export class AlmanacScene extends Phaser.Scene {
       objs.push(panel(this, x, y, pw, ph).setDepth(901));
       objs.push(txt(this, W / 2, y + 36, `擲筊・請示：${j.ask}`, 30, C.gold, { serif: true }).setOrigin(0.5).setDepth(902));
       const lines = [
-        `聖杯 50%：${j.holy.text.replace('聖杯。', '')}（士氣 +10）`,
-        `笑杯 25%：照舊出巡（香火 +5）`,
-        `陰杯 25%：一樣出巡，但多備香火（香火 +10、士氣 -5）`,
+        `聖杯（一平一凸）50%：${j.holy.text.replace('聖杯。', '')}（士氣 +10）`,
+        `笑杯（兩平）25%：照舊出巡（香火 +5）`,
+        `陰杯（兩凸）25%：一樣出巡，但多備香火（香火 +10、士氣 -5）`,
       ];
       const body = txt(this, x + 32, y + 84, lines.join('\n'), 21, C.paper, { bold: false, lineSpacing: 14, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902);
       objs.push(body);
@@ -199,8 +199,9 @@ export class AlmanacScene extends Phaser.Scene {
           const o = j[r];
           run.morale = Math.max(0, Math.min(100, run.morale + o.morale));
           run.incense += o.incense;
-          objs.push(txt(this, W / 2, y + 100, JIAO_NAME[r], 44, r === 'holy' ? C.gold : C.paper, { serif: true }).setOrigin(0.5).setDepth(903));
-          objs.push(txt(this, W / 2, y + 290, o.text, 22, C.paper, { bold: false, align: 'center', wordWrap: { width: pw - 80, useAdvancedWrap: true } }).setOrigin(0.5).setDepth(903));
+          objs.push(txt(this, W / 2, y + 128, `（${JIAO_RULE[r]}）`, 20, C.muted).setOrigin(0.5).setDepth(903));
+          objs.push(txt(this, W / 2, y + 92, JIAO_NAME[r], 44, r === 'holy' ? C.gold : C.paper, { serif: true }).setOrigin(0.5).setDepth(903));
+          objs.push(txt(this, W / 2, y + 330, o.text, 22, C.paper, { bold: false, align: 'center', wordWrap: { width: pw - 80, useAdvancedWrap: true } }).setOrigin(0.5).setDepth(903));
           button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => go(this, 'almanac', { day: 1 }), { size: 26, fill: 0x8a1b14 }).setDepth(903);
         }));
       }, { size: 30, fill: 0x8a1b14 }).setDepth(903);
