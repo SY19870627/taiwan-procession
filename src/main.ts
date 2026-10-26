@@ -3,6 +3,8 @@ import { W, H } from './theme';
 import * as state from './state';
 import { CASES } from './content/cases';
 import { setupMobile, watchOrientation } from './mobile';
+import { unlockAudio } from './audio/sfx';
+import { CutScene } from './scenes/CutScene';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { ChapterScene } from './scenes/ChapterScene';
@@ -16,6 +18,7 @@ import { EndScene } from './scenes/EndScene';
 
 async function start() {
   setupMobile();
+  unlockAudio();
   // 等中文字型載入，避免文字先用備用字型畫出來（最多等 2.5 秒）
   try {
     await Promise.race([
@@ -37,7 +40,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, ChapterScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene],
+    scene: [BootScene, TitleScene, ChapterScene, CutScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;

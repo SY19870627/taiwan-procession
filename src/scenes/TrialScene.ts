@@ -11,6 +11,7 @@ import { RELEASE_SKILL } from '../content/finale';
 import { SKILLS } from '../core/boss';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
+import { sfx } from '../audio/sfx';
 
 const WATCHES = 3;
 
@@ -101,6 +102,7 @@ export class TrialScene extends Phaser.Scene {
 
   private open(k: GhostCase): void {
     this.watch++;
+    sfx.drum(3);
     this.say(k, `${k.dayName}被押上堂來。\n文判官：「報上名來，說說你為什麼留在陽間。」`);
   }
 
@@ -196,6 +198,8 @@ export class TrialScene extends Phaser.Scene {
     if (ti >= 0 && !st.truths.includes(ti)) {
       st.truths.push(ti);
       this.cameras.main.flash(200, 255, 240, 200);
+      sfx.good();
+      this.time.delayedCall(250, () => sfx.stamp());
       this.say(k, `${k.truths[ti].reveal}\n\n文判官提筆記下：${k.truths[ti].summary}`);
       return;
     }
@@ -203,6 +207,7 @@ export class TrialScene extends Phaser.Scene {
     const held = this.heldOf(k);
     held.grudge = Math.min(3, held.grudge + 1);
     this.cameras.main.shake(200, 0.006);
+    sfx.bad();
     const tail = held.grudge >= 3 ? '牠怨氣衝天，不肯再開口了。' : '對不上。鬼起了疑心，怨氣 +1。';
     this.say(k, `【${EVIDENCE[evId].name}】\n${k.wrong}\n（${tail}）`);
   }
@@ -263,18 +268,22 @@ export class TrialScene extends Phaser.Scene {
     switch (v.verdict) {
       case 'release':
         run.liqi = Math.max(0, run.liqi - 1);
+        sfx.heal();
         lines.push(`${k.name}對著王爺拜了三拜，身影慢慢淡去。`, '戾氣 -1');
         if (RELEASE_SKILL[k.id]) lines.push('', `亡魂得渡，王爺的神威增長了。`, `最後一戰多一個技能「${SKILLS[RELEASE_SKILL[k.id]].name}」：${SKILLS[RELEASE_SKILL[k.id]].desc}`);
         break;
       case 'recruit':
         run.flags[`recruit_${k.id}`] = true;
+        sfx.bell();
         lines.push(`${k.name}跪下來：「願隨王爺左右，贖我的罪。」`, '最後一戰會加入隊伍');
         break;
       case 'escort':
+        sfx.chain();
         lines.push(`七爺八爺押著${k.name}，往地府去了。`);
         break;
       case 'slay': {
         run.liqi = Math.min(3, run.liqi + 1);
+        sfx.slash();
         this.cameras.main.flash(300, 255, 255, 255);
         this.cameras.main.shake(300, 0.01);
         lines.push(`武判官手起刀落。${st.truths.length ? k.name : k.dayName}化成一縷青煙，散了。`, '戾氣 +1');
@@ -324,10 +333,10 @@ export class TrialScene extends Phaser.Scene {
       }
     }
     if (this.n >= 3) {
-      go(this, 'story', { id: 'dusk3', next: { key: 'boss' } });
+      go(this, 'story', { id: 'dusk3', next: { key: 'cut', data: { kind: 'boss', title: '石駒現身', sub: '最後一戰・喚回石駒', next: { key: 'boss' } } } });
       return;
     }
     run.yesterday = [...out, ...dawn(run, this.n)];
-    go(this, 'almanac', { day: this.n + 1 });
+    go(this, 'cut', { kind: 'dawn', title: '雞啼・天亮', sub: `第${'二三'[this.n - 1]}天`, next: { key: 'almanac', data: { day: this.n + 1 } } });
   }
 }

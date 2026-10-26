@@ -11,6 +11,7 @@ import { CASES, EVIDENCE, evidenceOf } from '../content/cases';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
+import { sfx } from '../audio/sfx';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -81,8 +82,8 @@ export class DayScene extends Phaser.Scene {
   private drawHeader(): void {
     txt(this, 20, 16, `${this.plan.title}・白天`, 28, C.gold, { serif: true });
     txt(this, 20, 58, this.plan.area, 18, C.paper, { bold: false });
-    button(this, 424, 40, 104, 44, '因果簿', () => this.showLedger(), { size: 18, fill: 0x4a2a3a });
-    button(this, 538, 40, 104, 44, '證物袋', () => this.showEvidence(), { size: 18, fill: 0x2a4a3a });
+    button(this, 396, 40, 100, 44, '因果簿', () => this.showLedger(), { size: 18, fill: 0x4a2a3a });
+    button(this, 502, 40, 100, 44, '證物袋', () => this.showEvidence(), { size: 18, fill: 0x2a4a3a });
     fullscreenButton(this);
     const g = this.add.graphics();
     g.fillStyle(0x1d1726, 0.88);
@@ -388,6 +389,7 @@ export class DayScene extends Phaser.Scene {
       run.miracles--;
       run.bossAdds++;
       this.cameras.main.flash(500, 255, 230, 160);
+      sfx.gong();
     }
     const story = o.apply(run);
     this.refreshHeader();
@@ -438,6 +440,8 @@ export class DayScene extends Phaser.Scene {
     run.cases[e.caseId] ??= { truths: [] };
     const gained = (k.onCollect ?? []).filter((id) => gainEvidence(id));
     this.refreshHeader();
+    sfx.chain();
+    sfx.whoosh();
     this.band.collect(() => {
       this.busy = false;
       this.drawSlots(e.caseId);
@@ -452,6 +456,7 @@ export class DayScene extends Phaser.Scene {
       if (this.busy || !this.spend(1)) return;
       this.busy = true;
       this.refreshHeader();
+      sfx.firecracker();
       this.band.scatter(() => { this.busy = false; this.after('八將衝上前，小妖四散逃竄。', []); });
     });
     this.skipRow(p, y, '最後一戰小妖 +1 波', () => {
@@ -468,6 +473,7 @@ export class DayScene extends Phaser.Scene {
       if (this.busy || !this.spend(e.hours)) return;
       this.busy = true;
       gainEvidence(e.evidence);
+      sfx.bell(0.2);
       this.band.take(() => { this.busy = false; this.after(EVIDENCE[e.evidence].text, [e.evidence]); });
     });
     this.skipRow(p, y, '少一件證據', () => this.skip());
@@ -526,6 +532,7 @@ export class DayScene extends Phaser.Scene {
     this.idx = 0;
     this.panelMsg(`走${route.id}線・${route.name}`, '隊伍轉進巷子。');
     this.busy = true;
+    sfx.drum(2);
     this.band.walk(700, () => { this.busy = false; this.next(); });
   }
 
@@ -546,7 +553,7 @@ export class DayScene extends Phaser.Scene {
     this.band.setHour(18);
     const day = this.plan.day;
     if (day === 3) endOfDay3(run);
-    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'trial', { night: day }), { size: 26, fill: 0x5a2a6a }));
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: '今晚審令旗下的鬼', next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
   }
 
   // ---------- 因果簿、證物袋 ----------

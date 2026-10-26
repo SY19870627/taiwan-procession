@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { C, H, W, hex } from '../theme';
 import { PROLOGUE, PROLOGUE_JIAO, type Almanac } from '../content/believers';
 import { DAY_PLANS } from '../content/days';
+import { sfx } from '../audio/sfx';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt } from '../ui/widgets';
 import { JIAO_NAME, JIAO_RULE, throwJiao, type JiaoResult } from '../ui/jiao';
@@ -30,6 +31,7 @@ export class AlmanacScene extends Phaser.Scene {
     const a: Almanac = prologue ? PROLOGUE : DAY_PLANS[day].almanac(run);
     const yesterday = prologue ? [] : run.yesterday;
     this.cameras.main.fadeIn(600, 10, 8, 18);
+    sfx.page();
 
     // 桌面
     const bg = this.add.graphics();
@@ -93,7 +95,7 @@ export class AlmanacScene extends Phaser.Scene {
     else {
       const plan = DAY_PLANS[day];
       txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
-      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'day', { day }), { size: 32, fill: 0x8a1b14 });
+      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: { key: 'day', data: { day } } }), { size: 32, fill: 0x8a1b14 });
     }
     fullscreenButton(this);
   }
