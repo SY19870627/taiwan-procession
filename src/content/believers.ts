@@ -85,11 +85,15 @@ export const PROLOGUE: Almanac = {
   text: '每歲十月二十、二十一，王爺夜巡，謂之暗訪。七爺八爺前導，捕陰陽二界作祟者；文武判官隨後，鞫之於廟。凡人但見燈火鑼鼓，不知其事。\n是歲十九夜，宮中香爐之香，無風自斷者三。',
 };
 
+/** 序章擲筊：照傳統擲三次，每一次分別給獎勵或扣點；三次都聖杯另有加成 */
 export const PROLOGUE_JIAO = {
   ask: '明日是否照常暗訪？',
-  holy: { text: '聖杯。王爺應允，眾人振奮。', morale: 10, incense: 0 },
-  laugh: { text: '笑杯。阿土伯：「王爺在笑我們多問。照舊。」', morale: 0, incense: 5 },
-  yin: { text: '陰杯。阿土伯：「不是不去，是要更小心。」多備了香火，大家心裡卻有點沉。', morale: -5, incense: 10 },
+  times: 3,
+  holy: { text: '王爺應允。', morale: 5, incense: 5 },
+  laugh: { text: '王爺在笑我們多問。', morale: 0, incense: 5 },
+  yin: { text: '王爺要大家更小心。', morale: -5, incense: 0 },
+  allHoly: { text: '連得三個聖杯！眾人振奮。', morale: 10 },
+  done: '不管結果如何，暗訪照常。阿土伯：「王爺都聽到了，明天起駕。」',
 };
 
 // ---------- 信徒卡 ----------
