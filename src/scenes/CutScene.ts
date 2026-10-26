@@ -3,11 +3,13 @@
  *  - depart：起駕。鑼鼓、鞭炮，隊伍從左邊走進畫面。
  *  - dusk：日落回廟升堂。天色變暗，燈籠一盞盞亮起，廟門打開。
  *  - dawn：雞啼天亮。天色由暗轉亮，太陽升起。
- *  - boss：石駒現身。山在震，紫色的煞氣裡走出一匹石馬。
+ *  - boss：魔王現身（石駒：山在震，紫色煞氣裡走出石馬；黑潮：海面隆起，浪裡浮出人臉）。
+ * 第二章在漁港：遠景換成海和漁船，廟換成代天府。
  */
 import Phaser from 'phaser';
 import { C, H, W, lerpColor } from '../theme';
 import { txt } from '../ui/widgets';
+import { CH } from '../content/chapter';
 
 export type CutKind = 'depart' | 'dusk' | 'dawn' | 'boss';
 
@@ -48,15 +50,21 @@ export class CutScene extends Phaser.Scene {
     this.tweens.add({ targets: sub, alpha: 1, duration: 500, delay: 700 });
 
     let len = 3600;
+    const harbor = CH().look === 'harbor';
+    const far = (night: boolean, y = G - 40) => harbor
+      ? this.add.tileSprite(0, y + 10, W, 200, night ? 'seaFarN' : 'seaFar').setOrigin(0, 1)
+      : this.add.tileSprite(0, y, W, 260, night ? 'mtnFarN' : 'mtnFar').setOrigin(0, 1);
     if (data.kind === 'depart') {
       paintSky(0x8ec8f0, 0xf6e7c8);
-      this.add.tileSprite(0, G - 40, W, 260, 'mtnFar').setOrigin(0, 1).setAlpha(0.7);
-      for (let i = 0; i < 4; i++) this.add.image(i * 230 - 40, G + 4, `shop${(i * 3) % 8}`).setOrigin(0, 1);
+      far(false).setAlpha(0.8);
+      for (let i = 0; i < 4; i++) this.add.image(i * 230 - 40, G + 4, harbor ? `hshop${(i * 3) % 8}` : `shop${(i * 3) % 8}`).setOrigin(0, 1);
       ground();
-      // 隊伍從左邊走進來
+      // 隊伍從左邊走進來（用這一章白天的隊伍）
       const line = this.add.container(-560, G + 90).setDepth(10);
-      const keys: [string, number][] = [['paoshou', 0], ['lion', 90], ['bajiang0', 190], ['palanquin', 330], ['baye', 470], ['qiye', 520], ['flag1', 600]];
-      for (const [k, x] of keys) line.add(this.add.image(x, 0, k).setOrigin(0.5, 1).setScale(0.75));
+      const band = CH().band(1);
+      const minX = Math.min(...band.map((b) => b[1]));
+      const maxX = Math.max(...band.map((b) => b[1]));
+      for (const [k, x, sc] of band) line.add(this.add.image(((x - minX) / (maxX - minX)) * 600, 0, k).setOrigin(0.5, 1).setScale(sc * 1.04));
       this.tweens.add({ targets: line, x: 80, duration: 3000, ease: 'Sine.out' });
       this.tweens.add({ targets: line, y: line.y - 6, duration: 180, yoyo: true, repeat: 16 });
       // 鞭炮
@@ -74,8 +82,8 @@ export class CutScene extends Phaser.Scene {
         onUpdate: () => paintSky(lerpColor(0xe88a4a, 0x0b0a1c, t.v), lerpColor(0xf6c08a, 0x231d40, t.v)),
       });
       paintSky(0xe88a4a, 0xf6c08a);
-      this.add.tileSprite(0, G - 40, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.8);
-      const temple = this.add.image(W / 2, G + 6, 'temple_qingling').setOrigin(0.5, 1).setScale(0.78);
+      far(true).setAlpha(0.8);
+      const temple = this.add.image(W / 2, G + 6, CH().temple).setOrigin(0.5, 1).setScale(0.78);
       this.time.delayedCall(1400, () => temple.setTint(0x8a7090));
       ground();
       // 燈籠一盞盞亮
@@ -83,9 +91,12 @@ export class CutScene extends Phaser.Scene {
         const l = this.add.image(70 + i * 116, H * 0.36, 'lantern').setScale(0.8).setAlpha(0.15).setDepth(20);
         this.tweens.add({ targets: l, alpha: 1, duration: 200, delay: 900 + i * 220 });
       }
-      // 判官的身影
-      const j1 = this.add.image(W / 2 - 150, G + 110, 'judge').setOrigin(0.5, 1).setScale(1.1).setAlpha(0).setDepth(12);
-      const j2 = this.add.image(W / 2 + 150, G + 110, 'judge').setOrigin(0.5, 1).setScale(1.1).setFlipX(true).setTint(0x9a6a6a).setAlpha(0).setDepth(12);
+      // 判官（中軍府）的身影
+      const [o1, o2] = CH().trial.officers;
+      const j1 = this.add.image(W / 2 - 150, G + 110, o1.tex).setOrigin(0.5, 1).setScale(1.1).setAlpha(0).setDepth(12);
+      const j2 = this.add.image(W / 2 + 150, G + 110, o2.tex).setOrigin(0.5, 1).setScale(1.1).setFlipX(true).setAlpha(0).setDepth(12);
+      if (o1.tint) j1.setTint(o1.tint);
+      if (o2.tint) j2.setTint(o2.tint);
       this.tweens.add({ targets: [j1, j2], alpha: 1, duration: 600, delay: 2200 });
       len = 3800;
     }
@@ -98,15 +109,30 @@ export class CutScene extends Phaser.Scene {
       paintSky(0x0b0a1c, 0x231d40);
       const sun = this.add.circle(W * 0.7, G + 60, 60, 0xffd76a).setDepth(1);
       this.tweens.add({ targets: sun, y: G - 120, duration: 2600, ease: 'Sine.out' });
-      this.add.tileSprite(0, G - 40, W, 260, 'mtnFar').setOrigin(0, 1).setAlpha(0.8).setDepth(2);
-      this.add.image(W / 2, G + 6, 'temple_qingling').setOrigin(0.5, 1).setScale(0.7).setDepth(3);
+      far(false).setAlpha(0.8).setDepth(2);
+      this.add.image(W / 2, G + 6, CH().temple).setOrigin(0.5, 1).setScale(0.7).setDepth(3);
       ground();
       this.time.delayedCall(1000, () => {
         const crow = txt(this, W * 0.22, G - 160, '喔——喔——', 30, 0xfff3c4, { serif: true, stroke: '#3a2a1a', strokeThickness: 5 }).setDepth(40);
         this.tweens.add({ targets: crow, y: crow.y - 40, alpha: 0, duration: 1600 });
       });
     }
-    if (data.kind === 'boss') {
+    if (data.kind === 'boss' && harbor) {
+      // 黑潮現身：海面隆起，浪裡浮出人臉；沙灘上是王船
+      paintSky(0x050816, 0x1a1640);
+      const sea = this.add.graphics().setDepth(2);
+      sea.fillStyle(0x0a1028, 1);
+      sea.fillRect(0, G - 120, W, 140);
+      const sand = this.add.graphics().setDepth(5);
+      sand.fillStyle(0x2a2630, 1);
+      sand.fillRect(0, G, W, H - G);
+      this.add.image(W * 0.24, G + 40, 'wangchuan').setOrigin(0.5, 1).setScale(0.9).setTint(0x8a7aa0).setDepth(9);
+      const tide = this.add.image(W * 0.72, G + 160, 'heichao').setOrigin(0.5, 1).setScale(0.8).setAlpha(0).setDepth(8);
+      this.tweens.add({ targets: tide, alpha: 1, y: G + 30, scale: 1.1, duration: 2000, delay: 400, ease: 'Cubic.out' });
+      this.time.delayedCall(300, () => { this.cameras.main.shake(1600, 0.005); });
+      this.time.delayedCall(2200, () => { this.cameras.main.flash(200, 80, 120, 200); });
+      len = 3800;
+    } else if (data.kind === 'boss') {
       paintSky(0x0a0614, 0x2e1446);
       const mtn = this.add.tileSprite(0, G + 10, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.9);
       ground();

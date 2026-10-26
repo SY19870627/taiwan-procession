@@ -16,6 +16,8 @@ export interface BandData {
   y: number;
   theme: StreetTheme;
   hour: number;
+  /** 隊伍的排列：貼圖、x、大小（面向右邊前進） */
+  line: [string, number, number][];
 }
 
 /** 路上遇到的東西長什麼樣子 */
@@ -51,12 +53,8 @@ export class BandScene extends Phaser.Scene {
     this.cameras.main.setViewport(0, data.y, W, BandScene.height()).setZoom(ZOOM).centerOn(FW / 2, FH / 2);
     this.cameras.main.fadeIn(400, 10, 8, 18);
     this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour });
-    // 隊伍：前導令旗 → 七爺八爺 → 神轎 → 八將 → 醒獅 → 鞭炮（面向右邊前進）
-    const line: [string, number, number][] = [
-      ['flag1', 820, 0.8], ['qiye', 700, 0.72], ['baye', 650, 0.72], ['palanquin', 480, 0.78],
-      ['bajiang0', 330, 0.72], ['bajiang1', 280, 0.72], ['lion', 170, 0.72], ['paoshou', 70, 0.72],
-    ];
-    for (const [key, x, sc] of line) {
+    // 隊伍（每一章不同，見 content/chapter.ts 的 band）
+    for (const [key, x, sc] of data.line) {
       const img = this.add.image(x, GROUND_Y + 10, key).setOrigin(0.5, 1).setScale(sc * BIG).setDepth(20 + x / 100);
       this.members.push({ img, baseY: GROUND_Y + 10, phase: Math.random() * 6 });
     }
@@ -145,6 +143,21 @@ export class BandScene extends Phaser.Scene {
       this.tweens.add({ targets: o, x: (o as Phaser.GameObjects.Image).x + 200 + i * 80, y: -200, alpha: 0, duration: 600 });
     });
     this.time.delayedCall(650, () => { v.destroy(); done(); });
+  }
+
+  /** 押煞上船：王令一亮，小妖自己飄向隊伍後面的王船，縮成一點金光 */
+  toShip(done: () => void): void {
+    const v = this.visitor;
+    if (!v) return done();
+    this.visitor = undefined;
+    const flash = this.add.circle(840, GROUND_Y - 260, 30, 0xffd76a, 0.8).setDepth(45);
+    this.tweens.add({ targets: flash, scale: 4, alpha: 0, duration: 600, onComplete: () => flash.destroy() });
+    v.list.forEach((o, i) => {
+      const img = o as Phaser.GameObjects.Image;
+      img.setData('float', false);
+      this.tweens.add({ targets: img, x: -v.x + 120 - i * 40, y: -120 - i * 20, scale: 0.3, alpha: 0, duration: 1100, delay: 200 + i * 120, ease: 'Sine.inOut' });
+    });
+    this.time.delayedCall(1500, () => { v.destroy(); done(); });
   }
 
   /** 線索、問話拿到了：光點收起來 */

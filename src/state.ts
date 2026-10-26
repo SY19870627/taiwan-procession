@@ -25,6 +25,8 @@ export interface RunState {
   hours: number;
   /** 今天還能顯現幾次神蹟 */
   miracles: number;
+  /** 第二章：今天還有幾道王令（押煞上船用） */
+  decrees: number;
   /** 石駒被阿雄的陷阱激怒 */
   shijuEnraged: boolean;
   /** 「昨日」欄：前一天沒照顧到的人發生了什麼 */
@@ -33,7 +35,7 @@ export interface RunState {
   allied: boolean;
   /** 石駒已被喚回 */
   shijuJoined: boolean;
-  /** 最後一戰的判決 */
+  /** 最後一戰的判決（第一章：喚回／送回山中／斬；第二章：一起送走／鎮回海裡／斬） */
   shijuEnd?: 'recall' | 'return' | 'slay';
   /** 白天事件的旗標 */
   flags: Record<string, boolean>;
@@ -74,6 +76,7 @@ export function newRun(): RunState {
     b: { ...newBelievers() },
     hours: 6,
     miracles: 1,
+    decrees: 0,
     shijuEnraged: false,
     yesterday: [],
   };

@@ -5,9 +5,9 @@
  */
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
-import { CARDS, ledger, bossEffects, type Card, type Option } from '../content/believers';
-import { DAY_PLANS, collectHours, endOfDay3, evidenceFor, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible, type DayPlan, type Encounter, type RouteDef } from '../content/days';
-import { CASES, EVIDENCE, evidenceOf } from '../content/cases';
+import type { Card, Option } from '../content/believers';
+import type { DayPlan, Encounter, RouteDef } from '../content/days';
+import { CH, collectHours, evidenceFor, evidenceOf, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible } from '../content/chapter';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
@@ -35,10 +35,12 @@ export class DayScene extends Phaser.Scene {
 
   create(data: { day: number }): void {
     const day = data.day ?? 1;
-    this.plan = DAY_PLANS[day];
+    this.plan = CH().days[day];
     run.day = day;
     run.hours = this.plan.hours;
     run.miracles = this.plan.miracles;
+    const imp = CH().imp;
+    run.decrees = imp.mode === 'decree' ? imp.perDay : 0;
     this.hourBoxes = [];
     this.miracleDots = [];
     this.liqiPips = [];
@@ -56,7 +58,7 @@ export class DayScene extends Phaser.Scene {
     this.side = this.add.container(0, 0);
 
     // 上方隊伍畫面
-    this.scene.launch('band', { y: BAND_Y, theme: this.plan.theme, hour: this.hourNow() });
+    this.scene.launch('band', { y: BAND_Y, theme: this.plan.theme, hour: this.hourNow(), line: CH().band(day) });
     this.band = this.scene.get('band') as BandScene;
     this.events.once('shutdown', () => this.scene.stop('band'));
     const fr = this.add.graphics().setDepth(5);
@@ -67,7 +69,7 @@ export class DayScene extends Phaser.Scene {
     const docs = takeDocs(this.plan);
     this.time.delayedCall(300, () => {
       this.scene.bringToTop();
-      for (const [i, id] of docs.entries()) floatText(this, W / 2, BAND_Y + 120 + i * 40, `證物袋：${EVIDENCE[id].name}`, 0x9fe8c0, 24);
+      for (const [i, id] of docs.entries()) floatText(this, W / 2, BAND_Y + 120 + i * 40, `證物袋：${CH().evidence[id].name}`, 0x9fe8c0, 24);
       this.band.walk(900, () => this.next());
     });
     this.panelMsg(`${this.plan.title}・起駕`, '隊伍出發了。路上遇到的人和鬼，停下來處理才花時辰；略過就走過去了。');
@@ -128,9 +130,9 @@ export class DayScene extends Phaser.Scene {
     g.strokeRoundedRect(16, top, W - 32, h, 12);
     c.add(g);
     // 令旗
-    c.add(this.add.image(48, top + h - 8, 'flag1').setOrigin(0.5, 1).setScale(0.42));
-    c.add(txt(this, 74, top + 14, '令旗下', 15, 0x9fd0ff));
-    c.add(txt(this, 74, top + 38, '今晚審', 13, C.muted, { bold: false }));
+    c.add(this.add.image(48, top + h - 8, CH().held.icon).setOrigin(0.5, 1).setScale(0.42 * 150 / Math.max(150, this.textures.get(CH().held.icon).getSourceImage().height)));
+    c.add(txt(this, 74, top + 14, CH().held.label, 15, 0x9fd0ff));
+    c.add(txt(this, 74, top + 38, CH().held.sub, 13, C.muted, { bold: false }));
     const x0 = 132;
     const sw = (W - 32 - (x0 - 16) - 12 - 8 * (run.slots - 1)) / run.slots;
     for (let i = 0; i < run.slots; i++) {
@@ -149,7 +151,7 @@ export class DayScene extends Phaser.Scene {
         c.add(txt(this, sx + sw / 2, sy + sh / 2, '空位', 15, 0x4a5a72).setOrigin(0.5));
         continue;
       }
-      const k = CASES[h1.id];
+      const k = CH().cases[h1.id];
       const st = run.cases[h1.id] ?? { truths: [] };
       sg.fillStyle(0x223450, 1);
       sg.fillRoundedRect(sx, sy, sw, sh, 8);
@@ -176,7 +178,7 @@ export class DayScene extends Phaser.Scene {
 
   /** 點令旗下的鬼：看牠的故事和證據 */
   private showHeld(id: string): void {
-    const k = CASES[id];
+    const k = CH().cases[id];
     const st = run.cases[id] ?? { truths: [] };
     const h1 = run.held.find((h) => h.id === id);
     this.overlay(st.truths.length ? `${k.name}（${k.dayName}）` : k.dayName, (x, y0, pw, add) => {
@@ -196,7 +198,7 @@ export class DayScene extends Phaser.Scene {
       const evs = evidenceOf(id);
       const have = evs.filter((e) => run.evidence.includes(e));
       para(`證據 ${have.length}／${evs.length}`, C.gold);
-      for (const e of evs) para(run.evidence.includes(e) ? `✓ ${EVIDENCE[e].name}` : `✗ ${EVIDENCE[e].name}（${EVIDENCE[e].where}）`, run.evidence.includes(e) ? 0x9fe8c0 : 0xff9a8a, 16);
+      for (const e of evs) para(run.evidence.includes(e) ? `✓ ${CH().evidence[e].name}` : `✗ ${CH().evidence[e].name}（${CH().evidence[e].where}）`, run.evidence.includes(e) ? 0x9fe8c0 : 0xff9a8a, 16);
       if (h1) para(`怨氣 ${h1.grudge}／3（每過一夜沒審 +1，到 3 會掙脫）`, 0xff9a8a, 16);
     });
   }
@@ -263,7 +265,7 @@ export class DayScene extends Phaser.Scene {
     switch (e.kind) {
       case 'person': return { tex: e.tex, kind: 'person' };
       case 'talk': return { tex: e.tex, kind: 'person' };
-      case 'ghost': return { tex: CASES[e.caseId].tex, kind: 'ghost' };
+      case 'ghost': return { tex: CH().cases[e.caseId].tex, kind: 'ghost' };
       case 'imp': return { tex: e.tex, kind: 'imp', count: 3 };
       case 'clue': return { tex: 'spark', kind: 'clue' };
     }
@@ -274,7 +276,7 @@ export class DayScene extends Phaser.Scene {
     this.add2(txt(this, p.x + 24, p.y + 24, story, 21, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     let y = p.y + p.h - 260;
     for (const id of gained) {
-      const ev = EVIDENCE[id];
+      const ev = CH().evidence[id];
       this.add2(txt(this, p.x + 24, y, `證物袋 ＋ 【${ev.kind}】${ev.name}`, 19, 0x9fe8c0));
       this.add2(txt(this, p.x + 24, y + 28, `　→ 審「${evidenceFor(id)}」時用得上（${this.ghostStatus(ev.ghost)}）`, 16, C.muted, { bold: false }));
       y += 64;
@@ -327,7 +329,7 @@ export class DayScene extends Phaser.Scene {
   private optionRow(p: { x: number; w: number }, y: number, label: string, cost: string, result: string, why: string, onPick: () => void, gold = false): number {
     // 花費和結果都可能換行：先排字，再依高度畫底色
     const g = this.add2(this.add.graphics());
-    const costT = this.add2(txt(this, p.x + 200, y + 12, cost, 15, gold ? 0xffd76a : C.muted, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    const costT = this.add2(txt(this, p.x + 200, y + 12, cost.replace(/(\d) /g, '$1\u00a0'), 15, gold ? 0xffd76a : C.muted, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
     const resT = this.add2(txt(this, p.x + 200, costT.y + costT.height + 6, why ? `✕ ${why}` : result, 16, why ? 0xff9a8a : 0x9fe8c0, { bold: false, lineSpacing: 2, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
     const optH = Math.max(92, resT.y + resT.height + 14 - y);
     g.fillStyle(gold ? 0x5a3a10 : 0x2f3a4a, why ? 0.35 : 0.8);
@@ -366,12 +368,12 @@ export class DayScene extends Phaser.Scene {
     const parts = [`${o.hours} 時辰`];
     if (o.miracle) parts.push('神蹟・最後一戰小妖 +1 波');
     const newEv = (o.gives ?? []).filter((id) => !run.evidence.includes(id));
-    if (newEv.length) parts.push(`得到證據：${newEv.map((id) => `${EVIDENCE[id].name}（審「${evidenceFor(id)}」用）`).join('、')}`);
+    if (newEv.length) parts.push(`得到證據：${newEv.map((id) => `${CH().evidence[id].name}（審「${evidenceFor(id)}」用）`).join('、')}`);
     return parts.join('・');
   }
 
   private showPerson(e: Extract<Encounter, { kind: 'person' }>): void {
-    const card = CARDS[e.card](run) as Card;
+    const card = CH().cards[e.card](run) as Card;
     const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? { s: `期限：${card.deadline}`, color: '#b3261e' } : undefined);
     let y = y0;
     for (const o of card.options) {
@@ -396,7 +398,7 @@ export class DayScene extends Phaser.Scene {
 
   // ----- 鬼 -----
   private showGhost(e: Extract<Encounter, { kind: 'ghost' }>): void {
-    const k = CASES[e.caseId];
+    const k = CH().cases[e.caseId];
     const mood = ghostMood(run, e.caseId);
     if (mood === 'fled') {
       const p = this.resetSide();
@@ -416,8 +418,8 @@ export class DayScene extends Phaser.Scene {
     const info = [
       `牽連：${k.affects}`,
       `審清楚：${k.payoff}`,
-      `證據已有 ${have.length}／${evs.length}${have.length ? `：${have.map((id) => EVIDENCE[id].name).join('、')}` : ''}`,
-      ...(have.length < evs.length ? [`還缺：${evs.filter((id) => !have.includes(id)).map((id) => EVIDENCE[id].name).join('、')}`] : []),
+      `證據已有 ${have.length}／${evs.length}${have.length ? `：${have.map((id) => CH().evidence[id].name).join('、')}` : ''}`,
+      ...(have.length < evs.length ? [`還缺：${evs.filter((id) => !have.includes(id)).map((id) => CH().evidence[id].name).join('、')}`] : []),
       later.length ? `今天不收，${later.join('、')}還會遇到` : '今天不收，之後就遇不到了',
     ].join('\n');
     const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
@@ -425,15 +427,15 @@ export class DayScene extends Phaser.Scene {
     const full = run.held.length >= run.slots;
     const why = full ? '收容格滿了' : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));
-    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔收容格 1（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到證據：${extra.map((id) => EVIDENCE[id].name).join('、')}` : ''}`;
-    const y = this.optionRow(p, y0, '收容', cost, '七爺八爺把牠帶回令旗下，今晚夜審', why, () => this.collect(e, hours));
+    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔收容格 1（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到證據：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
+    const y = this.optionRow(p, y0, '收容', cost, `帶回${CH().held.label}，今晚夜審`, why, () => this.collect(e, hours));
     this.skipRow(p, y, k.harm, () => this.skip());
   }
 
   private collect(e: Extract<Encounter, { kind: 'ghost' }>, hours: number): void {
     if (this.busy || run.held.length >= run.slots || !this.spend(hours)) return;
     this.busy = true;
-    const k = CASES[e.caseId];
+    const k = CH().cases[e.caseId];
     run.held.push({ id: e.caseId, grudge: 0 });
     run.cases[e.caseId] ??= { truths: [] };
     const gained = (k.onCollect ?? []).filter((id) => gainEvidence(id));
@@ -441,34 +443,52 @@ export class DayScene extends Phaser.Scene {
     this.band.collect(() => {
       this.busy = false;
       this.drawSlots(e.caseId);
-      this.after(`七爺的鎖鏈一甩，${k.dayName}沒有掙扎，跟著回到了令旗下。\n今晚升堂再審。`, gained);
+      this.after(CH().held.collect(k.dayName), gained);
     });
   }
 
   // ----- 小妖 -----
   private showImp(e: Extract<Encounter, { kind: 'imp' }>): void {
-    const { p, y: y0 } = this.cardHead('小妖', e.place, e.text);
-    const y = this.optionRow(p, y0, '驅散', '1 時辰', '當場打散，牠們不會跟到最後一戰', this.hoursWhy(1), () => {
-      if (this.busy || !this.spend(1)) return;
+    const rule = CH().imp;
+    if (rule.mode === 'scatter') {
+      const { p, y: y0 } = this.cardHead('小妖', e.place, e.text);
+      const y = this.optionRow(p, y0, rule.verb, `${rule.hours} 時辰`, rule.result, this.hoursWhy(rule.hours), () => {
+        if (this.busy || !this.spend(rule.hours)) return;
+        this.busy = true;
+        this.refreshHeader();
+        this.band.scatter(() => { this.busy = false; this.after(rule.story, []); });
+      });
+      this.skipRow(p, y, '最後一戰小妖 +1 波', () => this.skipImp());
+      return;
+    }
+    // 押煞上船：用王令，不花時辰；王令每天有限
+    const { p, y: y0 } = this.cardHead('小妖', e.place, `${e.text}\n\n今天的王令還有 ${run.decrees}／${rule.perDay} 道。`);
+    const why = run.decrees <= 0 ? '今天的王令用完了' : '';
+    const y = this.optionRow(p, y0, rule.verb, `王令 1 道・不花時辰`, rule.result, why, () => {
+      if (this.busy || run.decrees <= 0) return;
       this.busy = true;
+      run.decrees--;
       this.refreshHeader();
-      this.band.scatter(() => { this.busy = false; this.after('八將衝上前，小妖四散逃竄。', []); });
-    });
-    this.skipRow(p, y, '最後一戰小妖 +1 波', () => {
-      run.bossAdds++;
-      this.skip();
-    });
+      this.band.toShip(() => { this.busy = false; this.after(rule.story, []); });
+    }, true);
+    this.skipRow(p, y, '最後一戰小妖 +1 波', () => this.skipImp());
+  }
+
+  private skipImp(): void {
+    if (this.busy) return;
+    run.bossAdds++;
+    this.skip();
   }
 
   // ----- 線索 -----
   private showClue(e: Extract<Encounter, { kind: 'clue' }>): void {
-    const g = EVIDENCE[e.evidence].ghost;
-    const { p, y: y0 } = this.cardHead('線索', e.place, `${e.text}\n\n跟「${CASES[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
-    const y = this.optionRow(p, y0, '查看', `${e.hours} 時辰・得到物證`, `晚上審「${CASES[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
+    const g = CH().evidence[e.evidence].ghost;
+    const { p, y: y0 } = this.cardHead('線索', e.place, `${e.text}\n\n跟「${CH().cases[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
+    const y = this.optionRow(p, y0, '查看', `${e.hours} 時辰・得到物證`, `晚上審「${CH().cases[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       this.busy = true;
       gainEvidence(e.evidence);
-      this.band.take(() => { this.busy = false; this.after(EVIDENCE[e.evidence].text, [e.evidence]); });
+      this.band.take(() => { this.busy = false; this.after(CH().evidence[e.evidence].text, [e.evidence]); });
     });
     this.skipRow(p, y, '少一件證據', () => this.skip());
   }
@@ -482,13 +502,13 @@ export class DayScene extends Phaser.Scene {
       this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.skip(), { size: 26, fill: 0x3a3442 }));
       return;
     }
-    const g = EVIDENCE[e.evidence].ghost;
-    const { p, y: y0 } = this.cardHead(e.who, e.place, `${e.text}\n\n跟「${CASES[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
-    const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到證詞`, `晚上審「${CASES[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
+    const g = CH().evidence[e.evidence].ghost;
+    const { p, y: y0 } = this.cardHead(e.who, e.place, `${e.text}\n\n跟「${CH().cases[g].dayName}」的案子有關（${this.ghostStatus(g)}）`);
+    const y = this.optionRow(p, y0, '問話', `${e.hours} 時辰・得到${CH().evidence[e.evidence].kind}`, `晚上審「${CH().cases[g].dayName}」時可以出示`, this.hoursWhy(e.hours), () => {
       if (this.busy || !this.spend(e.hours)) return;
       gainEvidence(e.evidence);
       this.refreshHeader();
-      this.after(EVIDENCE[e.evidence].text, [e.evidence]);
+      this.after(CH().evidence[e.evidence].text, [e.evidence]);
     });
     this.skipRow(p, y, '少一件證據', () => this.skip());
   }
@@ -540,13 +560,13 @@ export class DayScene extends Phaser.Scene {
     const p = this.resetSide();
     this.add2(txt(this, p.x + p.w / 2, p.y + 30, '日落・隊伍回廟', 32, C.gold, { serif: true }).setOrigin(0.5, 0));
     const lines = run.held.length
-      ? `令旗下收容了 ${run.held.length} 個鬼：\n${run.held.map((h) => `・${CASES[h.id].dayName}`).join('\n')}\n\n今晚升堂夜審。`
+      ? `${CH().held.label}收容了 ${run.held.length} 個鬼：\n${run.held.map((h) => `・${CH().cases[h.id].dayName}`).join('\n')}\n\n今晚升堂夜審。`
       : '今天沒有收容任何鬼。';
     this.add2(txt(this, p.x + 24, p.y + 100, lines, 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.band.setHour(18);
     const day = this.plan.day;
-    if (day === 3) endOfDay3(run);
-    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: '今晚審令旗下的鬼', next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
+    if (day === 3) CH().endOfDay3(run);
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: `今晚審${CH().held.label}的鬼`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
   }
 
   // ---------- 因果簿、證物袋 ----------
@@ -572,23 +592,23 @@ export class DayScene extends Phaser.Scene {
     this.overlay('因果簿', (x, y0, pw, add) => {
       const color = { good: 0x9fe8c0, warn: 0xffd76a, bad: 0xff9a8a, none: C.paper };
       let y = y0;
-      for (const l of ledger(run)) {
+      for (const l of CH().ledger(run)) {
         add(txt(this, x + 30, y, l.who, 22, C.paper, { serif: true }));
         const t = txt(this, x + 140, y + 3, l.state, 18, color[l.tone], { bold: false, lineSpacing: 4, wordWrap: { width: pw - 170, useAdvancedWrap: true } });
         add(t);
         y += Math.max(34, t.height) + 14;
       }
       y += 10;
-      add(txt(this, x + 30, y, '令旗下的鬼', 22, C.gold, { serif: true }));
+      add(txt(this, x + 30, y, `${CH().held.label}的鬼`, 22, C.gold, { serif: true }));
       y += 36;
-      const held = run.held.length ? run.held.map((h) => `・${CASES[h.id].dayName}（怨氣 ${h.grudge}／3）`).join('\n') : '（沒有）';
+      const held = run.held.length ? run.held.map((h) => `・${CH().cases[h.id].dayName}（怨氣 ${h.grudge}／3）`).join('\n') : '（沒有）';
       const t1 = txt(this, x + 30, y, held, 18, 0x9fd0ff, { bold: false, lineSpacing: 6 });
       add(t1);
       y += t1.height + 20;
       add(txt(this, x + 30, y, `戾氣 ${run.liqi}／3：${LIQI_TEXT[run.liqi]}`, 18, 0xff9a8a, { bold: false }));
       y += 40;
       add(txt(this, x + 30, y, '最後一戰', 22, C.gold, { serif: true }));
-      add(txt(this, x + 30, y + 36, bossEffects(run).map((s) => `・${s}`).join('\n'), 17, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
+      add(txt(this, x + 30, y + 36, CH().bossEffects(run).map((s) => `・${s}`).join('\n'), 17, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
     });
   }
 
@@ -597,13 +617,13 @@ export class DayScene extends Phaser.Scene {
       let y = y0;
       if (!run.evidence.length) add(txt(this, x + 30, y, '還沒有證據。路上的線索、問話，和信徒說的話都會收進來。', 18, C.muted, { bold: false, wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
       // 依案子分組：每一隻鬼底下列出拿到的證據
-      for (const k of Object.values(CASES)) {
+      for (const k of Object.values(CH().cases)) {
         const mine = evidenceOf(k.id).filter((id) => run.evidence.includes(id));
         if (!mine.length) continue;
         add(txt(this, x + 30, y, `${k.dayName}（${this.ghostStatus(k.id)}）`, 20, 0x9fd0ff));
         y += 32;
         for (const id of mine) {
-          const ev = EVIDENCE[id];
+          const ev = CH().evidence[id];
           add(txt(this, x + 40, y, `【${ev.kind}】${ev.name}`, 17, 0x9fe8c0));
           const t = txt(this, x + 40, y + 24, ev.text, 15, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 80, useAdvancedWrap: true } });
           add(t);

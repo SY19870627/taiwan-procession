@@ -4,6 +4,7 @@
  */
 import type { RunState } from '../state';
 import type { Almanac } from './believers';
+import type { StreetTheme } from '../art/backdrop';
 
 export type Encounter =
   /** 信徒（人的事），用 believers.ts 的信徒卡 */
@@ -38,8 +39,8 @@ export interface DayPlan {
   routes: RouteDef[];
   /** 兩條路會合之後 */
   post: Encounter[];
-  /** 街景：城市、半城半鄉、山 */
-  theme: 'city' | 'mixed' | 'hill';
+  /** 街景：城市、半城半鄉、山；第二章的漁港、海邊 */
+  theme: StreetTheme;
 }
 
 // ---------- 可以重複用的事 ----------
