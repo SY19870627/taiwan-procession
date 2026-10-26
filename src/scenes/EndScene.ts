@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { run } from '../state';
-import { epitaphs } from '../content/believers';
+import { epitaphs, ghostEpitaphs, shijuEpitaph } from '../content/believers';
 import { button, go, txt } from '../ui/widgets';
 
 const INK = 0x2a1a10;
@@ -42,19 +42,30 @@ export class EndScene extends Phaser.Scene {
     txt(this, W / 2, py + 114, '青嶺王暗訪・三日之後', 20, INK, { serif: true }).setOrigin(0.5);
 
     const list = epitaphs(run);
+    const ghosts = ghostEpitaphs(run);
     const good = list.filter((e) => e.good).length;
-    let y = py + 160;
-    const row = (who: string, tag: string | null, good: boolean, text: string) => {
-      txt(this, px + 48, y, who, 28, INK, { serif: true });
-      if (tag) txt(this, px + pw - 48, y + 4, tag, 20, 0xfbf3e2, { backgroundColor: good ? '#2f6f5a' : '#7a3a2a', padding: { x: 8, y: 3 } }).setOrigin(1, 0);
-      const t = txt(this, px + 48, y + 44, text, 22, INK, { serif: true, lineSpacing: 6, wordWrap: { width: pw - 96, useAdvancedWrap: true } });
-      y = t.y + t.height + 26;
+    const eased = ghosts.filter((e) => e.good).length;
+    let y = py + 150;
+    // 一人兩行：名字＋結局（字小一點，十個人才放得下）
+    const row = (who: string, good: boolean, text: string) => {
+      txt(this, px + 44, y, who, 22, INK, { serif: true });
+      txt(this, px + pw - 44, y + 2, good ? '圓滿' : '遺憾', 16, 0xfbf3e2, { backgroundColor: good ? '#2f6f5a' : '#7a3a2a', padding: { x: 6, y: 2 } }).setOrigin(1, 0);
+      const t = txt(this, px + 44, y + 32, text, 18, INK, { serif: true, lineSpacing: 4, wordWrap: { width: pw - 88, useAdvancedWrap: true } });
+      y = t.y + t.height + 16;
     };
-    for (const e of list) row(e.who, e.good ? '圓滿' : '遺憾', e.good, e.text);
-    row('石駒', null, true, run.shijuEnraged ? '石駒歸隊。但腿上的傷，要很久才會好。' : '石駒歸隊。');
-    txt(this, W / 2, py + ph - 60, `這三天，你照顧了 ${good} / ${list.length} 位信徒。`, 28, RED, { serif: true }).setOrigin(0.5);
+    const head = (s: string) => {
+      txt(this, px + 44, y, s, 18, RED, { serif: true });
+      y += 30;
+    };
+    head('【信徒】');
+    for (const e of list) row(e.who, e.good, e.text);
+    head('【鬼】');
+    for (const e of ghosts) row(e.who, e.good, e.text);
+    const sj = shijuEpitaph(run);
+    row(sj.who, sj.good, sj.text);
+    txt(this, W / 2, py + ph - 56, `照顧了 ${good}／${list.length} 位信徒・化解了 ${eased}／${ghosts.length} 個鬼`, 24, RED, { serif: true }).setOrigin(0.5);
 
-    txt(this, W / 2, H - 150, `捉拿小妖 ${run.totalCaptured}・剩餘香火 ${run.incense}・信徒 ${run.followers}・重整再戰 ${run.retries} 次`, 17, C.muted, { bold: false }).setOrigin(0.5);
+    txt(this, W / 2, H - 150, `戾氣 ${run.liqi}・剩餘香火 ${run.incense}・信徒 ${run.followers}・重整再戰 ${run.retries} 次`, 17, C.muted, { bold: false }).setOrigin(0.5);
     button(this, W / 2, H - 70, 300, 80, '再走一次', () => go(this, 'title'), { size: 30, fill: 0x8a1b14 });
   }
 }

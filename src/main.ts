@@ -10,7 +10,7 @@ import { AlmanacScene } from './scenes/AlmanacScene';
 import { DayScene } from './scenes/DayScene';
 import { BandScene } from './scenes/BandScene';
 import { TrialScene } from './scenes/TrialScene';
-import { NightHud, NightScene } from './scenes/NightScene';
+import { BossHud, BossScene } from './scenes/BossScene';
 import { EndScene } from './scenes/EndScene';
 
 async function start() {
@@ -36,7 +36,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     render: { antialias: true },
     fps: { smoothStep: false },
-    scene: [BootScene, TitleScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, NightScene, NightHud, EndScene],
+    scene: [BootScene, TitleScene, StoryScene, AlmanacScene, DayScene, BandScene, TrialScene, BossScene, BossHud, EndScene],
   });
   watchOrientation(game);
   (window as unknown as Record<string, unknown>).__game = game;

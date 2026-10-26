@@ -360,3 +360,45 @@ export function epitaphs(r: RunState): Epitaph[] {
       : { who: '林伯', good: false, text: '沒有人再來聽他說那匹馬的故事。' },
   ];
 }
+
+/** 四個鬼的結局（依判決） */
+export function ghostEpitaphs(r: RunState): Epitaph[] {
+  const v = (id: string) => r.cases[id]?.verdict;
+  const gui: Record<string, Epitaph> = {
+    release: { who: '阿桂', good: true, text: '廟裡那塊「陳門阿桂」的牌位，重新有了香火。' },
+    recruit: { who: '阿桂', good: true, text: '她成了護嬰娘。萬舺的孩子，夜裡睡得特別安穩。' },
+    escort: { who: '阿桂', good: false, text: '她被押往地府。她等的那個孩子，沒有人替她問。' },
+    slay: { who: '阿桂', good: false, text: '她散了。那塊牌位，還是沒人上香。' },
+  };
+  const biao: Record<string, Epitaph> = {
+    recruit: { who: '阿標', good: true, text: '他跟著隊伍贖罪。那條河，再也沒有孩子出事。' },
+    escort: { who: '阿標', good: true, text: '他被押往地府。河岸平安了。' },
+    slay: { who: '阿標', good: true, text: '河岸平安了。只是文判官說，他也只是怕。' },
+    free: { who: '阿標', good: false, text: '他回到了河裡。水邊又有人看到一個濕濕的男人在招手。' },
+  };
+  const tian: Record<string, Epitaph> = {
+    release: { who: '阿添公', good: true, text: '阿添冰果室的黑糖水，又有人在排隊了。' },
+    recruit: { who: '阿添公', good: true, text: '他跟著隊伍走了。臨走前，把那張桌子擦得發亮。' },
+    escort: { who: '阿添公', good: false, text: '冰庫不再斷電。可是那鍋糖水，再也沒有人會煮。' },
+    slay: { who: '阿添公', good: false, text: '冰果室最裡面那張桌子，再也沒有人擦了。' },
+  };
+  const fu: Record<string, Epitaph> = {
+    recruit: { who: '阿福', good: true, text: r.shijuEnd === 'recall' ? '他牽著石駒，走在青嶺王的神轎前面。' : '他一直站在山腳，往山上看。' },
+    release: { who: '阿福', good: true, text: '他安心走了。只是石駒，沒能再見他一面。' },
+    escort: { who: '阿福', good: false, text: '他被押往地府。那條韁繩，留在了廟裡。' },
+    slay: { who: '阿福', good: false, text: '他散了。石駒等的人，再也不會來了。' },
+  };
+  const none = (who: string, text: string): Epitaph => ({ who, good: false, text });
+  return [
+    gui[v('gui') ?? ''] ?? none('古井邊的女人', '她還蹲在井邊，等她的孩子。'),
+    biao[v('biao') ?? ''] ?? none('河堤下的男人', '他還在河邊招手。'),
+    tian[v('tian') ?? ''] ?? none('擦桌子的老人', '冰果室最裡面那張桌子，還有人在擦。'),
+    fu[v('fu') ?? ''] ?? none('拿韁繩的老人', '他還拿著那截斷掉的韁繩，往山上看。'),
+  ];
+}
+
+export function shijuEpitaph(r: RunState): Epitaph {
+  if (r.shijuEnd === 'recall') return { who: '石駒', good: true, text: r.shijuEnraged ? '石駒歸隊。只是腿上的傷，要很久才會好。' : '石駒歸隊，成了青嶺王的坐騎。' };
+  if (r.shijuEnd === 'slay') return { who: '石駒', good: false, text: '芝嶺巖少了一塊像馬的石頭。' };
+  return { who: '石駒', good: false, text: '牠回到山裡。夜裡偶爾還聽得到牠，往北長嘶。' };
+}

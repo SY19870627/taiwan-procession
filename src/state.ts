@@ -1,5 +1,3 @@
-import type { UnitId } from './core/units';
-import type { Upgrades } from './core/upgrades';
 import { newBelievers, type BelieverState } from './content/believers';
 
 /** 一次出巡（原型：三天）的進度與資源 */
@@ -12,12 +10,6 @@ export interface RunState {
   followers: number;
   /** 士氣 0–100：影響陣頭出手速度 */
   morale: number;
-  /** 逐項升級：神轎與每個陣頭各項屬性的等級（沒有記錄就是 Lv1） */
-  ups: Upgrades;
-  /** 布陣：每個陣頭在神轎的哪一邊（-1 左 / 後方，1 右 / 前方） */
-  sides: Partial<Record<UnitId, -1 | 1>>;
-  /** 當晚捉拿到的小妖數 */
-  captured: number;
   /** 判官審出的情報 */
   intel: {
     /** 醒獅震擊對石屑傀加倍 */
@@ -37,8 +29,6 @@ export interface RunState {
   hours: number;
   /** 今天還能顯現幾次神蹟 */
   miracles: number;
-  /** 今晚的戰況修正（白天的選擇造成） */
-  tonight: { miracles: number; cleared: boolean };
   /** 石駒被阿雄的陷阱激怒 */
   shijuEnraged: boolean;
   /** 「昨日」欄：前一天沒照顧到的人發生了什麼 */
@@ -47,6 +37,8 @@ export interface RunState {
   allied: boolean;
   /** 石駒已被喚回 */
   shijuJoined: boolean;
+  /** 最後一戰的判決 */
+  shijuEnd?: 'recall' | 'return' | 'slay';
   /** 白天事件的旗標 */
   flags: Record<string, boolean>;
   /** 證物袋：白天拿到的證據 id */
@@ -73,9 +65,6 @@ export function newRun(): RunState {
     incense: 40,
     followers: 12,
     morale: 60,
-    ups: {},
-    sides: { qiye: 1, bajiang: 1, xingshi: -1, paoshou: -1 },
-    captured: 0,
     intel: {},
     allied: false,
     shijuJoined: false,
@@ -91,7 +80,6 @@ export function newRun(): RunState {
     b: newBelievers(),
     hours: 6,
     miracles: 1,
-    tonight: { miracles: 0, cleared: false },
     shijuEnraged: false,
     yesterday: [],
   };

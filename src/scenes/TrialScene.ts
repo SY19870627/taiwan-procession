@@ -324,8 +324,7 @@ export class TrialScene extends Phaser.Scene {
       }
     }
     if (this.n >= 3) {
-      run.tonight = { miracles: Math.min(2, run.bossAdds), cleared: false };
-      go(this, 'story', { id: 'dusk3', next: { key: 'night', data: { night: 3 } } });
+      go(this, 'story', { id: 'dusk3', next: { key: 'boss' } });
       return;
     }
     run.yesterday = [...out, ...dawn(run, this.n)];
