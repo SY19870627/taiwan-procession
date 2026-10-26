@@ -8,6 +8,8 @@ import { C, H, W } from '../theme';
 import { CASES, EVIDENCE, VERDICT_NAME, evidenceOf, type GhostCase, type VerdictDef } from '../content/cases';
 import { dawn } from '../content/days';
 import { gain } from '../content/believers';
+import { RELEASE_SKILL } from '../content/finale';
+import { SKILLS } from '../core/boss';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 
@@ -264,6 +266,7 @@ export class TrialScene extends Phaser.Scene {
         run.liqi = Math.max(0, run.liqi - 1);
         gain(run, { followers: 6, incense: 5 });
         lines.push(`${k.name}對著王爺拜了三拜，身影慢慢淡去。`, '戾氣 -1・信徒 +6・香火 +5');
+        if (RELEASE_SKILL[k.id]) lines.push('', `亡魂得渡，王爺的神威增長了。`, `最後一戰多一個技能「${SKILLS[RELEASE_SKILL[k.id]].name}」：${SKILLS[RELEASE_SKILL[k.id]].desc}`);
         break;
       case 'recruit':
         run.flags[`recruit_${k.id}`] = true;

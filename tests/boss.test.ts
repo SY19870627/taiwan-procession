@@ -14,8 +14,9 @@ export function simulate(r: RunState, pol: Policy, seed = 7) {
     t += 1 / 30;
     for (const e of b.drainEvents()) if (e.type === 'trial') b.answer(e.round, pol.answers);
     if (pol.spells) {
-      if (b.palanquin.hp < b.palanquin.maxHp * 0.5 || b.front.some((u) => u.hp < u.maxHp * 0.35)) b.bless();
-      if (b.enemies.filter((e) => e.alive).length >= 4) b.smite();
+      if (b.palanquin.hp < b.palanquin.maxHp * 0.5 || b.front.some((u) => u.hp < u.maxHp * 0.35)) b.bless() || b.skill('huichun');
+      if (b.enemies.filter((e) => e.alive).length >= 4) b.smite() || b.skill('hanshuang');
+      if (b.boss.state === 'paw') b.skill('zhensha');
     }
     if (pol.rotate) {
       // 血少的前排退下來；後排有血的近戰補上去
@@ -64,6 +65,11 @@ describe('最後一戰平衡', () => {
     expect(o.win).toBeGreaterThanOrEqual(5);
     // 什麼都不做（不換位、不放法術）會輸
     expect(avg(r, { rotate: false, spells: false, answers: true }).win).toBeLessThanOrEqual(3);
+  });
+  it('普通的一輪＋超渡三個鬼（多三個技能）', () => {
+    const r = run((r) => { for (const g of ['gui', 'tian', 'fu']) r.cases[g] = { verdict: 'release', truths: [] }; });
+    expect(finaleSetup(r).skills).toEqual(['huichun', 'hanshuang', 'zhensha']);
+    console.log('plain+release/rotate', avg(r, { rotate: true, spells: true, answers: true }));
   });
   it('很糟、重來三次', () => {
     const r = run((r) => { r.shijuEnraged = true; r.bossAdds = 4; r.morale = 45; r.retries = 3; });

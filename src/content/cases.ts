@@ -135,7 +135,7 @@ export const CASES: Record<string, GhostCase> = {
     ],
     wrong: '她低下頭，不再說話。',
     verdicts: [
-      { verdict: 'release', needs: [1, 2], result: '重新為她的牌位上香，她放下等待離開。阿弟退燒；信徒增加。戾氣 -1' },
+      { verdict: 'release', needs: [1, 2], result: '重新為她的牌位上香，她放下等待離開。阿弟退燒；信徒增加。戾氣 -1；王爺神威增長，最後一戰多一個技能「回春符」' },
       { verdict: 'recruit', needs: [0], result: '她答應不再碰孩子，留下來當「護嬰娘」：最後一戰淨符回復更多' },
       { verdict: 'escort', result: '阿弟退燒，但她的冤情沒解' },
       { verdict: 'slay', result: '阿弟退燒。戾氣 +1' },
@@ -197,7 +197,7 @@ export const CASES: Record<string, GhostCase> = {
     ],
     wrong: '「哼。」他繼續擦桌子。',
     verdicts: [
-      { verdict: 'release', needs: [2], extra: { test: (r) => r.b.xiaoyun === 'protected' || r.b.xiaoyun === 'invited', why: '需要小芸平安，才能替他傳話' }, result: '小芸替他傳話，阿哲照著煮出那鍋糖水，冰果室留下來。戾氣 -1' },
+      { verdict: 'release', needs: [2], extra: { test: (r) => r.b.xiaoyun === 'protected' || r.b.xiaoyun === 'invited', why: '需要小芸平安，才能替他傳話' }, result: '小芸替他傳話，阿哲照著煮出那鍋糖水，冰果室留下來。戾氣 -1；王爺神威增長，最後一戰多一個技能「寒霜令」' },
       { verdict: 'recruit', needs: [0], result: '他答應不再弄壞冰庫，跟著隊伍走：最後一戰小妖靠近神轎會被凍慢' },
       { verdict: 'escort', result: '冰庫不再斷電，但阿哲還是會把店賣掉' },
       { verdict: 'slay', result: '冰庫不再斷電，但阿哲會把店賣掉。戾氣 +1' },
@@ -229,7 +229,7 @@ export const CASES: Record<string, GhostCase> = {
     wrong: '老人握緊了韁繩，轉頭看向山的方向。',
     verdicts: [
       { verdict: 'recruit', needs: [1], result: '他願意去見石駒：最後一戰的陣前審問，他可以上前喊石駒的名字' },
-      { verdict: 'release', needs: [1], result: '他安心離開，但最後一戰少了「舊人」' },
+      { verdict: 'release', needs: [1], result: '他安心離開，但最後一戰少了「舊人」。王爺神威增長，最後一戰多一個技能「鎮煞鈴」' },
       { verdict: 'escort', result: '最後一戰少了「舊人」' },
       { verdict: 'slay', result: '最後一戰少了「舊人」。戾氣 +1' },
     ],

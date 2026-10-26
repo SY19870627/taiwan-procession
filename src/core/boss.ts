@@ -32,6 +32,15 @@ export interface MemberStats {
   trait?: 'chain' | 'block' | 'quake' | 'slow' | 'haste' | 'heal' | 'frost';
 }
 
+/** 超渡亡魂後增加的技能（劇情上是王爺的神威增長） */
+export type SkillId = 'huichun' | 'hanshuang' | 'zhensha';
+
+export const SKILLS: Record<SkillId, { name: string; cd: number; desc: string }> = {
+  huichun: { name: '回春符', cd: 30, desc: '全隊陣頭回 35% 血，神轎回 10%' },
+  hanshuang: { name: '寒霜令', cd: 35, desc: '小妖全部定住 4 秒；石駒出手變慢' },
+  zhensha: { name: '鎮煞鈴', cd: 40, desc: '石駒刨地或衝鋒時搖鈴，打斷牠，直接喘息' },
+};
+
 export interface BossSetup {
   members: { stats: MemberStats; row: Row }[];
   palanquin: { hp: number; smite: number; bless: number };
@@ -40,6 +49,8 @@ export interface BossSetup {
   bellyWound: boolean;
   /** 多出來的小妖波數 */
   extraWaves: number;
+  /** 超渡換來的技能 */
+  skills: SkillId[];
   morale: number;
   duration: number;
   seed?: number;
@@ -108,6 +119,7 @@ export type BossEvent =
   | { type: 'bless' }
   | { type: 'palanquin'; dmg: number }
   | { type: 'trial'; round: number }
+  | { type: 'skill'; id: SkillId }
   | { type: 'end'; result: 'subdued' | 'lose' | 'dawn' };
 
 export const SMITE_CD = 15;
@@ -132,6 +144,8 @@ export class BossBattle {
   palanquin: { x: number; hp: number; maxHp: number; flash: number };
   smiteCd = 0;
   blessCd = 0;
+  /** 超渡技能的冷卻 */
+  skillCd: Partial<Record<SkillId, number>> = {};
   /** 陣前審問暫停中 */
   paused = false;
   trialRound = 0;
@@ -236,6 +250,7 @@ export class BossBattle {
     this.t += dt;
     this.smiteCd = Math.max(0, this.smiteCd - dt);
     this.blessCd = Math.max(0, this.blessCd - dt);
+    for (const k of Object.keys(this.skillCd) as SkillId[]) this.skillCd[k] = Math.max(0, (this.skillCd[k] ?? 0) - dt);
     while (this.spawnQueue.length && this.spawnQueue[0].t <= this.t) {
       this.enemies.push(this.makeEnemy(this.spawnQueue.shift()!.enemy));
     }
@@ -584,6 +599,36 @@ export class BossBattle {
     this.palanquin.hp = Math.min(this.palanquin.maxHp, this.palanquin.hp + this.palanquin.maxHp * p);
     for (const u of this.units) if (u.alive) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * (p + 0.1));
     this.events.push({ type: 'bless' });
+    return true;
+  }
+
+  canSkill(id: SkillId): boolean {
+    if (this.result || this.paused || !this.setup.skills.includes(id) || (this.skillCd[id] ?? 0) > 0) return false;
+    if (id === 'zhensha') return ['paw', 'charge', 'back'].includes(this.boss.state);
+    return true;
+  }
+
+  skill(id: SkillId): boolean {
+    if (!this.canSkill(id)) return false;
+    this.skillCd[id] = SKILLS[id].cd;
+    const b = this.boss;
+    if (id === 'huichun') {
+      for (const u of this.units) if (u.alive) u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.35);
+      this.palanquin.hp = Math.min(this.palanquin.maxHp, this.palanquin.hp + this.palanquin.maxHp * 0.1);
+      this.events.push({ type: 'skill', id });
+    }
+    if (id === 'hanshuang') {
+      for (const e of this.enemies) if (e.alive && e !== b) e.stun = Math.max(e.stun, 4);
+      b.timer += 3;
+      this.events.push({ type: 'skill', id });
+    }
+    if (id === 'zhensha') {
+      // 鎮煞鈴一響，石駒停下來喘息
+      b.state = 'breath';
+      b.stateTime = 0;
+      b.x = Math.max(b.x, (this.front[0]?.x ?? this.palanquin.x) + 50);
+      this.events.push({ type: 'skill', id });
+    }
     return true;
   }
 

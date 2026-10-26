@@ -3,7 +3,7 @@
  * 白天和夜審累積的東西都在這裡兌現。
  */
 import type { RunState } from '../state';
-import type { BossSetup, MemberStats, Row } from '../core/boss';
+import type { BossSetup, MemberStats, Row, SkillId } from '../core/boss';
 
 /** 陣頭與收編的鬼的數值（沒有升級，成長全部來自故事） */
 export const MEMBER_STATS: Record<string, MemberStats & { tex: string[]; desc: string }> = {
@@ -16,6 +16,9 @@ export const MEMBER_STATS: Record<string, MemberStats & { tex: string[]; desc: s
   gui: { key: 'gui', name: '護嬰娘阿桂', role: 'support', hp: 120, atk: 16, cd: 2.0, range: 0, aoe: 0, guard: 1, trait: 'heal', tex: ['folk3'], desc: '收編：照顧血最少的陣頭' },
   tian: { key: 'tian', name: '冰水伯阿添', role: 'support', hp: 140, atk: 6, cd: 1.6, range: 480, aoe: 60, guard: 1, trait: 'frost', tex: ['folk4'], desc: '收編：凍慢小妖，妖怪出手變慢' },
 };
+
+/** 超渡哪個亡魂，最後一戰多哪個技能 */
+export const RELEASE_SKILL: Record<string, SkillId> = { gui: 'huichun', tian: 'hanshuang', fu: 'zhensha' };
 
 /** 收編的鬼（阿福不上場打，他在陣前審問時出現） */
 export const GHOST_MEMBERS = ['biao', 'gui', 'tian'];
@@ -48,6 +51,8 @@ export function finaleSetup(r: RunState): BossSetup {
     },
     bellyWound: !!r.intel.bellyWound,
     extraWaves: Math.min(3, r.bossAdds),
+    // 超渡的亡魂讓王爺神威增長：每超渡一個，多一個技能
+    skills: (Object.keys(RELEASE_SKILL)).filter((g) => r.cases[g]?.verdict === 'release').map((g) => RELEASE_SKILL[g]),
     morale: r.morale,
     duration: 180,
   };

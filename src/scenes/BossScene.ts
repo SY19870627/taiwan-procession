@@ -5,7 +5,7 @@
  */
 import Phaser from 'phaser';
 import { C, H, W, FIELD_W as FW, FIELD_H as FH, GROUND_Y, TIME_SCALE } from '../theme';
-import { BossBattle, BLESS_CD, FRONT_MAX, SMITE_CD, type BossEvent, type Unit } from '../core/boss';
+import { BossBattle, BLESS_CD, FRONT_MAX, SKILLS, SMITE_CD, type BossEvent, type SkillId, type Unit } from '../core/boss';
 import { FINALE_ROUNDS, FINALE_WRONG, MEMBER_STATS, finaleSetup } from '../content/finale';
 import { EVIDENCE, evidenceOf } from '../content/cases';
 import { run } from '../state';
@@ -253,6 +253,17 @@ export class BossScene extends Phaser.Scene {
         case 'trial':
           this.hud.trial(e.round);
           break;
+        case 'skill':
+          if (e.id === 'huichun') {
+            this.ring(FW / 2 - 100, 420, 0x8ff0a4);
+            this.hud.toast('回春符：全隊回血', 0x8ff0a4);
+          }
+          if (e.id === 'hanshuang') {
+            this.cameras.main.flash(300, 160, 220, 255);
+            this.hud.toast('寒霜令：小妖都定住了', 0xa8e0ff);
+          }
+          if (e.id === 'zhensha') this.hud.toast('鎮煞鈴：石駒停了下來', 0xfff3c4, 2400);
+          break;
         case 'end':
           this.over = true;
           this.time.delayedCall(600, () => this.hud.finish(e.result));
@@ -301,6 +312,7 @@ export class BossHud extends Phaser.Scene {
   private frontTxt!: Phaser.GameObjects.Text;
   private toastTxt!: Phaser.GameObjects.Text;
   private cards: { uid: number; bg: Phaser.GameObjects.Graphics; bar: Phaser.GameObjects.Graphics; state: Phaser.GameObjects.Text; name: Phaser.GameObjects.Text; x: number; y: number; w: number; h: number }[] = [];
+  private skillBtns: { id: SkillId; btn: Button }[] = [];
   private smiteBtn!: Button;
   private blessBtn!: Button;
   private smiteFill!: Phaser.GameObjects.Rectangle;
@@ -362,7 +374,8 @@ export class BossHud extends Phaser.Scene {
     // 陣頭卡片：位置固定，方便點；卡片上標前排、後排
     const units = this.battle.units;
     const colW = (W - 48 - 16) / 2;
-    const cardH = Math.min(96, Math.floor((H - 210 - y) / Math.ceil(units.length / 2)) - 10);
+    const skills = this.battle.setup.skills;
+    const cardH = Math.min(96, Math.floor((H - 210 - (skills.length ? 86 : 0) - y) / Math.ceil(units.length / 2)) - 10);
     units.forEach((u, i) => {
       const cx = 24 + (i % 2) * (colW + 16);
       const cy = y + Math.floor(i / 2) * (cardH + 10);
@@ -394,6 +407,17 @@ export class BossHud extends Phaser.Scene {
     this.blessFill = this.add.rectangle(bx - this.skillW / 2, by - skillH / 2, this.skillW, skillH, 0x000000, 0.45).setOrigin(0).setDepth(5);
     txt(this, sx, by - skillH / 2 - 18, '雷擊最前面的妖群', 15, C.muted, { bold: false }).setOrigin(0.5);
     txt(this, bx, by - skillH / 2 - 18, '神轎與陣頭回血', 15, C.muted, { bold: false }).setOrigin(0.5);
+    // 超渡的鬼回報的技能
+    this.skillBtns = [];
+    if (skills.length) {
+      const sy = by - skillH / 2 - 76;
+      const sw = (W - 48 - 12 * (skills.length - 1)) / skills.length;
+      txt(this, 24, sy - 60, '超渡亡魂，神威增長：', 15, 0xffd76a, { bold: false });
+      skills.forEach((id, i) => {
+        const btn = button(this, 24 + sw / 2 + i * (sw + 12), sy, sw, 60, SKILLS[id].name, () => this.battle.skill(id), { size: 22, fill: 0x7a5a10 });
+        this.skillBtns.push({ id, btn });
+      });
+    }
     this.time.delayedCall(700, () => this.toast('點陣頭卡片換前排／後排。前排挨打，後排近戰會回血：輪流上陣扛傷害', 0xfff3c4, 4200));
   }
 
@@ -430,6 +454,11 @@ export class BossHud extends Phaser.Scene {
     this.palTxt.setText(`${Math.max(0, Math.ceil(p.hp))} / ${p.maxHp}`);
     this.frontTxt.setText(`前排 ${b.frontCount()}／${FRONT_MAX}`);
     for (const c of this.cards) this.drawCard(c, b.units.find((u) => u.uid === c.uid)!);
+    for (const { id, btn } of this.skillBtns) {
+      const cd = b.skillCd[id] ?? 0;
+      btn.setEnabled(b.canSkill(id));
+      btn.setLabel(cd > 0 ? `${SKILLS[id].name} ${Math.ceil(cd)}秒` : id === 'zhensha' && !b.canSkill(id) ? `${SKILLS[id].name}（等衝鋒）` : SKILLS[id].name);
+    }
     this.smiteBtn.setEnabled(b.canSmite());
     this.blessBtn.setEnabled(b.canBless());
     this.smiteFill.width = this.skillW * (b.smiteCd / SMITE_CD);
