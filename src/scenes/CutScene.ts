@@ -8,7 +8,6 @@
 import Phaser from 'phaser';
 import { C, H, W, lerpColor } from '../theme';
 import { txt } from '../ui/widgets';
-import { sfx } from '../audio/sfx';
 
 export type CutKind = 'depart' | 'dusk' | 'dawn' | 'boss';
 
@@ -61,10 +60,8 @@ export class CutScene extends Phaser.Scene {
       this.tweens.add({ targets: line, x: 80, duration: 3000, ease: 'Sine.out' });
       this.tweens.add({ targets: line, y: line.y - 6, duration: 180, yoyo: true, repeat: 16 });
       // 鞭炮
-      sfx.gong();
       for (let k = 0; k < 6; k++) {
         this.time.delayedCall(300 + k * 380, () => {
-          sfx.firecracker();
           this.burst(Phaser.Math.Between(80, W - 80), G - Phaser.Math.Between(20, 140));
         });
       }
@@ -84,13 +81,12 @@ export class CutScene extends Phaser.Scene {
       // 燈籠一盞盞亮
       for (let i = 0; i < 6; i++) {
         const l = this.add.image(70 + i * 116, H * 0.36, 'lantern').setScale(0.8).setAlpha(0.15).setDepth(20);
-        this.tweens.add({ targets: l, alpha: 1, duration: 200, delay: 900 + i * 220, onStart: () => i % 2 === 0 && sfx.bell(0.15) });
+        this.tweens.add({ targets: l, alpha: 1, duration: 200, delay: 900 + i * 220 });
       }
       // 判官的身影
       const j1 = this.add.image(W / 2 - 150, G + 110, 'judge').setOrigin(0.5, 1).setScale(1.1).setAlpha(0).setDepth(12);
       const j2 = this.add.image(W / 2 + 150, G + 110, 'judge').setOrigin(0.5, 1).setScale(1.1).setFlipX(true).setTint(0x9a6a6a).setAlpha(0).setDepth(12);
       this.tweens.add({ targets: [j1, j2], alpha: 1, duration: 600, delay: 2200 });
-      this.time.delayedCall(2300, () => sfx.drum(3));
       len = 3800;
     }
     if (data.kind === 'dawn') {
@@ -105,7 +101,6 @@ export class CutScene extends Phaser.Scene {
       this.add.tileSprite(0, G - 40, W, 260, 'mtnFar').setOrigin(0, 1).setAlpha(0.8).setDepth(2);
       this.add.image(W / 2, G + 6, 'temple_qingling').setOrigin(0.5, 1).setScale(0.7).setDepth(3);
       ground();
-      this.time.delayedCall(900, () => sfx.rooster());
       this.time.delayedCall(1000, () => {
         const crow = txt(this, W * 0.22, G - 160, '喔——喔——', 30, 0xfff3c4, { serif: true, stroke: '#3a2a1a', strokeThickness: 5 }).setDepth(40);
         this.tweens.add({ targets: crow, y: crow.y - 40, alpha: 0, duration: 1600 });
@@ -119,8 +114,8 @@ export class CutScene extends Phaser.Scene {
       this.tweens.add({ targets: fog, fillAlpha: 0.35, scale: 1.3, duration: 1800 });
       const horse = this.add.image(W / 2, G + 120, 'shiju').setOrigin(0.5, 1).setScale(1.3).setAlpha(0).setDepth(8);
       this.tweens.add({ targets: horse, alpha: 1, y: G + 60, duration: 1600, delay: 600, ease: 'Cubic.out' });
-      this.time.delayedCall(300, () => { this.cameras.main.shake(1400, 0.006); sfx.rumble(); });
-      this.time.delayedCall(2000, () => { sfx.neigh(); this.cameras.main.flash(200, 160, 80, 255); });
+      this.time.delayedCall(300, () => { this.cameras.main.shake(1400, 0.006); });
+      this.time.delayedCall(2000, () => { this.cameras.main.flash(200, 160, 80, 255); });
       this.tweens.add({ targets: mtn, y: mtn.y + 4, duration: 80, yoyo: true, repeat: 12 });
       len = 3800;
     }

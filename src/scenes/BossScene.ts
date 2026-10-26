@@ -10,7 +10,6 @@ import { FINALE_ROUNDS, FINALE_WRONG, MEMBER_STATS, finaleSetup } from '../conte
 import { EVIDENCE } from '../content/cases';
 import { run } from '../state';
 import { button, floatText, fullscreenButton, panel, txt, type Button } from '../ui/widgets';
-import { sfx } from '../audio/sfx';
 
 export const BAND_Y = 132;
 const ZOOM = W / FW;
@@ -202,7 +201,6 @@ export class BossScene extends Phaser.Scene {
       switch (e.type) {
         case 'hit':
           if (e.weak) this.ft(e.x, GROUND_Y - 160, `打肚子！${e.dmg}`, 0xff8a8a, 24);
-          if (e.ally && Math.random() < 0.3) sfx.hit();
           break;
         case 'shot':
           this.shot(e.fromX, e.toX, e.kind);
@@ -218,7 +216,6 @@ export class BossScene extends Phaser.Scene {
           break;
         }
         case 'block':
-          sfx.chain();
           this.ft(e.x, GROUND_Y - 150, '格擋', 0xbfe0ff, 22);
           break;
         case 'heal':
@@ -226,20 +223,16 @@ export class BossScene extends Phaser.Scene {
           break;
         case 'die':
           if (e.ally) {
-            sfx.bad();
             this.ft(e.x, GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
             this.hud.toast(`${e.name}倒下了`, 0xff8a8a);
           }
           break;
         case 'paw':
           this.cameras.main.shake(300, 0.003);
-          sfx.rumble();
           this.hud.toast('石駒刨地！馬上要衝鋒：血少的退到後排', 0xff6a6a, 2600);
           break;
         case 'charge':
           this.cameras.main.shake(500, 0.008);
-          sfx.drum(2);
-          sfx.neigh();
           break;
         case 'breath':
           this.hud.toast(run.intel.bellyWound ? '石駒喘息中：打肚子的舊傷！把輸出推上前排' : '石駒喘息中：趁現在猛攻', 0xffd0d0, 2600);
@@ -249,11 +242,9 @@ export class BossScene extends Phaser.Scene {
           this.hud.usedCallout = true;
           break;
         case 'smite':
-          sfx.thunder();
           this.lightning(e.x, e.r);
           break;
         case 'bless':
-          sfx.heal();
           this.ring(this.battle.palanquin.x, 260, 0x8ff0a4);
           break;
         case 'palanquin':
@@ -263,8 +254,6 @@ export class BossScene extends Phaser.Scene {
           this.hud.trial(e.round);
           break;
         case 'skill':
-          if (e.id === 'huichun') sfx.heal();
-          if (e.id !== 'huichun') sfx.bell();
           if (e.id === 'huichun') {
             this.ring(FW / 2 - 100, 420, 0x8ff0a4);
             this.hud.toast('回春符：全隊回血', 0x8ff0a4);
@@ -350,7 +339,7 @@ export class BossHud extends Phaser.Scene {
     this.cameras.main.fadeIn(500, 10, 8, 18);
     txt(this, 24, 16, '最後一戰・喚回石駒', 30, C.gold, { serif: true });
     txt(this, 24, 58, '芝嶺巖惠澤宮', 20, C.paper, { bold: false });
-    this.clock = txt(this, W - 166, 34, '19:00', 30, C.paper).setOrigin(1, 0.5);
+    this.clock = txt(this, W - 96, 34, '19:00', 30, C.paper).setOrigin(1, 0.5);
     this.add.rectangle(this.moonX, 106, this.moonW, 6, 0x3a3442).setOrigin(0, 0.5);
     txt(this, this.moonX + this.moonW + 10, 106, '雞啼', 20, C.gold).setOrigin(0, 0.5);
     this.moon = this.add.circle(this.moonX, 106, 12, 0xfff3c4);
@@ -524,7 +513,6 @@ export class BossHud extends Phaser.Scene {
     // 動畫期間先把提示字收起來，避免疊在一起
     this.tweens.killTweensOf(this.toastTxt);
     this.toastTxt.setAlpha(0);
-    sfx.drum(3);
     const c = this.add.container(0, 0).setDepth(800);
     const top = BAND_Y + 8;
     const h = BAND_H - 16;
@@ -562,7 +550,7 @@ export class BossHud extends Phaser.Scene {
     const stamp = txt(this, W - 90, top + 96, ok ? '說動' : '無效', 30, ok ? 0x2f8f5a : 0xb3261e, { serif: true, backgroundColor: '#eee0bd', padding: { x: 8, y: 4 } }).setOrigin(0.5).setAngle(-12).setScale(2.4).setAlpha(0);
     const res = txt(this, 24, top + h - 62, result, 17, ok ? 0x9fe8c0 : 0xff9a8a, { lineSpacing: 4, wordWrap: { width: W - 48, useAdvancedWrap: true } }).setAlpha(0);
     c.add([stamp, res]);
-    this.tweens.add({ targets: stamp, scale: 1, alpha: 1, delay: 1100, duration: 220, ease: 'Quad.in', onComplete: () => { this.cameras.main.shake(120, 0.004); sfx.stamp(); if (ok) sfx.good(); else sfx.bad(); } });
+    this.tweens.add({ targets: stamp, scale: 1, alpha: 1, delay: 1100, duration: 220, ease: 'Quad.in', onComplete: () => this.cameras.main.shake(120, 0.004) });
     this.tweens.add({ targets: res, alpha: 1, delay: 1300, duration: 300 });
     // 石駒的反應（戰場那邊）
     this.time.delayedCall(1200, () => {
@@ -576,8 +564,6 @@ export class BossHud extends Phaser.Scene {
 
   // ---------- 結束 ----------
   finish(result: 'subdued' | 'lose' | 'dawn'): void {
-    if (result === 'subdued') sfx.gong();
-    else sfx.bad();
     const m = this.add.container(0, 0).setDepth(950);
     m.add(this.add.rectangle(0, 0, W, H, 0x000000, 0.6).setOrigin(0).setInteractive());
     const x = 16;

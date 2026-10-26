@@ -7,7 +7,6 @@ import Phaser from 'phaser';
 import { C, H, W, hex } from '../theme';
 import { PROLOGUE, PROLOGUE_JIAO, type Almanac } from '../content/believers';
 import { DAY_PLANS } from '../content/days';
-import { sfx } from '../audio/sfx';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt } from '../ui/widgets';
 import { JIAO_NAME, JIAO_RULE, throwJiao, type JiaoResult } from '../ui/jiao';
@@ -31,7 +30,6 @@ export class AlmanacScene extends Phaser.Scene {
     const a: Almanac = prologue ? PROLOGUE : DAY_PLANS[day].almanac(run);
     const yesterday = prologue ? [] : run.yesterday;
     this.cameras.main.fadeIn(600, 10, 8, 18);
-    sfx.page();
 
     // 桌面
     const bg = this.add.graphics();

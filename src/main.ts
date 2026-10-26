@@ -3,7 +3,6 @@ import { W, H } from './theme';
 import * as state from './state';
 import { CASES } from './content/cases';
 import { setupMobile, watchOrientation } from './mobile';
-import { unlockAudio } from './audio/sfx';
 import { CutScene } from './scenes/CutScene';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
@@ -18,7 +17,6 @@ import { EndScene } from './scenes/EndScene';
 
 async function start() {
   setupMobile();
-  unlockAudio();
   // 等中文字型載入，避免文字先用備用字型畫出來（最多等 2.5 秒）
   try {
     await Promise.race([

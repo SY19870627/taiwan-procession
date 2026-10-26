@@ -11,7 +11,6 @@ import { CASES, EVIDENCE, evidenceOf } from '../content/cases';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
-import { sfx } from '../audio/sfx';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -389,7 +388,6 @@ export class DayScene extends Phaser.Scene {
       run.miracles--;
       run.bossAdds++;
       this.cameras.main.flash(500, 255, 230, 160);
-      sfx.gong();
     }
     const story = o.apply(run);
     this.refreshHeader();
@@ -440,8 +438,6 @@ export class DayScene extends Phaser.Scene {
     run.cases[e.caseId] ??= { truths: [] };
     const gained = (k.onCollect ?? []).filter((id) => gainEvidence(id));
     this.refreshHeader();
-    sfx.chain();
-    sfx.whoosh();
     this.band.collect(() => {
       this.busy = false;
       this.drawSlots(e.caseId);
@@ -456,7 +452,6 @@ export class DayScene extends Phaser.Scene {
       if (this.busy || !this.spend(1)) return;
       this.busy = true;
       this.refreshHeader();
-      sfx.firecracker();
       this.band.scatter(() => { this.busy = false; this.after('八將衝上前，小妖四散逃竄。', []); });
     });
     this.skipRow(p, y, '最後一戰小妖 +1 波', () => {
@@ -473,7 +468,6 @@ export class DayScene extends Phaser.Scene {
       if (this.busy || !this.spend(e.hours)) return;
       this.busy = true;
       gainEvidence(e.evidence);
-      sfx.bell(0.2);
       this.band.take(() => { this.busy = false; this.after(EVIDENCE[e.evidence].text, [e.evidence]); });
     });
     this.skipRow(p, y, '少一件證據', () => this.skip());
@@ -532,7 +526,6 @@ export class DayScene extends Phaser.Scene {
     this.idx = 0;
     this.panelMsg(`走${route.id}線・${route.name}`, '隊伍轉進巷子。');
     this.busy = true;
-    sfx.drum(2);
     this.band.walk(700, () => { this.busy = false; this.next(); });
   }
 

@@ -3,7 +3,6 @@ import { C, H, W } from '../theme';
 import { CUTSCENES } from '../content/story';
 import { Dialogue } from '../ui/dialogue';
 import { button, go, txt } from '../ui/widgets';
-import { sfx } from '../audio/sfx';
 
 export interface StoryData {
   id: string;
@@ -37,11 +36,10 @@ export class StoryScene extends Phaser.Scene {
     const label = cs.mood === 'demon' ? '妖怪視角' : '神明視角';
     txt(this, 24, 26, `${label}｜${cs.place}`, 22, cs.mood === 'demon' ? 0xc9a0ff : C.gold, { serif: true }).setDepth(600);
     const fx = (k: 'shake' | 'firecracker' | 'flash') => {
-      if (k === 'shake') { this.cameras.main.shake(300, 0.008); sfx.rumble(); }
-      if (k === 'flash') { this.cameras.main.flash(400, 255, 230, 160); sfx.gong(); }
+      if (k === 'shake') { this.cameras.main.shake(300, 0.008); }
+      if (k === 'flash') { this.cameras.main.flash(400, 255, 230, 160); }
       if (k === 'firecracker') {
         this.cameras.main.shake(400, 0.012);
-        sfx.firecracker();
         this.cameras.main.flash(150, 255, 120, 80);
         for (let i = 0; i < 40; i++) {
           const sp = this.add.image(W / 2 + Phaser.Math.Between(-300, 300), H / 2 + Phaser.Math.Between(-150, 50), 'spark')

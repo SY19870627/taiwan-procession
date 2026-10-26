@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { FONT, SERIF, C, hex, W } from '../theme';
 import { canFullscreen, isFullscreen, toggleFullscreen } from '../mobile';
-import { isMuted, setMuted, sfx } from '../audio/sfx';
 
 export function txt(
   scene: Phaser.Scene, x: number, y: number, s: string, size = 22, color: number | string = C.paper,
@@ -71,7 +70,6 @@ export function button(
     const moved = Math.hypot(p.x - downAt.x, p.y - downAt.y);
     downAt = null;
     if (moved < 24) {
-      sfx.click();
       onClick();
     }
   });
@@ -89,14 +87,8 @@ export function button(
   return c;
 }
 
-/** 右上角：全螢幕按鈕（瀏覽器支援才出現）與聲音開關 */
+/** 右上角全螢幕按鈕（瀏覽器支援才出現） */
 export function fullscreenButton(scene: Phaser.Scene): void {
-  const sx = canFullscreen() ? W - 118 : W - 46;
-  const snd = button(scene, sx, 40, 64, 52, isMuted() ? '靜音' : '聲音', () => {
-    setMuted(!isMuted());
-    snd.setLabel(isMuted() ? '靜音' : '聲音');
-  }, { size: 16, fill: 0x2a2236 });
-  snd.setDepth(1000).setAlpha(0.85);
   if (!canFullscreen()) return;
   const b = button(scene, W - 46, 40, 64, 52, isFullscreen() ? '縮小' : '全螢幕', () => {
     toggleFullscreen();

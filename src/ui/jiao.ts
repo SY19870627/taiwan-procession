@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { W } from '../theme';
-import { sfx } from '../audio/sfx';
 
 export type JiaoResult = 'holy' | 'laugh' | 'yin';
 export const JIAO_NAME: Record<JiaoResult, string> = { holy: '聖杯', laugh: '笑杯', yin: '陰杯' };
@@ -33,7 +32,6 @@ export function throwJiao(scene: Phaser.Scene, y: number, depth: number, cb: (r:
         }).setOrigin(0.5).setDepth(depth);
         imgs.push(label as unknown as Phaser.GameObjects.Image);
         scene.cameras.main.shake(80, 0.004);
-        sfx.jiao();
         if (++landed === 2) scene.time.delayedCall(300, () => cb(r));
       },
     });
