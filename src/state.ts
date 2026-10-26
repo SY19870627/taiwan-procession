@@ -49,6 +49,18 @@ export interface RunState {
   shijuJoined: boolean;
   /** 白天事件的旗標 */
   flags: Record<string, boolean>;
+  /** 證物袋：白天拿到的證據 id */
+  evidence: string[];
+  /** 令旗下收容中的鬼（grudge：怨氣 0–3，到 3 會掙脫） */
+  held: { id: string; grudge: number }[];
+  /** 收容格數 */
+  slots: number;
+  /** 戾氣 0–3：斬鬼會上升，鬼魂會躲起來或逃走 */
+  liqi: number;
+  /** 每個案子的結果 */
+  cases: Record<string, { verdict?: import('./content/cases').Verdict; escaped?: boolean; truths: number[] }>;
+  /** 最後一戰多出來的小妖波數（神蹟、沒驅散的小妖） */
+  bossAdds: number;
   /** 戰鬥失敗重來的次數 */
   retries: number;
   /** 三天總共捉到的小妖 */
@@ -70,8 +82,14 @@ export function newRun(): RunState {
     flags: {},
     retries: 0,
     totalCaptured: 0,
+    evidence: [],
+    held: [],
+    slots: 3,
+    liqi: 0,
+    cases: {},
+    bossAdds: 0,
     b: newBelievers(),
-    hours: 5,
+    hours: 6,
     miracles: 1,
     tonight: { miracles: 0, cleared: false },
     shijuEnraged: false,
@@ -95,4 +113,21 @@ export function applyDelta(d: { incense?: number; followers?: number; morale?: n
   if (d.incense) run.incense = Math.max(0, run.incense + d.incense);
   if (d.followers) run.followers = Math.max(0, run.followers + d.followers);
   if (d.morale) run.morale = clamp(run.morale + d.morale, 0, 100);
+}
+
+/** 拿到證據（重複的不算），回傳是不是新的 */
+export function gainEvidence(id: string): boolean {
+  if (run.evidence.includes(id)) return false;
+  run.evidence.push(id);
+  return true;
+}
+
+/** 這個案子已經有結果了（判決過或掙脫） */
+export function caseDone(id: string): boolean {
+  const c = run.cases[id];
+  return !!c && (!!c.verdict || !!c.escaped);
+}
+
+export function isHeld(id: string): boolean {
+  return run.held.some((h) => h.id === id);
 }

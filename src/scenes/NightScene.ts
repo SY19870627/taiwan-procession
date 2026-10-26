@@ -10,9 +10,15 @@ import { Battle, BLESS_CD, SMITE_CD, type BattleEvent, type Fighter, type Side }
 import { NIGHTS, nightSpawns } from '../content/nights';
 import { Street } from '../art/backdrop';
 import { run } from '../state';
-import { availableUnits } from './PrepScene';
+import type { UnitId } from '../core/units';
 import { palanquinStats, unitStats } from '../core/upgrades';
 import { button, floatText, fullscreenButton, panel, txt, type Button } from '../ui/widgets';
+
+export function availableUnits(): UnitId[] {
+  const list: UnitId[] = ['bajiang', 'qiye', 'xingshi', 'paoshou'];
+  if (run.allied) list.push('kaijiang');
+  return list;
+}
 
 /** 戰鬥帶：畫面上的位置與縮放 */
 export const BAND_Y = 132;
@@ -556,7 +562,7 @@ export class NightHud extends Phaser.Scene {
       // 天亮了還沒喚回：石駒退回山裡，再來一次
       run.retries++;
       run.incense = Math.max(run.incense, 30);
-      this.night.leave('story', { id: 'retreat', next: { key: 'prep', data: { night: 3 } } }, 800);
+      this.night.leave('story', { id: 'retreat', next: { key: 'night', data: { night: 3 } } }, 800);
       return;
     }
     const pw = 660;
@@ -570,13 +576,13 @@ export class NightHud extends Phaser.Scene {
       run.totalCaptured += captured;
       txt(this, W / 2, y + 60, '雞啼・天亮了', 44, C.gold, { serif: true }).setOrigin(0.5).setDepth(962);
       txt(this, W / 2, y + 150, `神轎平安，撐過了這一夜。\n捉拿小妖 ${captured} 名，\n天亮後交給判官審問。`, 24, C.paper, { bold: false, align: 'center', lineSpacing: 10 }).setOrigin(0.5).setDepth(962);
-      button(this, W / 2, y + ph - 60, 260, 70, '天亮・審判', () => this.night.leave('judge', { night: this.night.n }), { size: 28, fill: 0x8a1b14 }).setDepth(963);
+      button(this, W / 2, y + ph - 60, 260, 70, '天亮・審判', () => this.night.leave('trial', { night: this.night.n }), { size: 28, fill: 0x8a1b14 }).setDepth(963);
     } else {
       run.retries++;
       run.incense = Math.max(run.incense, 30);
       txt(this, W / 2, y + 60, '神轎被衝破了……', 40, 0xff8a8a, { serif: true }).setOrigin(0.5).setDepth(962);
       txt(this, W / 2, y + 150, '隊伍退回廟裡重整。\n試著換個布陣、升級陣頭，\n或多用法術。', 24, C.paper, { bold: false, align: 'center', lineSpacing: 10 }).setOrigin(0.5).setDepth(962);
-      button(this, W / 2, y + ph - 60, 260, 70, '重整再戰', () => this.night.leave('prep', { night: this.night.n }), { size: 28, fill: 0x2f6f5a }).setDepth(963);
+      button(this, W / 2, y + ph - 60, 260, 70, '重整再戰', () => this.night.leave('night', { night: this.night.n }), { size: 28, fill: 0x2f6f5a }).setDepth(963);
     }
   }
 }

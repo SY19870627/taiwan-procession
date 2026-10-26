@@ -5,7 +5,8 @@
  */
 import Phaser from 'phaser';
 import { C, H, W, hex } from '../theme';
-import { DAY_PLANS, PROLOGUE, PROLOGUE_JIAO, type Almanac } from '../content/believers';
+import { PROLOGUE, PROLOGUE_JIAO, type Almanac } from '../content/believers';
+import { DAY_PLANS } from '../content/days';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt } from '../ui/widgets';
 import { JIAO_NAME, throwJiao } from '../ui/jiao';
@@ -73,14 +74,18 @@ export class AlmanacScene extends Phaser.Scene {
     x = this.vtext(x, top, a.text, 30, INK, colH);
     // 昨日
     if (yesterday.length) {
-      x -= 20;
+      // 分隔線放在上一欄的左邊緣外面，不壓到字
+      x -= 28;
       const g2 = this.add.graphics();
       g2.lineStyle(2, RED, 0.7);
-      g2.lineBetween(x + 10, top - 10, x + 10, py + ph - 40);
-      x -= 30;
+      g2.lineBetween(x, top - 10, x, py + ph - 40);
+      x -= 32;
       this.vtext(x, top, '【昨日】', 26, RED, colH);
       x -= 44;
-      this.vtext(x, top, yesterday.join('\n'), 27, 0x4a2a1a, colH);
+      // 字太多就縮小，直到放得進紙的左邊界
+      const text = yesterday.join('\n');
+      const size = [27, 24, 22, 20, 18].find((sz) => x - (this.countCols(text, sz, colH) - 1) * sz * 1.3 - sz / 2 >= px + 30) ?? 18;
+      this.vtext(x, top, text, size, 0x4a2a1a, colH);
     }
 
     // 下方按鈕
@@ -88,7 +93,7 @@ export class AlmanacScene extends Phaser.Scene {
     else {
       const plan = DAY_PLANS[day];
       txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
-      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'map', { day }), { size: 32, fill: 0x8a1b14 });
+      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'day', { day }), { size: 32, fill: 0x8a1b14 });
     }
     fullscreenButton(this);
   }
@@ -157,6 +162,15 @@ export class AlmanacScene extends Phaser.Scene {
       txt(this, x, y, c, size, hex(color), { serif: true, align: 'center', lineSpacing: size * (lh - 1) }).setOrigin(0.5, 0);
     });
     return x;
+  }
+
+  /** 直書會排成幾欄（不畫，只算） */
+  private countCols(s: string, size: number, colH: number): number {
+    const probe = txt(this, 0, 0, '字\n字', size, '#000', { serif: true });
+    const lineH = probe.height / 2;
+    probe.destroy();
+    const per = Math.max(1, Math.floor(colH / lineH));
+    return s.split('\n').reduce((n, para) => n + Math.ceil(Array.from(toVertical(para)).length / per), 0);
   }
 
   /** 序章：擲筊請示「明日是否照常暗訪？」，三種結果事先寫明 */
