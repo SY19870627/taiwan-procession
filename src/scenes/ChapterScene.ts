@@ -30,13 +30,18 @@ const CHAPTERS: Chapter[] = [
     scale: '三天晝夜・五位信徒・四個有冤情的鬼・魔王石駒',
   },
   {
-    id: 'dajia', place: '大岬', title: '遶境進香', lon: 120.62, lat: 24.35, open: false,
-    desc: '九天八夜、三百多公里的長路。每晚駐駕在不同的廟，路上遇到的鬼比哪一次都多。',
-    scale: '九天八夜・長途章節',
+    id: 'baishadun', place: '白砂墩', title: '媽祖徒步進香', lon: 120.68, lat: 24.49, open: false,
+    desc: '往哪裡走，只有媽祖知道。轎子一動，跟上來的人一天比一天多，多到整條省道都是人。',
+    scale: '尚未開放',
   },
   {
     id: 'lanze', place: '蘭澤潭', title: '潭底的聲音', lon: 120.47, lat: 23.46, open: false,
     desc: '潭邊的人說，夜裡聽得到有人在水底唱歌。',
+    scale: '尚未開放',
+  },
+  {
+    id: 'xinying', place: '新瀛', title: '太子出營', lon: 120.32, lat: 23.31, open: false,
+    desc: '太子爺聖誕，五營兵將全員出營。疾水溪的水，這幾天開始倒著流。',
     scale: '尚未開放',
   },
   {
