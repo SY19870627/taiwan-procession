@@ -3,15 +3,26 @@ import sys, glob, os, collections, numpy as np
 from PIL import Image
 from scipy import ndimage
 SRC, OUT = sys.argv[1], sys.argv[2]
-FLIP = {'axiu'}  # 臉朝左的角色翻成朝右
+# 臉朝左的角色翻成朝右
+FLIP = {'axiu', 'zhangjiang', 'xiaojiang', 'liujiang', 'akai', 'yashen'}
+# 綾帶、弓弦圍出的白色空隙（不連到畫面邊緣）也要去掉的角色；白衣服的角色不要加
+HOLES = {'taizi', 'liujiang', 'jiao', 'huosha', 'shuyao'}
+# 穿白衣服的角色：只把接近純白（背景本身）的區塊當背景，不然白衣服會被一起去掉
+STRICT = {'hebo', 'bingbo'}
 CW, CH = 420, 560
 
-def cut(path):
+def cut(path, holes=False, strict=False):
     a = np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
     mn = a.min(2)
-    lab, _ = ndimage.label(mn > 200)
+    lab, _ = ndimage.label(mn > (246 if strict else 200))
     edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
     bg = np.isin(lab, list(edge))
+    if holes:
+        # 被圍起來、夠大、而且幾乎純白的區塊也當背景
+        lab2, n2 = ndimage.label(mn > 244)
+        sizes = ndimage.sum(np.ones_like(mn), lab2, range(1, n2 + 1))
+        big = [i + 1 for i, z in enumerate(sizes) if z > 400]
+        bg |= np.isin(lab2, big)
     bg = ndimage.binary_dilation(bg, iterations=2) & (mn > 150)
     alpha = np.where(bg, np.clip((255 - mn) / 255 * 1.6, 0, 1), 1.0)
     alpha = ndimage.gaussian_filter(alpha, 0.7)
@@ -27,7 +38,7 @@ os.makedirs(OUT, exist_ok=True)
 manifest = {}
 thumb = {}
 for cid, items in groups.items():
-    ims = [(e, cut(f)) for e, f in items]
+    ims = [(e, cut(f, cid in HOLES, cid in STRICT)) for e, f in items]
     box = None
     for _, im in ims:
         b = Image.fromarray((np.asarray(im)[..., 3] > 24).astype(np.uint8) * 255).getbbox()
@@ -52,7 +63,14 @@ for cid, items in groups.items():
     size = w * 0.6
     thumb[cid] = [round(min(max(0, (cx - size / 2) / w), 0.4), 3), round(min(max(0, top - h * .02) / h, 0.5), 3)]
 
-# 產生 src/art/portraits.data.ts
+# 產生 src/art/portraits.data.ts（舊檔裡、這次來源資料夾沒有的角色照舊保留，可以只放新角色的原圖來跑）
+import re
+if len(sys.argv) > 3 and os.path.exists(sys.argv[3]):
+    old = open(sys.argv[3], encoding='utf-8').read()
+    for cid, es in re.findall(r"^  (\w+): \[('[^\]]*)\],$", old, re.M):
+        if cid not in manifest: manifest[cid] = re.findall(r"'(\w+)'", es)
+    for cid, a, b in re.findall(r"^  (\w+): \[([\d.]+), ([\d.]+)\],$", old, re.M):
+        if cid not in thumb: thumb[cid] = [float(a), float(b)]
 lines = ['/** 由 tools/portraits.py 產生，請勿手動修改 */', "import type { Expr } from './portraits';", '',
          '/** 已經有圖的角色與表情 */', 'export const SETS: Record<string, Expr[]> = {']
 for cid in sorted(manifest):

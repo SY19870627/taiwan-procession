@@ -5,13 +5,15 @@
  * 同時產生 portraits.data.ts（有哪些圖、小頭像裁切位置）。新增圖片時重跑那支程式就好。
  * 每張圖底部對齊、角色朝右（阿秀嬸原圖朝左，處理時已翻轉）。
  *
- * 表情：normal 平常、sad 難過、angry 生氣、surprised 驚訝、smile 開心、relieved 釋懷、calm 平靜（石駒、黑潮）。
+ * 表情：normal 平常、sad 難過、angry 生氣、surprised 驚訝、smile 開心、relieved 釋懷、calm 平靜（石駒、黑潮、蛟）。
+ * 第三章另有：cocky 得意嘴砲、pout 嘴硬彆扭、fierce 全力出手、sigh 無奈、scared 嚇到求饒。
  * 劇本裡在「」的開頭加 {sad} 這樣的標記，就會換成那個表情（見 ui/talk.ts 的 splitStory）。
  */
 import Phaser from 'phaser';
 import { SETS, THUMB } from './portraits.data';
 
-export type Expr = 'normal' | 'sad' | 'angry' | 'surprised' | 'smile' | 'relieved' | 'calm';
+export type Expr = 'normal' | 'sad' | 'angry' | 'surprised' | 'smile' | 'relieved' | 'calm'
+  | 'cocky' | 'pout' | 'fierce' | 'sigh' | 'scared';
 
 /** 遊戲裡的稱呼（人名、鬼的真名、案子代號、過場說話的人）→ 立繪代號 */
 const ALIAS: Record<string, string> = {
@@ -51,6 +53,26 @@ const ALIAS: Record<string, string> = {
   文判官: 'judge', 武判官: 'judge',
   中軍府: 'zhongjun', 巡捕: 'zhongjun',
   旨意: 'decree',
+  // 第三章・神明（太子爺、五營）
+  太子爺: 'taizi', 太子: 'taizi', 三太子: 'taizi', 中壇元帥: 'taizi',
+  章將軍: 'zhangjiang', 東營: 'zhangjiang',
+  霄將軍: 'xiaojiang', 南營: 'xiaojiang',
+  柳將軍: 'liujiang', 西營: 'liujiang',
+  廉將軍: 'lianjiang', 北營: 'lianjiang',
+  // 第三章・人
+  炳伯: 'bingbo', 廟公炳伯: 'bingbo',
+  阿凱: 'akai',
+  鴨嬸: 'yashen',
+  阿玲: 'aling',
+  何伯: 'hebo', 渡口的何伯: 'hebo',
+  // 第三章・鬼與妖
+  鴨母婆: 'yamupo', yamupo: 'yamupo',
+  虎頭: 'hutou', hutou: 'hutou',
+  渡伯: 'dubo', dubo: 'dubo',
+  紙紮童: 'zhizha', zhizha: 'zhizha',
+  水鬼: 'shuigui', 抓交替的水鬼: 'shuigui',
+  火煞: 'huosha', 鼠妖: 'shuyao',
+  蛟: 'jiao', 蝦兵: 'xiabing',
 };
 
 /** 表情沒有圖時，用哪一個代替 */
@@ -62,6 +84,11 @@ const FALLBACK: Record<Expr, Expr[]> = {
   smile: ['relieved', 'calm'],
   relieved: ['smile', 'calm'],
   calm: ['relieved', 'smile'],
+  cocky: ['smile'],
+  pout: ['sad'],
+  fierce: ['angry'],
+  sigh: ['sad'],
+  scared: ['surprised'],
 };
 
 const key = (id: string, e: Expr) => `pt_${id}_${e}`;
