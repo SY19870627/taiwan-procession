@@ -1,0 +1,50 @@
+# main 有新提交就建置，把 dist/ 以一般提交（不 force）推到 gh-pages 分支
+# GitHub Pages 設定維持「從 gh-pages 分支發布」，不用改
+name: 部署到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 版本號要用 git 短碼
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: 推到 gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+          git worktree add pages origin/gh-pages
+          cd pages
+          git rm -rq --ignore-unmatch .
+          cp -r ../dist/. .
+          touch .nojekyll
+          git add -A
+          if git diff --cached --quiet; then
+            echo "內容沒變，不用部署"
+            exit 0
+          fi
+          git commit -q -m "部署 ${GITHUB_SHA::7}"
+          git push origin HEAD:gh-pages

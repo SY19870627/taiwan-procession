@@ -55,5 +55,18 @@ export class TitleScene extends Phaser.Scene {
     fullscreenButton(this);
     // 版本號（左下角小字）
     txt(this, 12, H - 12, __VERSION__, 14, C.muted, { bold: false }).setOrigin(0, 1).setAlpha(0.7);
+    // 開發者資訊（右下角小字，連結開新分頁）
+    txt(this, W - 14, H - 84, '開發者：SY', 20, C.muted, { bold: false }).setOrigin(1, 1).setAlpha(0.8);
+    this.link(W - 14, H - 48, 'GitHub ↗', 'https://github.com/SY19870627');
+    this.link(W - 14, H - 12, 'X（推特）↗', 'https://x.com/nelsonyehfon');
+  }
+
+  /** 可點的小字連結：手指放開才開新分頁 */
+  private link(x: number, y: number, label: string, url: string): void {
+    const t = txt(this, x, y, label, 20, C.gold, { bold: false, padding: { x: 8, y: 6 } }).setOrigin(1, 1).setAlpha(0.85);
+    t.setInteractive({ useHandCursor: true });
+    t.on('pointerover', () => t.setAlpha(1));
+    t.on('pointerout', () => t.setAlpha(0.85));
+    t.on('pointerup', () => window.open(url, '_blank', 'noopener,noreferrer'));
   }
 }

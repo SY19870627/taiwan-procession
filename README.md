@@ -46,6 +46,8 @@ npm test         # 最後一戰的平衡模擬（兩章）、第二章案卷檢�
 npm run deploy   # 建置並推到 gh-pages（GitHub Pages）
 ```
 
+推上 main 後，GitHub Actions（`.github/workflows/deploy.yml`）會自動建置並推到 gh-pages，線上版：https://sy19870627.github.io/taiwan-procession/
+
 測試用網址參數：`?scene=day&n=2` 直接跳到第二天白天、`?scene=boss` 最後一戰、`&ch=dongjin` 指定第二章、`?ts=4` 戰鬥快 4 倍。
 
 技術：Phaser 3 + TypeScript + Vite，美術全部以程式即時繪製，沒有圖檔。
