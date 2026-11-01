@@ -25,6 +25,11 @@ import {
 } from '../core/dianjiang';
 
 const D = 500;
+/** 堂上光圈：中心、半徑、脈動放大倍數（互嗆字幕要讓開它） */
+const GLOW_X = W / 2;
+const GLOW_Y = 480;
+const GLOW_R = 170;
+const GLOW_PULSE = 1.08;
 const TAG_COLOR: Record<string, number> = { 說謊: 0x6fd39a, 狡辯: 0xe8e4da, 嗆聲: 0xff7a6a };
 
 export interface DjOpts {
@@ -42,8 +47,9 @@ export function chat(scene: Phaser.Scene, key: string): void {
   const lib = CH().banter?.[key];
   if (!lib?.length) return;
   const n = (banterN[key] = (banterN[key] ?? -1) + 1);
-  // 放在鬼的下半身那一帶：不蓋住狠話泡泡和下方按鈕
-  banter(scene, lib[n % lib.length], 548, D + 60);
+  // 放在光圈左邊、鬼的下半身那一帶：不蓋住狠話泡泡和下方按鈕；
+  // 寬度限制在光圈（脈動放到最大時）左緣 − 8 以內，太長就換行，不蓋到立繪與光圈
+  banter(scene, lib[n % lib.length], 540, D + 60, GLOW_X - GLOW_R * GLOW_PULSE - 8 - 16);
 }
 
 export function openDianjiang(scene: Phaser.Scene, o: DjOpts): void {
@@ -146,8 +152,8 @@ class DianjiangView {
     const kneeling = knelt(run, k);
     const expr: Expr = kneeling ? 'scared' : this.last.expr;
     // 光圈：底緣在面板上緣上面一點，立繪（底部置中）頭頂在光圈上緣下 10 左右
-    const glow = this.add(sc.add.circle(W / 2, 480, 170, kneeling ? 0xffd76a : 0x7fd6ff, 0.1));
-    sc.tweens.add({ targets: glow, scale: 1.08, duration: 1400, yoyo: true, repeat: -1 });
+    const glow = this.add(sc.add.circle(GLOW_X, GLOW_Y, GLOW_R, kneeling ? 0xffd76a : 0x7fd6ff, 0.1));
+    sc.tweens.add({ targets: glow, scale: GLOW_PULSE, duration: 1400, yoyo: true, repeat: -1 });
     const art = portraitKey(sc, k.id, expr);
     const img = art
       ? this.add(sc.add.image(W / 2, 646, fadeBottom(sc, art)).setOrigin(0.5, 1).setAlpha(0.95))
