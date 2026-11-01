@@ -87,7 +87,7 @@ export const CHAPTER3: ChapterDef = {
     finalLabel: '出陣・疾水溪',
   },
   finale: {
-    // 戰鬥是 jiao 模式（第 5 階段）；蛟現身、收蛟為坐騎的過場第 6 階段補齊
+    // 戰鬥是 jiao 模式（第 5 階段）；過場劇情在 ch3/story.ts（第 6 階段）
     story: 'jiao3', cutTitle: '蛟現身', cutSub: '最後一戰・疾水溪',
     title: '最後一戰・疾水溪', place: '疾水溪舊渡口', bossName: '蛟', bossFrom: '蛟從溪裡來 ▶',
     setup: finaleSetup3,
@@ -103,6 +103,8 @@ export const CHAPTER3: ChapterDef = {
     winTitle: '蛟沉到了水邊',
     winText: '溪水不再倒流了。蛟伏在淺灘上喘氣，金色的眼睛看著太子。要怎麼判？',
     recallStory: 'jiaoRecall',
+    endStory: { recall: 'jiaoRecall', slay: 'jiaoSlay3', return: 'jiaoReturn3' },
+    closeStory: 'shouying3',
     loseText: '隊伍退回堤防重整。\n把血少的將軍輪流退到後排；蛟翻江之前，讓北營廉將軍站到前排。\n下次蛟的力氣會少一些。',
     dawnText: '天快亮了，蛟退回溪底。今晚再戰一次：\n下次蛟的力氣會少一些。',
   },
@@ -117,4 +119,6 @@ export const CHAPTER3: ChapterDef = {
   chase: true,
   unlocks: UNLOCKS3,
   banter: BANTER3,
+  prologueStory: 'kaiying3',
+  dawnStory: { 3: 'river3' },
 };

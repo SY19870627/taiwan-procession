@@ -236,7 +236,11 @@ export class AlmanacScene extends Phaser.Scene {
           if (results.every((x2) => x2 === 'holy')) lines.push(j.allHoly.text);
           lines.push(j.done);
           objs.push(txt(this, W / 2, y + ph - 130, lines.join('\n'), 19, C.paper, { bold: false, align: 'center', lineSpacing: 6, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setOrigin(0.5, 0).setDepth(903));
-          button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => go(this, 'almanac', { day: 1 }), { size: 26, fill: 0x8a1b14 }).setDepth(903);
+          // 第三章：擲筊之後先播「開營」（五將登場、營旗下押著三個鬼），再翻到第一天
+          const story = CH().prologueStory;
+          button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => (story
+            ? go(this, 'story', { id: story, next: { key: 'almanac', data: { day: 1 } } })
+            : go(this, 'almanac', { day: 1 })), { size: 26, fill: 0x8a1b14 }).setDepth(903);
         });
       }, { size: 28, fill: 0x8a1b14 });
       tb.setDepth(903);

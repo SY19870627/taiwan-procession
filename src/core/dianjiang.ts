@@ -122,6 +122,17 @@ export function knelt(r: RunState, k: GhostCase): boolean {
   return !!r.cases[k.id]?.dj?.knelt;
 }
 
+/**
+ * 第一次跪地求饒時要播的劇情（第三章：紙紮童跪下）。只播一次：拿了就記在 flags，之後回傳 undefined。
+ */
+export function takeKneelStory(r: RunState, k: GhostCase): string | undefined {
+  if (!k.kneelStory || !knelt(r, k)) return undefined;
+  const flag = `kneelStory_${k.id}`;
+  if (r.flags[flag]) return undefined;
+  r.flags[flag] = true;
+  return k.kneelStory;
+}
+
 /** 冤魂怨氣到 3：縮起來不再開口 */
 export function muted(r: RunState, k: GhostCase): boolean {
   const h = r.held.find((x) => x.id === k.id);

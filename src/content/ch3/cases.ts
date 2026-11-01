@@ -84,6 +84,8 @@ interface Spec {
   /** 真相（stmt、evidence 由 taunts 產生） */
   truths: Omit<Truth, 'stmt' | 'evidence'>[];
   heart?: string[];
+  /** 第一次跪地求饒時播的劇情（紙紮童） */
+  kneelStory?: string;
   overnight: GhostCase['overnight'];
   lookLine: string;
   dropsOnTrial?: string[];
@@ -184,7 +186,7 @@ export const CASES3: Record<string, GhostCase> = {
 
   zhizha: ch3({
     id: 'zhizha', nature: 'villain', camp: 'center',
-    name: '紙紮童', dayName: '舊壇的「三太子」', shortName: '舊壇太子', tex: 'g3_zhizha',
+    name: '紙紮童', dayName: '舊壇的「三太子」', shortName: '舊壇太子', tex: 'g3_zhizha', kneelStory: 'zhizha3',
     daySight: '廢棄的小神壇前堆滿了糖果和玩具。壇上坐著一個穿紅肚兜的小孩，自稱三太子，小孩們排隊拜他。風一吹，他身上沙沙作響。',
     harm: '小孩們繼續把供品送到舊壇；晚上還會被哄去溪邊玩',
     affects: '庄裡的小孩；阿玲',

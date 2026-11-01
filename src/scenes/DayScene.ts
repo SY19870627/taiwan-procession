@@ -59,6 +59,8 @@ export class DayScene extends Phaser.Scene {
   private busy = false;
   /** 互嗆台詞輪到第幾組 */
   private banterN: Record<string, number> = {};
+  /** 走近第幾件事（第三章：每走三件事冒一組走路的互嗆） */
+  private walkN = 0;
 
   constructor() {
     super('day');
@@ -82,6 +84,7 @@ export class DayScene extends Phaser.Scene {
     this.busy = false;
     this.queue = [...this.plan.pre, 'fork'];
     this.idx = 0;
+    this.walkN = 0;
     this.rejoinAt = -1;
     this.cameras.main.fadeIn(400, 10, 8, 18);
 
@@ -429,6 +432,7 @@ export class DayScene extends Phaser.Scene {
     if (e === 'fork') return this.showFork();
     // 走近的這段時間，面板上還是上一件事的卡片：先擋住，免得按到舊卡片的「略過」把走近的這件事一起略過
     this.busy = true;
+    if (this.walkN++ % 3 === 1) this.banter(`walk${this.plan.day}`);
     this.band.approach(this.visitorOf(e), () => { this.busy = false; this.show(e); });
   }
 
@@ -674,6 +678,7 @@ export class DayScene extends Phaser.Scene {
         this.band.chase(() => { this.busy = false; this.caught = { id: k.id, grudge: 0 }; this.showGhost(e); });
       });
       this.skipRow(p, y2, `牠跑掉了，${k.harm}`, () => this.skip(true));
+      this.banter('scared');
       return;
     }
     if (mood === 'hiding') {
@@ -775,6 +780,7 @@ export class DayScene extends Phaser.Scene {
     this.caught = undefined;
     const lines = [`五營兵將押著${name}，往地府去了。`, ...CH().verdictEffects(run, k.id, 'escort').filter(Boolean)];
     this.refreshHeader();
+    this.banter('escort');
     if (onRoad) {
       this.busy = true;
       this.band.collect(() => { this.busy = false; this.after(lines.join('\n'), []); });
@@ -819,6 +825,7 @@ export class DayScene extends Phaser.Scene {
         // 威名 ≥1：小妖看到隊伍自己逃（算清掉，不會跟到最後一戰）
         const { p } = this.cardHead('小妖', e.place, `${e.text}\n\n太子的威名傳開了：小妖遠遠看到五營旗，自己逃回水溝裡。\n不用出手，牠們也不會跟到最後一戰。`, { s: `威名 ${run.weiming}`, color: '#8a5a10' }, e.tex);
         this.add2(button(this, p.x + p.w / 2, p.y + p.h - 160, 240, 64, '繼續', () => this.skip(true), { size: 24, fill: 0x2f6f5a }));
+        this.banter('flee');
         return;
       }
       const { p, y: y0 } = this.cardHead('小妖', e.place, e.text, undefined, e.tex);
@@ -919,6 +926,7 @@ export class DayScene extends Phaser.Scene {
     this.queue = [...route.encounters, ...this.plan.post];
     this.idx = 0;
     this.panelMsg(`走${route.id}線・${route.name}`, '隊伍轉進巷子。');
+    this.banter('fork');
     this.busy = true;
     const walk = () => this.band.walk(700, () => { this.busy = false; this.next(); });
     // 第三章：岔路後換街景（例如庄頭線進鴨母寮），會合後換回來
@@ -947,6 +955,7 @@ export class DayScene extends Phaser.Scene {
         : '今天沒有收容任何鬼。';
     this.add2(txt(this, p.x + 24, p.y + 100, lines, 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.band.setHour(18);
+    this.banter('dusk');
     const day = this.plan.day;
     if (day === 3) CH().endOfDay3(run);
     this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: `今晚審${CH().held.label}的鬼`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));

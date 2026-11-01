@@ -49,7 +49,7 @@ export class TitleScene extends Phaser.Scene {
     // 標題
     const title = txt(this, W / 2, 150, '遶　境', 120, C.gold, { serif: true, stroke: '#3a0e0a', strokeThickness: 10 }).setOrigin(0.5);
     title.setShadow(0, 6, '#000000', 12, true, true);
-    txt(this, W / 2, 238, '原型試玩・萬舺暗訪／東津迎王', 28, C.paper, { serif: true }).setOrigin(0.5);
+    txt(this, W / 2, 238, '原型試玩・萬舺暗訪／東津迎王／新瀛出營', 28, C.paper, { serif: true }).setOrigin(0.5);
     txt(this, W / 2, 280, '白天出巡收容，晚上升堂審鬼。凡人什麼都看不見。', 22, C.muted, { bold: false }).setOrigin(0.5);
     button(this, W / 2, H - 110, 300, 90, '起　駕', () => go(this, 'chapters'), { size: 38, fill: 0x8a1b14 });
     fullscreenButton(this);

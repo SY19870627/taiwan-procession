@@ -6,7 +6,19 @@ import { button, go, txt } from '../ui/widgets';
 
 export interface StoryData {
   id: string;
-  next: { key: string; data?: object };
+  next?: { key: string; data?: object };
+  /** 蓋在目前的畫面上播（第三章：紙紮童跪下）：播完回到原本暫停的場景 */
+  overlay?: { caller: string; done: () => void };
+}
+
+/**
+ * 把劇情蓋在目前的畫面上播，播完回到原本的場景（原場景先暫停，狀態不變）。
+ * 找不到這段劇情就直接繼續。
+ */
+export function playStory(scene: Phaser.Scene, id: string, done: () => void): void {
+  if (!CUTSCENES[id]) return done();
+  scene.scene.launch('story', { id, overlay: { caller: scene.scene.key, done } } satisfies StoryData);
+  scene.scene.pause();
 }
 
 /** 過場：妖怪視角是紫色調，廟裡是金色調 */
@@ -18,6 +30,8 @@ export class StoryScene extends Phaser.Scene {
   create(data: StoryData): void {
     const cs = CUTSCENES[data.id] ?? CUTSCENES.opening;
     const next = data.next ?? { key: 'title' };
+    const overlay = data.overlay;
+    if (overlay) this.scene.bringToTop();
     this.cameras.main.fadeIn(400, 10, 8, 18);
     const [top, bottom] = cs.mood === 'demon' ? [0x0a0614, 0x2e1446] : cs.mood === 'temple' ? [0x1a0e08, 0x5a3412] : [0x2a2a4a, 0xd88a5a];
     const bg = this.add.graphics();
@@ -48,6 +62,9 @@ export class StoryScene extends Phaser.Scene {
       const tick = (_t: number, dms: number) => { river.tilePositionX += dms * flow; };
       this.events.on('update', tick);
       this.events.once('shutdown', () => this.events.off('update', tick));
+    } else if (cs.bg === 'plain') {
+      // 第三章：嘉南平原的夜（甘蔗田、糖廠煙囪）
+      this.add.tileSprite(0, H * 0.62, W, 230, cs.mood === 'dawn' ? 'x3_plainFar' : 'x3_plainFarN').setOrigin(0, 1).setAlpha(0.85);
     } else if (cs.mood !== 'temple') this.add.tileSprite(0, H * 0.62, W, 260, 'mtnFarN').setOrigin(0, 1).setAlpha(0.8);
     else this.add.image(W / 2, H * 0.62, cs.temple ?? 'temple_huize').setOrigin(0.5, 1).setScale(0.9).setTint(0x7a5a3a);
     const label = cs.mood === 'demon' ? '妖怪視角' : '神明視角';
@@ -69,7 +86,13 @@ export class StoryScene extends Phaser.Scene {
     const finish = () => {
       if (done) return;
       done = true;
-      go(this, next.key, next.data);
+      if (!overlay) return go(this, next.key, next.data);
+      this.cameras.main.fadeOut(300, 10, 8, 18);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.resume(overlay.caller);
+        this.scene.stop();
+        overlay.done();
+      });
     };
     const dlg = new Dialogue(this, cs.lines, finish, fx);
     button(this, W - 90, 40, 120, 50, '略過 ▶▶', () => dlg.skip(), { size: 18, fill: 0x2a2236 }).setDepth(700);

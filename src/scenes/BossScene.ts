@@ -14,6 +14,8 @@ import { CH } from '../content/chapter';
 import { FULLPOWER_CUES3 } from '../content/ch3/finale';
 import { CAMP_COLORS } from '../art/xinyingSpec';
 import { run } from '../state';
+import { banter } from '../ui/banter';
+import { BanterPicker } from '../core/banterPick';
 import { button, floatText, fullscreenButton, panel, txt, type Button } from '../ui/widgets';
 
 /** 五營的名字（HUD 的營旗列） */
@@ -437,11 +439,13 @@ export class BossScene extends Phaser.Scene {
           if (e.ally) {
             this.ft(e.x, GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
             this.hud.toast(`${e.name}倒下了`, 0xff8a8a);
+            if (this.jiao) this.hud.chat('b_down');
           }
           break;
         case 'paw':
           this.cameras.main.shake(300, 0.003);
           this.hud.toast(this.jiao ? '蛟退回溪裡，浪頭升起來了！要翻江：讓北營廉將軍站前排（傷害減半）、血少的退下' : esc ? '黑潮的浪頭升起來了！馬上要捲浪：血少的退到後排' : '石駒刨地！馬上要衝鋒：血少的退到後排', 0xff6a6a, 2600);
+          if (this.jiao) this.hud.chat('b_wave');
           break;
         case 'charge':
           this.cameras.main.shake(500, 0.008);
@@ -449,6 +453,7 @@ export class BossScene extends Phaser.Scene {
         case 'breath':
           if (this.jiao) {
             this.hud.toast(this.battle.setup.bellyWound ? '渡伯：「牠喘氣的時候下巴露出來，就打那裡！」' : '蛟的頭摔在岸上喘氣：趁現在猛攻', 0xffd0d0, 2600);
+            this.hud.chat('b_breath');
             break;
           }
           this.hud.toast(esc ? '退潮了：王船順著退潮走得快' : run.intel.bellyWound ? '石駒喘息中：打肚子的舊傷！把輸出推上前排' : '石駒喘息中：趁現在猛攻', 0xffd0d0, 2600);
@@ -517,6 +522,7 @@ export class BossScene extends Phaser.Scene {
         case 'cut':
           this.shot(BACK_X_LIU, e.x + 90, 'flag');
           this.ft(e.x + 60, GROUND_Y - 200, '柳將軍：「中。」', 0xf4f2ea, 24);
+          this.hud.chat('b_snipe');
           break;
         case 'paper':
           this.ft(e.x + 60, GROUND_Y - 200, '紙人替身被拖下去了', 0xf4e2b0, 24);
@@ -525,22 +531,28 @@ export class BossScene extends Phaser.Scene {
         case 'sunk':
           this.ring(e.x + 120, 120, 0x2a5a6a);
           this.hud.toast(`${e.name}被拖進水裡！10 秒爬不上來`, 0xff8a8a, 2400);
+          this.hud.chat('b_sunk');
           break;
         case 'flag':
           this.ft(FLAG_X[JIAO_CAMPS.indexOf(e.camp)] + 30, 120, `${CAMP_NAME[e.camp]}營旗插下`, CAMP_COLORS[e.camp] === CAMP_COLORS.north ? 0xc8c8d8 : CAMP_COLORS[e.camp], 24);
           this.cameras.main.shake(80, 0.003);
+          this.hud.chat('b_flag');
           break;
         case 'formation':
           this.formation();
+          this.hud.chat('b_formation', true);
           break;
         case 'qiankun':
           this.qiankun();
+          this.hud.chat('b_qiankun');
           break;
         case 'chujiao':
           this.chujiao();
+          this.hud.chat('b_chujiao', true);
           break;
         case 'taiziBack':
           this.hud.toast('太子回轎了', 0xffd76a);
+          this.hud.chat('b_back');
           break;
         case 'cover':
           this.ft(e.x, GROUND_Y - 190, '章將軍擋下', 0x8fe0b0, 22);
@@ -549,11 +561,13 @@ export class BossScene extends Phaser.Scene {
           if (this.t - this.lastCombo > 1.2) {
             this.lastCombo = this.t;
             this.ft(e.x + 40, GROUND_Y - 230, '合擊！', 0xff8a5a, 28);
+            this.hud.chat('b_combo');
           }
           break;
         case 'duck':
           this.ducks(true);
           this.hud.toast('鴨群擋下了蛟！', 0xfff3c4);
+          this.hud.chat('b_ducks', true);
           break;
         case 'fullpower':
           this.cameras.main.flash(500, 255, 220, 120);
@@ -705,6 +719,8 @@ export class BossHud extends Phaser.Scene {
   private cueBox?: Phaser.GameObjects.Container;
   private cueTxt?: Phaser.GameObjects.Text;
   private cueShown = -1;
+  /** 第三章：戰鬥中的互嗆（兩組之間至少隔幾秒，不洗版） */
+  private chatter = new BanterPicker(undefined);
 
   constructor() {
     super('bosshud');
@@ -726,10 +742,12 @@ export class BossHud extends Phaser.Scene {
     this.cueBox = undefined;
     this.cueTxt = undefined;
     this.cueShown = -1;
+    this.chatter = new BanterPicker(CH().banter, 7000);
     const F = CH().finale;
     const esc = this.battle.mode === 'escort';
     const jiao = this.battle.mode === 'jiao';
     this.cameras.main.fadeIn(500, 10, 8, 18);
+    if (jiao) this.time.delayedCall(1500, () => this.chat('b_start', true));
     txt(this, 24, 16, F.title, 30, C.gold, { serif: true });
     txt(this, 24, 58, F.place, 20, C.paper, { bold: false });
     this.clock = txt(this, W - 96, 34, '19:00', 30, C.paper).setOrigin(1, 0.5);
@@ -867,6 +885,13 @@ export class BossHud extends Phaser.Scene {
   fullPower(sec: number): void {
     if (this.cueBox) this.tweens.add({ targets: this.cueBox, alpha: 0, delay: 600, duration: 400 });
     this.toast(`太子全開！${sec} 秒：全員攻擊 ×1.5、法術冷卻 ×0.4、太子出轎可以再用`, 0xffd76a, 3200);
+  }
+
+  /** 第三章互嗆：一句一行從右邊滑進戰鬥帶上方，不擋操作；10% 特寫字幕播放時不插嘴 */
+  chat(key: string, force = false): void {
+    if (this.cueBox && this.cueBox.alpha > 0) return;
+    const lines = this.chatter.pick(key, this.time.now, force);
+    if (lines) banter(this, lines, BAND_Y + 34, 60);
   }
 
   toast(s: string, color: number, ms = 1800): void {
@@ -1106,7 +1131,11 @@ export class BossHud extends Phaser.Scene {
       if (CH().slayRule === 'renown') run.weiming = Math.min(5, run.weiming + 1);
       else run.liqi = Math.min(3, run.liqi + 1);
     }
-    if (kind === 'recall') this.boss.leave('story', { id: CH().finale.recallStory, next: { key: 'end' } }, 800);
-    else this.boss.leave('end', undefined, 800);
+    // 結局劇情 →（第三章：收營）→ 信徒錄
+    const F = CH().finale;
+    const end = F.closeStory ? { key: 'story', data: { id: F.closeStory, next: { key: 'end' } } } : { key: 'end' };
+    const story = F.endStory?.[kind] ?? (kind === 'recall' ? F.recallStory : undefined);
+    if (story) this.boss.leave('story', { id: story, next: end }, 800);
+    else this.boss.leave(end.key, end.data, 800);
   }
 }

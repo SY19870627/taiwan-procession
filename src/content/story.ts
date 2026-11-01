@@ -1,9 +1,12 @@
 /**
- * 過場劇情。妖怪視角為主（小妖詼諧、石駒悲涼），神明只以「旨意」出現，不畫神明的臉。
+ * 過場劇情。妖怪視角為主（小妖詼諧、石駒悲涼），第一、二章神明只以「旨意」出現，不畫神明的臉（第三章起可以畫臉，見 ch3/story.ts）。
  * 遊戲中一律使用虛構名稱（見設計文件 14.5 命名原則）。
  */
 
-export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun' | 'taizi' | 'zhangjiang' | 'jiao' | 'jiaoCalm';
+import { CUTSCENES3 } from './ch3/story';
+
+export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun'
+  | 'taizi' | 'zhangjiang' | 'xiaojiang' | 'liujiang' | 'lianjiang' | 'jiao' | 'jiaoCalm' | 'zhizha' | 'xiabing' | 'bingbo' | 'hebo';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -21,10 +24,18 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   heichaoCalm: { name: '黑潮', tex: 'heichao_calm', side: 'right', scale: 1.0 },
   zhongjun: { name: '中軍府', tex: 'zhongjun', side: 'left', scale: 1.7 },
   // 第三章（新瀛）：神明可以畫臉（決策紀錄 2026-10-27），太子與五將用立繪
+  // 神明在左、妖怪與凡人在右（同一邊換人時，前一位會退下）
   taizi: { name: '太子爺', tex: 'w3_flags', side: 'left', scale: 1.4 },
   zhangjiang: { name: '章將軍', tex: 'w3_zhang', side: 'left', scale: 1.7 },
+  xiaojiang: { name: '霄將軍', tex: 'w3_xiao', side: 'left', scale: 1.7 },
+  liujiang: { name: '柳將軍', tex: 'w3_liu', side: 'left', scale: 1.7 },
+  lianjiang: { name: '廉將軍', tex: 'w3_lian', side: 'left', scale: 1.7 },
   jiao: { name: '蛟', tex: 'xia_imp', side: 'right', scale: 2.0 },
   jiaoCalm: { name: '蛟', tex: 'xia_imp', side: 'right', scale: 2.0 },
+  zhizha: { name: '紙紮童', tex: 'g3_zhizha', side: 'right', scale: 1.8 },
+  xiabing: { name: '蝦兵', tex: 'xia_imp', side: 'right', scale: 2.0 },
+  bingbo: { name: '炳伯', tex: 'n3_bingbo', side: 'right', scale: 1.8 },
+  hebo: { name: '何伯', tex: 'n3_hebo', side: 'right', scale: 1.8 },
 };
 
 /** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */
@@ -35,7 +46,9 @@ export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import
   judge: ['judge', 'normal'], zhongjun: ['zhongjun', 'normal'],
   heichao: ['heichao', 'angry'], heichaoCalm: ['heichao', 'calm'],
   taizi: ['taizi', 'normal'], zhangjiang: ['zhangjiang', 'normal'],
+  xiaojiang: ['xiaojiang', 'normal'], liujiang: ['liujiang', 'normal'], lianjiang: ['lianjiang', 'normal'],
   jiao: ['jiao', 'angry'], jiaoCalm: ['jiao', 'calm'],
+  zhizha: ['zhizha', 'normal'], xiabing: ['xiabing', 'normal'], bingbo: ['bingbo', 'normal'], hebo: ['hebo', 'normal'],
 };
 
 export interface Line {
@@ -51,8 +64,8 @@ export interface Cutscene {
   /** 畫面色調：妖怪視角是紫色，廟裡是金色 */
   mood: 'demon' | 'temple' | 'dawn';
   place: string;
-  /** 遠景：海邊（第二章）、溪邊（第三章疾水溪） */
-  bg?: 'sea' | 'river';
+  /** 遠景：海邊（第二章）、溪邊（第三章疾水溪）、嘉南平原（第三章） */
+  bg?: 'sea' | 'river' | 'plain';
   /** 神明視角時的廟 */
   temple?: string;
   lines: Line[];
@@ -98,28 +111,8 @@ export const CUTSCENES: Record<string, Cutscene> = {
       { who: 'narrator', text: '王船點了火。火光裡，海面上好像有五個人影，朝岸上揮了揮手。', fx: 'firecracker' },
     ],
   },
-  // ---------- 第三章：新瀛・太子出營【第 1 階段暫代：第 6 階段寫完整過場】 ----------
-  jiao3: {
-    mood: 'demon',
-    place: '疾水溪・收營夜',
-    bg: 'river',
-    lines: [
-      { who: 'narrator', text: '溪水倒流了一整天。入夜，疾水溪的水面整個鼓了起來。' },
-      { who: 'jiao', text: '哪來的小鬼，在我的溪邊插旗子？' },
-      { who: 'jiao', text: '……喔？你就是當年鬧海那個小鬼？', fx: 'shake' },
-      { who: 'taizi', text: '站好，別說我偷襲。', expr: 'cocky' },
-    ],
-  },
-  jiaoRecall: {
-    mood: 'dawn',
-    place: '疾水溪・天將亮',
-    bg: 'river',
-    lines: [
-      { who: 'jiaoCalm', text: '……我輸了。' },
-      { who: 'taizi', text: '我只是缺一隻坐騎。', expr: 'pout', fx: 'flash' },
-      { who: 'zhangjiang', text: '太子，您嘴角在笑。' },
-    ],
-  },
+  // ---------- 第三章：新瀛・太子出營（ch3/story.ts） ----------
+  ...CUTSCENES3,
   retreat: {
     mood: 'demon',
     place: '芝嶺巖・天亮',

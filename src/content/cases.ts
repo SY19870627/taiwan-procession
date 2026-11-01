@@ -171,6 +171,8 @@ export interface GhostCase {
   dropsOnTrial?: string[];
   /** 冤魂讓牠說（嘴硬那句）時多說的心事 */
   heart?: string[];
+  /** 第一次跪地求饒時播的劇情（第三章：紙紮童跪下，妖怪視角） */
+  kneelStory?: string;
 }
 
 export const CASES: Record<string, GhostCase> = {

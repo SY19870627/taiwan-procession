@@ -17,10 +17,11 @@ import { button, panel, txt } from './widgets';
 import { flashback } from './talk';
 import { banter } from './banter';
 import { portraitKey, type Expr } from '../art/portraits';
+import { playStory } from '../scenes/StoryScene';
 import { isLooked, slayPreview, truthReel } from '../core/renown';
 import {
   ANGER_MAX, COMBO_STREAK, TAUNT_TAG, available, expected, flareOf, forcedSlay, judge, knelt, matching, muted,
-  openCase, pick, startFlare, verdictWhy, type Choice, type Judged, type Outcome, type Session,
+  openCase, pick, startFlare, takeKneelStory, verdictWhy, type Choice, type Judged, type Outcome, type Session,
 } from '../core/dianjiang';
 
 const D = 500;
@@ -37,7 +38,7 @@ export interface DjOpts {
 
 /** 互嗆輪到第幾組（夜審與路邊共用） */
 const banterN: Record<string, number> = {};
-function chat(scene: Phaser.Scene, key: string): void {
+export function chat(scene: Phaser.Scene, key: string): void {
   const lib = CH().banter?.[key];
   if (!lib?.length) return;
   const n = (banterN[key] = (banterN[key] ?? -1) + 1);
@@ -72,6 +73,10 @@ class DianjiangView {
     if (this.s.over === 'mute') lines.push('', '牠怨氣太重，縮成一團，不肯開口。（押一晚冷靜下來，怨氣 -1）');
     this.last = { line: lines.join('\n'), expr: op.kneel ? 'scared' : 'normal', color: 0xfff3c4 };
     this.render();
+    scene.time.delayedCall(500, () => chat(scene, o.mode === 'roadside' ? 'roadside' : 'open'));
+    // 壓一晚之後一上堂就跪（紙紮童）：一樣播跪下的劇情
+    const story = op.kneel ? takeKneelStory(run, k) : undefined;
+    if (story) scene.time.delayedCall(400, () => playStory(scene, story, () => undefined));
   }
 
   private known(): boolean {
@@ -223,6 +228,7 @@ class DianjiangView {
     const k = this.o.k;
     const out = pick(run, k, this.s, c);
     if (out.kind === 'mute') {
+      chat(this.scene, 'mute');
       this.last = { line: `${k.wrong}\n（牠縮起來了，不肯再開口。）`, expr: 'sad', color: 0xff9a8a };
       return this.render();
     }
@@ -249,12 +255,15 @@ class DianjiangView {
       if (out.kneel) chat(this.scene, 'kneel');
       else if (out.combo) chat(this.scene, 'combo');
       else if (c !== 'listen') chat(this.scene, 'hit');
+      // 第一次跪下有專屬劇情的（紙紮童）：真相回憶之後蓋在畫面上播
+      const story = out.kneel ? takeKneelStory(run, k) : undefined;
+      const next = () => (story ? playStory(this.scene, story, () => this.render()) : this.render());
       if (out.truth !== undefined) {
         const t = k.truths[out.truth];
-        flashback(this.scene, { tex: portraitKey(this.scene, k.id, 'sad') ?? k.tex, name: k.name, reveal: t.reveal, summary: t.summary, fx: k.memory }, () => this.render());
+        flashback(this.scene, { tex: portraitKey(this.scene, k.id, 'sad') ?? k.tex, name: k.name, reveal: t.reveal, summary: t.summary, fx: k.memory }, next);
         return;
       }
-      this.render();
+      next();
     };
     this.busy = true;
     this.hold = out.taunt;

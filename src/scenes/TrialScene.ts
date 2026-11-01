@@ -17,7 +17,7 @@ import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/wid
 import { flashback } from '../ui/talk';
 import { isLooked, LOOK_TAG, natureOf, slayGhost, slayPreview, truthReel } from '../core/renown';
 import { beginNight, canOpen, dawnHeld, flareOf, judge as judge3, knelt, muted, useTrial } from '../core/dianjiang';
-import { openDianjiang, resultScreen } from '../ui/dianjiang';
+import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
 import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
 
 const WATCHES = 3;
@@ -40,6 +40,7 @@ export class TrialScene extends Phaser.Scene {
     const T = CH().trial;
     // 第三章每晚 2 案（其他章不限，trialsLeft 不設）
     beginNight(run, CH());
+    if (T.style === 'dianjiang') this.time.delayedCall(700, () => chat(this, 'lobby'));
     this.cameras.main.fadeIn(500, 10, 8, 18);
     const bg = this.add.graphics();
     const dossier = T.style === 'dossier';
@@ -477,6 +478,10 @@ export class TrialScene extends Phaser.Scene {
       return;
     }
     run.yesterday = [...out, ...CH().dawn(run, this.n)];
-    go(this, 'cut', { kind: 'dawn', title: '雞啼・天亮', sub: `第${'二三'[this.n - 1]}天`, next: { key: 'almanac', data: { day: this.n + 1 } } });
+    const dawn = { key: 'cut', data: { kind: 'dawn', title: '雞啼・天亮', sub: `第${'二三'[this.n - 1]}天`, next: { key: 'almanac', data: { day: this.n + 1 } } } };
+    // 第三章：第三天之前先播「溪水倒流」（妖怪視角）
+    const story = CH().dawnStory?.[this.n + 1];
+    if (story) go(this, 'story', { id: story, next: dawn });
+    else go(this, dawn.key, dawn.data);
   }
 }

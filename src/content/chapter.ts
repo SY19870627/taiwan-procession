@@ -100,6 +100,10 @@ export interface FinaleDef {
   winText: string;
   /** 最好結局的劇情 */
   recallStory: string;
+  /** 三種結局各自的劇情（有寫就用這個，沒寫的 recall 用 recallStory；第三章） */
+  endStory?: Partial<Record<'recall' | 'return' | 'slay', string>>;
+  /** 結局劇情之後、信徒錄之前的收尾劇情（第三章：收營） */
+  closeStory?: string;
   loseText: string;
   dawnText: string;
 }
@@ -161,6 +165,10 @@ export interface ChapterDef {
   unlocks?: Record<number, { title: string; text: string }>;
   /** 互嗆台詞庫：場合（depart、ring、look、slay…）→ 幾組對話，每組一句一行輪流跳出來（第三章） */
   banter?: Record<string, BanterLine[][]>;
+  /** 序章擲筊之後、第一天黃曆之前的劇情（第三章：開營） */
+  prologueStory?: string;
+  /** 第 n 天的黃曆之前（前一晚天亮前）播的劇情（第三章：第三天溪水倒流） */
+  dawnStory?: Record<number, string>;
 }
 
 /** 互嗆的一句（一行、不擋操作） */
