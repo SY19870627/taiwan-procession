@@ -17,6 +17,8 @@ const LINE_MS = 2200;
 export interface BanterStyle {
   size?: number;
   alpha?: number;
+  /** 最多同時幾行：再來一句就把最舊的收掉、其餘往上推（最後一戰：第三句會疊到血條，Q26） */
+  rows?: number;
 }
 const live = new WeakMap<Phaser.Scene, Phaser.GameObjects.GameObject[]>();
 
@@ -59,7 +61,16 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
       }
       const box = scene.add.rectangle(0, 0, bw, t.height + pad, 0x120a10, style.alpha ?? 0.55).setOrigin(0);
       // 照順序往下排（接在上一句下面），但要避開按鈕和上面幾句
-      const prev = objs[objs.length - 1] as Phaser.GameObjects.Container | undefined;
+      if (style.rows) {
+        const shown = objs.filter((o) => (o as Phaser.GameObjects.Container).active) as Phaser.GameObjects.Container[];
+        while (shown.length >= style.rows) shown.shift()!.destroy();
+        let yy = y;
+        for (const r of shown) {
+          r.y = yy;
+          yy += Math.max(34, r.height + 4);
+        }
+      }
+      const prev = objs.filter((o) => (o as Phaser.GameObjects.Container).active).pop() as Phaser.GameObjects.Container | undefined;
       const want = prev ? prev.y + (maxW !== undefined || style.size ? Math.max(34, prev.height + 4) : 34) : y;
       const c = scene.add.container(W + 10, 0, [box, name, t]).setDepth(depth);
       c.setSize(box.width, box.height);
@@ -84,7 +95,7 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
   });
   scene.time.delayedCall(lines.length * LINE_MS + 1400, () => {
     if (live.get(scene) !== objs) return;
-    scene.tweens.add({ targets: objs, alpha: 0, duration: 400, onComplete: () => { for (const o of objs) o.destroy(); } });
+    scene.tweens.add({ targets: objs.filter((o) => o.active), alpha: 0, duration: 400, onComplete: () => { for (const o of objs) o.destroy(); } });
     live.delete(scene);
   });
 }
@@ -111,4 +122,70 @@ function buttons(scene: Phaser.Scene): Rect[] {
   };
   walk(scene.children.list, true);
   return out;
+}
+
+/** 全寬字幕條的設定：bottom 字幕條下緣（貼在面板上緣上面）、side 說話的人站哪一邊 */
+export interface StripOpts {
+  bottom: number;
+  side: (who: string) => 'left' | 'right';
+  size: number;
+  rowH: number;
+  rows: number;
+  depth?: number;
+}
+
+/**
+ * 全寬字幕條（夜審；修正第 2 輪）：整條從 x = 16 拉到 W − 16，貼在下方面板上緣上面，最多疊 rows 行，
+ * 新的一句從下面進來、舊的往上推，超過就把最舊的收掉（只蓋判官、鬼的腰部以下）。
+ * 說話的人站左邊：字靠左、開頭「◀」；站右邊：字靠右、結尾「▶」；箭頭、名字和那一側的色條都用這個角色的顏色。
+ */
+export function banterStrip(scene: Phaser.Scene, lines: BanterLine[], o: StripOpts): void {
+  for (const x of live.get(scene) ?? []) x.destroy();
+  const objs: Phaser.GameObjects.GameObject[] = [];
+  live.set(scene, objs);
+  const x0 = 16;
+  const bw = W - 32;
+  const gap = 2;
+  const slotY = (fromBottom: number) => o.bottom - (fromBottom + 1) * o.rowH - fromBottom * gap;
+  lines.forEach((l, i) => {
+    scene.time.delayedCall(i * LINE_MS, () => {
+      if (live.get(scene) !== objs) return;
+      const col = WHO_COLOR[l.who] ?? 0xffd76a;
+      const right = o.side(l.who) === 'right';
+      const st = { stroke: '#120a10', strokeThickness: 4 };
+      const box = scene.add.rectangle(0, 0, bw, o.rowH, 0x120a10, 0.95).setOrigin(0);
+      const bar = scene.add.rectangle(right ? bw - 6 : 0, 0, 6, o.rowH, col, 1).setOrigin(0);
+      const arrow = txt(scene, 0, 0, right ? '▶' : '◀', o.size - 4, col, st);
+      const name = txt(scene, 0, 0, `${l.who}：`, o.size, col, st);
+      const t = txt(scene, 0, 0, l.text, o.size, 0xfbf3e2, { ...st, bold: false });
+      // 太長：整句縮小到放得下（一行，不換行）
+      const room = bw - 28 - arrow.width - 8;
+      const k = Math.min(1, room / (name.width + t.width));
+      if (k < 1) for (const g of [name, t]) g.setScale(k);
+      const nw = name.displayWidth;
+      const tw = t.displayWidth;
+      const mid = (h: number) => (o.rowH - h) / 2;
+      if (right) {
+        arrow.setPosition(bw - 14 - arrow.width, mid(arrow.height));
+        t.setPosition(arrow.x - 8 - tw, mid(t.displayHeight));
+        name.setPosition(t.x - nw, mid(name.displayHeight));
+      } else {
+        arrow.setPosition(14, mid(arrow.height));
+        name.setPosition(arrow.x + arrow.width + 8, mid(name.displayHeight));
+        t.setPosition(name.x + nw, mid(t.displayHeight));
+      }
+      const c = scene.add.container(x0, slotY(0) + 12, [box, bar, arrow, name, t]).setDepth(o.depth ?? 40).setAlpha(0);
+      c.setSize(bw, o.rowH);
+      objs.push(c);
+      // 最舊的收掉，其餘往上推一格
+      const shown = objs.filter((x) => x.active) as Phaser.GameObjects.Container[];
+      while (shown.length > o.rows) shown.shift()!.destroy();
+      shown.forEach((r, j) => scene.tweens.add({ targets: r, y: slotY(shown.length - 1 - j), alpha: 1, duration: 220, ease: 'Cubic.out' }));
+    });
+  });
+  scene.time.delayedCall(lines.length * LINE_MS + 1400, () => {
+    if (live.get(scene) !== objs) return;
+    scene.tweens.add({ targets: objs.filter((x) => x.active), alpha: 0, duration: 400, onComplete: () => { for (const x of objs) x.destroy(); } });
+    live.delete(scene);
+  });
 }

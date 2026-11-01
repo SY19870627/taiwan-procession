@@ -62,15 +62,43 @@ export function actorScale(tex: string, scale: number, k: number, texHeight: num
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** 泡泡要讓開的地方（畫面座標，例如廟的匾額） */
+export interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const hit = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
 /**
  * 泡泡放哪裡：(px, py) 是說話者頭頂在畫面上的位置，bw×bh 是泡泡大小。
  * 回傳泡泡左上角與尾巴尖端；泡泡左右留 12、上不超過 bubbleTop、下留 24。
+ * avoid（修正第 2 輪：開營的泡泡蓋住「太子殿」匾）：蓋到就先左右讓開，左右放不下就搬到它上面（尾巴拉長指回說話的人），
+ * 上面也放不下才放到它下面。
  */
-export function bubbleBox(px: number, py: number, bw: number, bh: number, L: StageLayout, h: number): { x: number; y: number; tipX: number; tipY: number } {
-  const x = clamp(px - bw / 2, 12, W - bw - 12);
-  const y = clamp(py - bh - 34, L.bubbleTop, h - bh - 24);
+export function bubbleBox(px: number, py: number, bw: number, bh: number, L: StageLayout, h: number, avoid?: Box): { x: number; y: number; tipX: number; tipY: number } {
+  let x = clamp(px - bw / 2, 12, W - bw - 12);
+  let y = clamp(py - bh - 34, L.bubbleTop, h - bh - 24);
+  let tail = 34;
+  if (avoid) {
+    const a = { x: avoid.x - 8, y: avoid.y - 8, w: avoid.w + 16, h: avoid.h + 16 };
+    if (hit({ x, y, w: bw, h: bh }, a)) {
+      const left = a.x - bw;
+      const right = a.x + a.w;
+      const xs = [left >= 12 ? left : NaN, right <= W - bw - 12 ? right : NaN].filter((v) => !isNaN(v)).sort((p, q) => Math.abs(p - x) - Math.abs(q - x));
+      if (xs.length) x = xs[0];
+      else if (a.y - bh >= L.bubbleTop) {
+        tail = Math.max(34, Math.min(120, py - 4 - a.y));
+        y = a.y - bh;
+      } else y = clamp(a.y + a.h, L.bubbleTop, h - bh - 24);
+    }
+  }
   const tipX = clamp(px, x + 24, x + bw - 24);
-  const tipY = Math.max(y + bh + 10, Math.min(py - 4, y + bh + 34));
+  let tipY = Math.max(y + bh + 10, Math.min(py - 4, y + bh + tail));
+  // 尾巴也不插進匾裡：停在匾的上緣
+  if (avoid && tipX > avoid.x - 14 && tipX < avoid.x + avoid.w + 14 && y + bh <= avoid.y && tipY > avoid.y - 4) tipY = Math.max(y + bh + 6, avoid.y - 4);
   return { x, y, tipX, tipY };
 }
 

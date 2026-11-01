@@ -62,7 +62,8 @@ export const STAGES3: Record<string, StageScript> = {
     place: '新瀛太子殿・開營',
     actors: [
       { id: 'flags', tex: 'w3_flags', x: 650, y: 10, scale: 1.1, alpha: 0.3 },
-      { id: 'jiao', tex: 'w3_palanquin', x: 360, y: 10, scale: 1.15 },
+      // 神轎矮一點、往前站（修正第 2 輪：轎頂的寶珠原本插進「太子殿」匾）
+      { id: 'jiao', tex: 'w3_palanquin', x: 360, y: 30, scale: 1.0 },
       { id: 'liu', tex: 'b3_liu', x: 860, y: 30, scale: 1.2 },
       { id: 'lian', tex: 'b3_lian', x: 940, y: 40, scale: 1.2 },
       { id: 'taizi', tex: 'b3_taizi', x: 360, y: 50, scale: 1.1, alpha: 0 },

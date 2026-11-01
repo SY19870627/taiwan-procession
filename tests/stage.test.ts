@@ -336,6 +336,26 @@ describe('演出版面（手機直式）', () => {
     }
   });
 
+  it('泡泡讓開廟的匾額（修正第 2 輪：開營的泡泡蓋住「太子殿」）', () => {
+    const over = (b: { x: number; y: number }, bw: number, bh: number, a: { x: number; y: number; w: number; h: number }) =>
+      b.x < a.x + a.w && a.x < b.x + bw && b.y < a.y + a.h && a.y < b.y + bh;
+    for (const h of [1280, 1560]) {
+      const L = stageLayout(h);
+      const plaque = { x: 480, y: h * 0.45, w: 110, h: 30 };
+      for (const [px, bw] of [[200, 500], [300, 400], [560, 260], [650, 300], [530, 480]]) {
+        const py = plaque.y + 140;
+        const b = bubbleBox(px, py, bw, 110, L, h, plaque);
+        expect(over(b, bw, 110, plaque), `${h} ${px} ${bw}`).toBe(false);
+        expect(b.x).toBeGreaterThanOrEqual(12);
+        expect(b.x + bw).toBeLessThanOrEqual(W - 12);
+        expect(b.y).toBeGreaterThanOrEqual(L.bubbleTop);
+        expect(b.tipY).toBeGreaterThan(b.y + 110);
+        // 尾巴也不插進匾
+        if (b.tipX > plaque.x - 14 && b.tipX < plaque.x + plaque.w + 14 && b.y + 110 <= plaque.y) expect(b.tipY).toBeLessThanOrEqual(plaque.y);
+      }
+    }
+  });
+
   it('遠景帶照貼圖高度（最多 260），比較矮的城市剪影、海不會上下重複貼一截', () => {
     expect(farBandHeight(260)).toBe(FAR_MAX_H);
     expect(farBandHeight(400)).toBe(FAR_MAX_H);

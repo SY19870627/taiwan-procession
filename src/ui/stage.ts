@@ -57,6 +57,8 @@ export class StagePlayer {
   private extras = new Map<string, Phaser.GameObjects.GameObject>();
   /** 遠景帶、近景（正式背景圖晚一點才載到時換上去） */
   private farBand?: Phaser.GameObjects.TileSprite;
+  /** 廟（有的話；泡泡要讓開它的匾額） */
+  private temple?: Phaser.GameObjects.Image;
   private nearBand?: Phaser.GameObjects.TileSprite;
   /** 近景要插在舞台容器的第幾層（堤防後面的演員之後） */
   private nearAt = 0;
@@ -101,7 +103,8 @@ export class StagePlayer {
       this.farBand = band;
     }
     if (sc.temple && scene.textures.exists(sc.temple)) {
-      this.world.add(scene.add.image(W / 2 + 60, G + 8, sc.temple).setOrigin(0.5, 1).setScale(0.8 * k).setTint(0x8a6a50));
+      this.temple = scene.add.image(W / 2 + 60, G + 8, sc.temple).setOrigin(0.5, 1).setScale(0.8 * k).setTint(0x8a6a50);
+      this.world.add(this.temple);
     }
     const ground = scene.add.graphics();
     ground.fillStyle(sc.ground, 1);
@@ -429,7 +432,7 @@ export class StagePlayer {
     const fw = face ? FACE + 14 : 0;
     const bw = Math.max(150, body.width + 40 + fw);
     const bh = Math.max(body.height, face ? FACE : 0) + 32;
-    const { x: bx, y: by, tipX, tipY } = bubbleBox(p.x, p.y, bw, bh, this.L, this.H);
+    const { x: bx, y: by, tipX, tipY } = bubbleBox(p.x, p.y, bw, bh, this.L, this.H, this.plaqueBox());
     const g = scene.add.graphics();
     g.fillStyle(0x000000, 0.3);
     g.fillRoundedRect(4, 6, bw, bh, 18);
@@ -449,7 +452,24 @@ export class StagePlayer {
       c.setAlpha(0).setScale(0.85);
       scene.tweens.add({ targets: c, alpha: 1, scale: 1, duration: 220, ease: 'Back.out', delay: 120 });
     }
-    this.ui.push(c, this.hint(bx + bw - 6, by + bh + 4, instant));
+    // 「下一句」的 ▼ 放泡泡右下角外面；會壓到匾額就改放泡泡右邊（修正第 2 輪）
+    const pq = this.plaqueBox();
+    const under = { x: bx + bw - 24, y: by + bh + 4, w: 18, h: 22 };
+    const hitPlaque = pq && under.x < pq.x + pq.w && pq.x < under.x + under.w && under.y < pq.y + pq.h && pq.y < under.y + under.h;
+    const hint = hitPlaque && bx + bw + 24 <= W ? this.hint(bx + bw + 22, by + bh - 26, instant) : this.hint(bx + bw - 6, by + bh + 4, instant);
+    this.ui.push(c, hint);
+  }
+
+  /**
+   * 廟的匾額在畫面上的位置（程式畫的廟：art/backdrop.ts 的 makeTemple，760×400 圖裡 (280, 162)～(480, 196)）；
+   * 泡泡要讓開，匾上的廟名要完整露出來。沒有廟就不用讓。
+   */
+  private plaqueBox(): { x: number; y: number; w: number; h: number } | undefined {
+    if (!this.temple) return undefined;
+    const { x: ix, y: iy, scaleX: s } = this.temple;
+    const a = this.toScreen(ix + (280 - 380) * s, iy - (400 - 162) * s);
+    const b = this.toScreen(ix + (480 - 380) * s, iy - (400 - 196) * s);
+    return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
   }
 
   /** 泡泡旁邊的立繪小頭像（腳本有 faces、說話的人有立繪、圖已載到才有） */

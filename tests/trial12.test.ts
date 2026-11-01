@@ -83,34 +83,29 @@ describe('第一、二章夜審互嗆', () => {
   });
 });
 
-describe('夜審互嗆字幕的位置（視覺修正：下方面板上面的字幕條）', () => {
+describe('夜審互嗆字幕的位置（修正第 2 輪：面板上面的全寬字幕條）', () => {
   const G = TRIAL.glow;
 
   it('光圈在畫面正中', () => {
     expect(G.x).toBe(W / 2);
   });
 
-  it('字幕條從判官、鬼的臉下面開始排（立繪上半露出來），寬到整個畫面、字夠大', () => {
-    // 判官立繪底 506、高 250；鬼的立繪（審問、判決）上半都不蓋
-    expect(TRIAL.chatY).toBeGreaterThanOrEqual(506 - 250 * 0.5);
-    expect(TRIAL.chatY).toBeGreaterThanOrEqual(TRIAL.ghost.bottom - TRIAL.ghost.h * 0.5);
-    expect(TRIAL.chatY).toBeGreaterThanOrEqual(TRIAL.verdict.bottom - TRIAL.verdict.h * 0.5);
-    expect(16 + TRIAL.chatW).toBeLessThanOrEqual(W - 16);
-    expect(TRIAL.chatW).toBeGreaterThanOrEqual(390);
-    expect(TRIAL.chatSize).toBeGreaterThanOrEqual(23);
+  it('全寬字幕條只蓋判官、鬼的腰部以下（臉、胸口露出來），不碰下方面板', () => {
+    const S = TRIAL.strip;
+    const O = TRIAL.officer;
+    const top = (panelY: number) => panelY - S.gap - S.rows * S.rowH - (S.rows - 1) * 2;
+    // 堂上（面板 560）、審問、判決：判官都在；審問、判決再加上鬼
+    for (const panelY of [560, TRIAL.panelY, TRIAL.verdict.panelY]) expect(top(panelY), `面板 ${panelY}`).toBeGreaterThanOrEqual(O.bottom - O.h * 0.3);
+    expect(top(TRIAL.panelY)).toBeGreaterThanOrEqual(TRIAL.ghost.bottom - TRIAL.ghost.h * 0.3);
+    expect(top(TRIAL.verdict.panelY)).toBeGreaterThanOrEqual(TRIAL.verdict.bottom - TRIAL.verdict.h * 0.3);
+    expect(S.size).toBeGreaterThanOrEqual(20);
+    expect(S.rowH).toBeGreaterThanOrEqual(S.size + 10);
   });
 
-  it('最長的一組排下來不碰下方面板（審問與判決結果）', () => {
-    // 照 ui/banter.ts：一句一行（太寬才縮小一號換行），每句佔 chatRowH
-    const rowsOf = (s: string) => Math.ceil(([...s].length * TRIAL.chatSize) / (TRIAL.chatW - 20));
-    for (const id of ['wanjia', 'dongjin']) {
-      for (const [key, sets] of Object.entries(CHAPTERS[id].banter!).filter(([k]) => k.startsWith('t_'))) {
-        for (const set of sets) {
-          const h = set.reduce((sum, l) => sum + rowsOf(`${l.who}：${l.text}`) * TRIAL.chatRowH, 0);
-          expect(TRIAL.chatY + h, `${id} ${key} ${set[0].text}`).toBeLessThanOrEqual(Math.min(TRIAL.panelY, TRIAL.verdict.panelY));
-        }
-      }
-    }
+  it('夜審說話的人：左邊那位字靠左、右邊那位靠右（字幕條認得出是誰）', () => {
+    expect(trialSrc).toContain("officers[1]?.label");
+    expect(trialSrc).toMatch(/who === right \? 'right' : 'left'/);
+    expect(trialSrc).toContain('bottom: this.panelTop - S.gap');
   });
 
   it('TrialScene 用這組常數畫光圈、立繪、面板', () => {
@@ -119,7 +114,7 @@ describe('夜審互嗆字幕的位置（視覺修正：下方面板上面的字�
     expect(trialSrc).toContain('TRIAL.ghost.bottom');
     expect(trialSrc).toContain('y: TRIAL.panelY');
     expect(trialSrc).toContain('y: TRIAL.verdict.panelY');
-    expect(trialSrc).toContain('banter(this, lib[n % lib.length], TRIAL.chatY, 40, TRIAL.chatW, { size: TRIAL.chatSize');
+    expect(trialSrc).toContain('banterStrip(this, lib[n % lib.length]');
   });
 });
 

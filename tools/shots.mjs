@@ -58,6 +58,24 @@ const BANTER_SHOTS = [
   { name: 'boss_dongjin_mid', q: 'scene=boss&ch=dongjin', wait: 26000 },
 ];
 
+/**
+ * 修正第 2 輪（--fix2）：夜審（審問畫面：先押一個鬼進令旗、重開夜審、升堂；另截堂上）、最後一戰開打互嗆兩句時、
+ * 開營有泡泡的每一拍。輸出到 --out（預設 shotsix2）。
+ */
+const ASK_JS = "(() => { const r = __run(); const id = Object.keys(__cases())[0]; if (!r.held.some((h) => h.id === id)) r.held.push({ id, grudge: 0 }); const s = __game.scene.getScene('trial'); s.scene.restart(s.sys.settings.data); setTimeout(() => { const t = __game.scene.getScene('trial'); t.open(__cases()[id]); }, 1200); })()";
+const FIX2_SHOTS = [
+  { name: 'trial_wanjia', q: 'scene=trial&n=1&ch=wanjia', wait: 3000, js: ASK_JS, after: 4300 },
+  { name: 'trial_dongjin', q: 'scene=trial&n=1&ch=dongjin', wait: 3000, js: ASK_JS, after: 4300 },
+  { name: 'trial_wanjia_lobby', q: 'scene=trial&n=1&ch=wanjia', wait: 3000, js: TRIAL_JS, after: 4200 },
+  { name: 'trial_dongjin_lobby', q: 'scene=trial&n=1&ch=dongjin', wait: 3000, js: TRIAL_JS, after: 4200 },
+  { name: 'boss_wanjia', q: 'scene=boss&ch=wanjia', wait: 4300 },
+  { name: 'boss_dongjin', q: 'scene=boss&ch=dongjin', wait: 4300 },
+  // 第三句進來、第一句收掉之後
+  { name: 'boss_wanjia_3rd', q: 'scene=boss&ch=wanjia', wait: 6500 },
+  { name: 'boss_dongjin_3rd', q: 'scene=boss&ch=dongjin', wait: 6500 },
+];
+const FIX2_BEATS = [1, 2, 3, 4, 6, 7, 9, 10];
+
 /** urls.txt：每一段有演出的過場（三章共 22 段）＋互嗆網址 */
 const URLS = [
   ['wanjia', 'anfang1', '第一章開場：入夜，報馬仔敲鑼、七爺八爺出廟、判官點燈磨刀'],
@@ -149,6 +167,12 @@ async function main() {
       console.log('ok', file);
     };
 
+    if (process.argv.includes('--fix2')) {
+      for (const o of FIX2_SHOTS) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?${o.q}`, `${o.name}_${dev}.png`, dev, o.js, o.after, o.wait);
+      for (const b of FIX2_BEATS) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?scene=story&id=kaiying3&ch=xinying&beat=${b}`, `kaiying3_b${b}_${dev}.png`, dev, undefined, 0, 3500);
+      await send('Browser.close').catch(() => {});
+      return;
+    }
     for (const [ch, id, beats] of STORY_SHOTS)
       for (const b of beats) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, `${id}_b${b}_${dev}.png`, dev, undefined, 0, 3500);
     mkdirSync(join(OUT, 'extra'), { recursive: true });

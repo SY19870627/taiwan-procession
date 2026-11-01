@@ -18,7 +18,7 @@ import { flashback } from '../ui/talk';
 import { isLooked, LOOK_TAG, natureOf, slayGhost, slayPreview, truthReel } from '../core/renown';
 import { beginNight, canOpen, dawnHeld, flareOf, judge as judge3, knelt, muted, useTrial } from '../core/dianjiang';
 import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
-import { banter } from '../ui/banter';
+import { banterStrip } from '../ui/banter';
 import { TRIAL } from '../core/layout';
 import { isBorrowedPortrait, portraitKey, portraitThumb, type Expr } from '../art/portraits';
 
@@ -32,6 +32,8 @@ export class TrialScene extends Phaser.Scene {
   private messages: string[] = [];
   /** 夜審互嗆（t_*）每個場合輪到第幾組 */
   private quipN: Record<string, number> = {};
+  /** 現在下方面板的上緣（夜審互嗆字幕條貼在它上面） */
+  private panelTop: number = TRIAL.panelY;
 
   constructor() {
     super('trial');
@@ -73,9 +75,9 @@ export class TrialScene extends Phaser.Scene {
       // 有立繪圖就用圖；右邊那位翻過來面向中間
       const art = portraitKey(this, o.label);
       const img = art
-        ? this.add.image(x, 506, art).setOrigin(0.5, 1).setFlipX(i === 1)
+        ? this.add.image(x, TRIAL.officer.bottom, art).setOrigin(0.5, 1).setFlipX(i === 1)
         : this.add.image(x, 500, o.tex).setOrigin(0.5, 1).setScale(1.2).setFlipX(i === 1);
-      if (art) img.setScale(Math.min(250 / img.height, 190 / img.width)).setAlpha(0.95);
+      if (art) img.setScale(Math.min(TRIAL.officer.h / img.height, 190 / img.width)).setAlpha(0.95);
       // 換色只給借來的圖（武判官、巡捕的立繪還沒到時）；畫師的正式立繪不換色
       if (o.tint && (!art || isBorrowedPortrait(o.label, art))) img.setTint(o.tint);
       txt(this, x, 510, o.label, 16, C.muted).setOrigin(0.5, 0);
@@ -106,6 +108,7 @@ export class TrialScene extends Phaser.Scene {
     this.add2(txt(this, W / 2, 140, `今夜還剩 ${left} 更（審一個花一更）`, 23, C.paper, { bold: false }).setOrigin(0.5, 0));
     const p = { x: 16, y: 560, w: W - 32, h: H - 576 };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
+    this.panelTop = p.y;
     if (!run.held.length || left <= 0) {
       this.add2(txt(this, p.x + 24, p.y + 24, run.held.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要審的鬼了。`, 24, C.paper, { bold: false }));
       this.add2(button(this, W / 2, p.y + p.h - 70, 280, 76, this.n === 3 ? T.finalLabel : '天亮', () => this.finish(), { size: 28, fill: 0x8a1b14 }));
@@ -173,6 +176,7 @@ export class TrialScene extends Phaser.Scene {
     // 最新的回應
     const p = { x: 16, y: TRIAL.panelY, w: W - 32, h: H - 16 - TRIAL.panelY };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
+    this.panelTop = p.y;
     const resp = this.add2(txt(this, p.x + 24, p.y + 18, line, 24, 0xfff3c4, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     let y = Math.max(p.y + 110, resp.y + resp.height + 16);
     const g = this.add2(this.add.graphics());
@@ -392,6 +396,7 @@ export class TrialScene extends Phaser.Scene {
     }
     const p = { x: 16, y: TRIAL.verdict.panelY, w: W - 32, h: H - 16 - TRIAL.verdict.panelY };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
+    this.panelTop = p.y;
     this.add2(txt(this, p.x + 24, p.y + 18, verdictName(v.verdict), 32, v.verdict === 'slay' ? 0xff8a8a : C.gold, { serif: true }));
     this.add2(txt(this, p.x + 24, p.y + 72, lines.join('\n'), 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.add2(button(this, W / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.lobby(), { size: 24, fill: 0x8a1b14 }));
@@ -401,14 +406,19 @@ export class TrialScene extends Phaser.Scene {
 
   /**
    * 第一、二章夜審互嗆（各章 banter 的 t_* 台詞）：一句一行，不擋操作。
-   * 放在下方面板上面的字幕條（core/layout.ts 的 TRIAL）：不蓋判官與鬼的臉、不蓋下方面板，字放大、底色加深。
+   * 全寬字幕條，貼在當時下方面板的上緣上面（core/layout.ts 的 TRIAL.strip）：只蓋判官與鬼的腰部以下、不蓋面板；
+   * 堂上左邊那位說話字就靠左（◀），右邊那位靠右（▶）。
    * 第三章沒有 t_* 台詞（點將問罪用 ui/dianjiang.ts 的 chat），這裡自己跳過。
    */
   private quip(key: string, delay = 350): void {
     const lib = CH().banter?.[key];
     if (!lib?.length) return;
     const n = (this.quipN[key] = (this.quipN[key] ?? -1) + 1);
-    this.time.delayedCall(delay, () => banter(this, lib[n % lib.length], TRIAL.chatY, 40, TRIAL.chatW, { size: TRIAL.chatSize, alpha: 0.82 }));
+    const right = CH().trial.officers[1]?.label;
+    const S = TRIAL.strip;
+    this.time.delayedCall(delay, () =>
+      banterStrip(this, lib[n % lib.length], { bottom: this.panelTop - S.gap, side: (who) => (who === right ? 'right' : 'left'), size: S.size, rowH: S.rowH, rows: S.rows }),
+    );
   }
 
   // ---------- 第三章：點將問罪的大廳 ----------
