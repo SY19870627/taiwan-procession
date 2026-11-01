@@ -737,7 +737,7 @@ export class BossHud extends Phaser.Scene {
       let yy = 380;
       const fills: Record<string, number> = { recall: 0x2f6f5a, return: 0x4a3a6a, slay: 0x8a1b14 };
       for (const o of F.ends) {
-        const why = o.needLast && !last ? '陣前審問最後一輪沒有說動牠' : '';
+        const why = o.needLast && !last ? '陣前審問最後一輪沒有說動牠' : o.needRound && !this.ok[o.needRound - 1] ? `陣前審問第 ${o.needRound} 輪沒有說動牠` : '';
         const b = button(this, x + 110, yy + 50, 170, 70, o.label, () => this.end(o.kind), { size: o.label.length > 3 ? 20 : 24, fill: fills[o.kind] });
         b.setEnabled(!why);
         m.add(b);
@@ -757,7 +757,11 @@ export class BossHud extends Phaser.Scene {
   private end(kind: 'recall' | 'return' | 'slay'): void {
     run.shijuEnd = kind;
     run.shijuJoined = kind === 'recall';
-    if (kind === 'slay') run.liqi = Math.min(3, run.liqi + 1);
+    // 斬魔王：第一、二章戾氣 +1；第三章（看斬的是誰）蛟是真惡，不加戾氣、威名 +1
+    if (kind === 'slay') {
+      if (CH().slayRule === 'renown') run.weiming = Math.min(5, run.weiming + 1);
+      else run.liqi = Math.min(3, run.liqi + 1);
+    }
     if (kind === 'recall') this.boss.leave('story', { id: CH().finale.recallStory, next: { key: 'end' } }, 800);
     else this.boss.leave('end', undefined, 800);
   }

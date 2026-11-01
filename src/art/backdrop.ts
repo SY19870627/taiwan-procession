@@ -297,7 +297,8 @@ export function skyColors(hour: number): [number, number] {
   return [last[1], last[2]];
 }
 
-export type StreetTheme = 'city' | 'mixed' | 'hill' | 'harbor' | 'shore';
+/** 第三章：village 庄頭街景、duckfarm 鴨母寮、ferry 溪邊渡口（第 2 階段才有專屬美術，之前借用相近的街景） */
+export type StreetTheme = 'city' | 'mixed' | 'hill' | 'harbor' | 'shore' | 'village' | 'duckfarm' | 'ferry';
 
 /**
  * 會往後捲動的街景：天空、遠景（城市或山）、街屋或田園、馬路。
@@ -322,6 +323,9 @@ export class Street {
   constructor(scene: Phaser.Scene, opts: { night: boolean; theme: StreetTheme; hour?: number }) {
     this.scene = scene;
     this.night = opts.night;
+    // 第三章的街景在第 2 階段才畫：先借用相近的（庄頭、鴨母寮 → 半城半鄉；渡口 → 山邊）
+    const BORROW: Partial<Record<StreetTheme, StreetTheme>> = { village: 'mixed', duckfarm: 'mixed', ferry: 'hill' };
+    opts = { ...opts, theme: BORROW[opts.theme] ?? opts.theme };
     this.theme = opts.theme;
     this.sky = scene.add.graphics().setDepth(-100);
     this.setHour(opts.hour ?? (opts.night ? 21 : 9));
@@ -334,7 +338,7 @@ export class Street {
     }
     const roadKey = opts.theme === 'shore' ? (opts.night ? 'sandN' : 'sandroad') : opts.night ? 'roadN' : 'road';
     this.road = scene.add.tileSprite(0, GROUND_Y - 90, W, H - (GROUND_Y - 90), roadKey).setOrigin(0, 0).setDepth(-60);
-    const MIX: Record<StreetTheme, number> = { city: 0, mixed: 0.3, hill: 0.8, harbor: 0.25, shore: 0.65 };
+    const MIX: Record<StreetTheme, number> = { city: 0, mixed: 0.3, hill: 0.8, harbor: 0.25, shore: 0.65, village: 0.5, duckfarm: 0.8, ferry: 0.8 };
     this.ruralMix = MIX[opts.theme];
     while (this.nextX < W + 300) this.addProp();
   }

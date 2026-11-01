@@ -23,6 +23,8 @@ export interface RouteDef {
   name: string;
   color: number;
   encounters: Encounter[];
+  /** 岔路後換街景（第三章：庄頭線進鴨母寮）；沒寫就沿用當天的 */
+  theme?: StreetTheme;
 }
 
 export interface DayPlan {

@@ -492,6 +492,17 @@ export class DayScene extends Phaser.Scene {
       this.skipRow(p, y, '最後一戰小妖 +1 波', () => this.skipImp());
       return;
     }
+    if (rule.mode === 'ring') {
+      // 乾坤圈（第三章）：不花時辰、不加戾氣。專屬動畫在第 3 階段做，先借用驅散的動畫
+      const { p, y: y0 } = this.cardHead('小妖', e.place, e.text, undefined, e.tex);
+      const y = this.optionRow(p, y0, rule.verb, '不花時辰', rule.result, '', () => {
+        if (this.busy) return;
+        this.busy = true;
+        this.band.scatter(() => { this.busy = false; this.after(rule.story, []); });
+      }, true);
+      this.skipRow(p, y, `最後一戰蝦兵 +${rule.skipAdds} 波`, () => this.skipImp());
+      return;
+    }
     // 押煞上船：用王令，不花時辰；王令每天有限
     const { p, y: y0 } = this.cardHead('小妖', e.place, `${e.text}\n今天的王令還有 ${run.decrees}／${rule.perDay} 道。`, undefined, e.tex);
     const why = run.decrees <= 0 ? '今天的王令用完了' : '';

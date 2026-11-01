@@ -3,7 +3,7 @@
  * 遊戲中一律使用虛構名稱（見設計文件 14.5 命名原則）。
  */
 
-export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun';
+export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun' | 'taizi' | 'zhangjiang' | 'jiao' | 'jiaoCalm';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -20,6 +20,11 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   heichao: { name: '黑潮', tex: 'heichao', side: 'right', scale: 1.0 },
   heichaoCalm: { name: '黑潮', tex: 'heichao_calm', side: 'right', scale: 1.0 },
   zhongjun: { name: '中軍府', tex: 'zhongjun', side: 'left', scale: 1.7 },
+  // 第三章（新瀛）：神明可以畫臉（決策紀錄 2026-10-27），太子與五將用立繪
+  taizi: { name: '太子爺', tex: 'w3_flags', side: 'left', scale: 1.4 },
+  zhangjiang: { name: '章將軍', tex: 'w3_zhang', side: 'left', scale: 1.7 },
+  jiao: { name: '蛟', tex: 'xia_imp', side: 'right', scale: 2.0 },
+  jiaoCalm: { name: '蛟', tex: 'xia_imp', side: 'right', scale: 2.0 },
 };
 
 /** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */
@@ -29,6 +34,8 @@ export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import
   god: ['decree', 'normal'], kaijiang: ['decree', 'normal'], yun: ['decree', 'normal'],
   judge: ['judge', 'normal'], zhongjun: ['zhongjun', 'normal'],
   heichao: ['heichao', 'angry'], heichaoCalm: ['heichao', 'calm'],
+  taizi: ['taizi', 'normal'], zhangjiang: ['zhangjiang', 'normal'],
+  jiao: ['jiao', 'angry'], jiaoCalm: ['jiao', 'calm'],
 };
 
 export interface Line {
@@ -89,6 +96,26 @@ export const CUTSCENES: Record<string, Cutscene> = {
       { who: 'yun', text: '上船吧。千歲爺帶你們回去。', fx: 'flash' },
       { who: 'heichaoCalm', text: '……可以回家了嗎？' },
       { who: 'narrator', text: '王船點了火。火光裡，海面上好像有五個人影，朝岸上揮了揮手。', fx: 'firecracker' },
+    ],
+  },
+  // ---------- 第三章：新瀛・太子出營【第 1 階段暫代：第 6 階段寫完整過場】 ----------
+  jiao3: {
+    mood: 'demon',
+    place: '疾水溪・收營夜',
+    lines: [
+      { who: 'narrator', text: '溪水倒流了一整天。入夜，疾水溪的水面整個鼓了起來。' },
+      { who: 'jiao', text: '哪來的小鬼，在我的溪邊插旗子？' },
+      { who: 'jiao', text: '……喔？你就是當年鬧海那個小鬼？', fx: 'shake' },
+      { who: 'taizi', text: '站好，別說我偷襲。', expr: 'cocky' },
+    ],
+  },
+  jiaoRecall: {
+    mood: 'dawn',
+    place: '疾水溪・天將亮',
+    lines: [
+      { who: 'jiaoCalm', text: '……我輸了。' },
+      { who: 'taizi', text: '我只是缺一隻坐騎。', expr: 'pout', fx: 'flash' },
+      { who: 'zhangjiang', text: '太子，您嘴角在笑。' },
     ],
   },
   retreat: {

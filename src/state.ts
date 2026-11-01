@@ -41,8 +41,11 @@ export interface RunState {
   flags: Record<string, boolean>;
   /** 證物袋：白天拿到的證據 id */
   evidence: string[];
-  /** 令旗下收容中的鬼（grudge：怨氣 0–3，到 3 會掙脫） */
-  held: { id: string; grudge: number }[];
+  /**
+   * 令旗下收容中的鬼（grudge：怨氣 0–3，到 3 會掙脫）。
+   * 第三章：tamed＝被太子壓過一晚（隔天氣焰 -1）；looked＝北營看過相。
+   */
+  held: Held[];
   /** 收容格數 */
   slots: number;
   /** 戾氣 0–3：斬鬼會上升，鬼魂會躲起來或逃走 */
@@ -55,6 +58,23 @@ export interface RunState {
   retries: number;
   /** 三天總共捉到的小妖 */
   totalCaptured: number;
+  /** 第三章：威名 0–5（斬十惡、揭穿後斬真惡 +1）；其他章一直是 0 */
+  weiming: number;
+  /** 第三章：今晚還能審幾案（每晚 2 案）；沒有限制的章節是 undefined */
+  trialsLeft?: number;
+}
+
+export interface Held {
+  id: string;
+  grudge: number;
+  tamed?: boolean;
+  looked?: boolean;
+}
+
+/** 開始一章時，依章節設定的收容格數與預放的鬼（第一、二章：3 格、不預放） */
+export interface RunOpts {
+  slots?: number;
+  startHeld?: string[];
 }
 
 export function newRun(): RunState {
@@ -71,6 +91,7 @@ export function newRun(): RunState {
     held: [],
     slots: 3,
     liqi: 0,
+    weiming: 0,
     cases: {},
     bossAdds: 0,
     b: { ...newBelievers() },
@@ -85,10 +106,12 @@ export function newRun(): RunState {
 /** 全域唯一的進度（原型不存檔） */
 export let run: RunState = newRun();
 
-export function resetRun(chapter = 'wanjia', believers?: Record<string, string>): void {
+export function resetRun(chapter = 'wanjia', believers?: Record<string, string>, opts: RunOpts = {}): void {
   run = newRun();
   run.chapter = chapter;
   if (believers) run.b = { ...believers };
+  if (opts.slots) run.slots = opts.slots;
+  if (opts.startHeld) run.held = opts.startHeld.map((id) => ({ id, grudge: 0 }));
 }
 
 export function clamp(v: number, lo: number, hi: number): number {

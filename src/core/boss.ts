@@ -17,7 +17,8 @@ import { ENEMIES, type EnemyId } from './units';
 
 export type Row = 'front' | 'back';
 export type Role = 'melee' | 'ranged' | 'support';
-export type BattleMode = 'subdue' | 'escort';
+/** jiao（第三章・疾水溪的蛟）：第 5 階段實作；在那之前不要在設定裡用 */
+export type BattleMode = 'subdue' | 'escort' | 'jiao';
 
 export interface MemberStats {
   key: string;
@@ -34,21 +35,25 @@ export interface MemberStats {
   /** 受到傷害的倍率 */
   guard: number;
   /** 特色 */
-  trait?: 'chain' | 'block' | 'quake' | 'slow' | 'haste' | 'heal' | 'frost';
+  /** 第三章五將（第 5 階段實作）：cover 替前排擋一下、combo 與太子合擊、snipe 專打頭目、stun 定身 */
+  trait?: 'chain' | 'block' | 'quake' | 'slow' | 'haste' | 'heal' | 'frost' | 'cover' | 'combo' | 'snipe' | 'stun';
 }
 
 /** 主神的兩個法術（每一章的神明不同，法術也不同） */
-export type SpellId = 'smite' | 'bless' | 'wuhuo' | 'wangling';
+export type SpellId = 'smite' | 'bless' | 'wuhuo' | 'wangling' | 'qiankun' | 'chujiao';
 
 export const SPELLS: Record<SpellId, { name: string; cd: number; desc: string }> = {
   smite: { name: '天令', cd: 15, desc: '雷擊最前面的妖群' },
   bless: { name: '淨符', cd: 25, desc: '神轎與陣頭回血' },
   wuhuo: { name: '五王火', cd: 20, desc: '前排前方燒起火牆 5 秒' },
   wangling: { name: '王令', cd: 15, desc: '押走拖船的觸手（沒有就押最近的妖怪）' },
+  // 第三章（第 5 階段實作效果）
+  qiankun: { name: '乾坤圈', cd: 12, desc: '打爆全場小妖，對蛟小傷' },
+  chujiao: { name: '太子出轎', cd: 35, desc: '太子親自上前排 8 秒，傷害極高' },
 };
 
 /** 超渡亡魂後增加的技能（劇情上是王爺的神威增長） */
-export type SkillId = 'huichun' | 'hanshuang' | 'zhensha' | 'dingfeng' | 'shunfeng' | 'pingan';
+export type SkillId = 'huichun' | 'hanshuang' | 'zhensha' | 'dingfeng' | 'shunfeng' | 'pingan' | 'qunya' | 'baidu';
 
 export const SKILLS: Record<SkillId, { name: string; cd: number; desc: string }> = {
   huichun: { name: '回春符', cd: 30, desc: '全隊陣頭回 35% 血，神轎回 10%' },
@@ -57,6 +62,9 @@ export const SKILLS: Record<SkillId, { name: string; cd: number; desc: string }>
   dingfeng: { name: '定風旗', cd: 40, desc: '黑潮捲浪時插旗，浪頭直接散掉' },
   shunfeng: { name: '順風令', cd: 35, desc: '王船 6 秒內走兩倍快，觸手拖不住' },
   pingan: { name: '平安米', cd: 30, desc: '撒米：全隊陣頭回 35% 血，王船回 10%' },
+  // 第三章（第 5 階段實作效果）
+  qunya: { name: '群鴨陣', cd: 40, desc: '鴨群衝上去，替前排擋蛟一次' },
+  baidu: { name: '擺渡篙', cd: 40, desc: '蛟翻江時一篙打斷，直接喘息' },
 };
 
 export type Wave = [time: number, enemy: EnemyId, count: number, gap: number];
