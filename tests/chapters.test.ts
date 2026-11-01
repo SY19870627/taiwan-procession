@@ -3,8 +3,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { CHAPTERS, ghostMood, startChapter, summary } from '../src/content/chapter';
-import { run } from '../src/state';
+import { newRun, run } from '../src/state';
 import * as state from '../src/state';
+import { beginNight, dawnHeld } from '../src/core/dianjiang';
+import { slayGhost } from '../src/core/renown';
+import { play, planBrain } from './sim3';
 
 describe('三章的 ChapterDef', () => {
   it('三章都註冊了，必要欄位齊全', () => {
@@ -106,5 +109,73 @@ describe('白天規則：第一、二章不變', () => {
     expect(imp('wanjia')).toBe('驅散 1 時辰');
     expect(imp('dongjin')).toBe('押煞上船・王令 1 道');
     expect(imp('xinying')).toBe('乾坤圈・不花時辰');
+  });
+});
+
+describe('章節切換（第 7 階段）：整章玩完第三章，再開第一、二章', () => {
+  /** 用模擬器把第三章三天三夜整個玩完（威名、戾氣、證據、判決、點將進度、每晚案數都會變） */
+  const playCh3 = () => {
+    const st = play(planBrain({ routes: [0, 0, 0], targets: ['yamupo', 'hutou', 'zhizha', 'dubo'], wicked: 'slay', prefer: { dubo: 'recruit' } }));
+    state.run.retries = 2;
+    state.run.shijuEnd = 'recall';
+    return st;
+  };
+
+  it('第三章玩完之後狀態確實變了（不然這組測試沒意義）', () => {
+    playCh3();
+    expect(state.run.weiming).toBeGreaterThan(0);
+    expect(state.run.evidence.length).toBeGreaterThan(5);
+    expect(state.run.trialsLeft).toBeDefined();
+    expect(Object.values(state.run.cases).some((c) => c.dj)).toBe(true);
+    expect(state.run.flags.recruit_dubo).toBe(true);
+  });
+
+  for (const id of ['wanjia', 'dongjin']) {
+    it(`再開${CHAPTERS[id].place}：除了章節與信徒，整份進度和全新的一樣（3 格、沒有預放的鬼、威名 0、不限案數）`, () => {
+      playCh3();
+      startChapter(id);
+      const fresh = newRun();
+      const { chapter, b, ...rest } = state.run;
+      const { chapter: _c, b: _b, ...freshRest } = fresh;
+      void _c; void _b;
+      expect(chapter).toBe(id);
+      expect(b).toEqual(CHAPTERS[id].newBelievers());
+      expect(rest).toEqual(freshRest);
+      expect(state.run.slots).toBe(3);
+      expect(state.run.held).toEqual([]);
+      expect(state.run.weiming).toBe(0);
+      expect(state.run.trialsLeft).toBeUndefined();
+    });
+
+    it(`再開${CHAPTERS[id].place}：規則也回到原本的（入夜不限案數、天亮怨氣 +1、斬一律加戾氣、沒有威名嚇跑）`, () => {
+      playCh3();
+      startChapter(id);
+      const ch = CHAPTERS[id];
+      beginNight(state.run, ch);
+      expect(state.run.trialsLeft).toBeUndefined();
+      const k = Object.values(ch.cases)[0];
+      state.run.held.push({ id: k.id, grudge: 0 });
+      dawnHeld(state.run, ch);
+      expect(state.run.held[0]?.grudge).toBe(1);
+      state.run.weiming = 5;
+      expect(ghostMood(state.run, k.id)).toBe('normal');
+      const before = state.run.liqi;
+      slayGhost(state.run, k, ch);
+      expect(state.run.liqi).toBe(Math.min(3, before + 1 + (k.innocent ? 1 : 0)));
+      expect(state.run.weiming).toBe(5);
+    });
+  }
+
+  it('第一章玩到一半再開第三章：五格、開局押著三隻，前一章的證據與旗標不會帶過來', () => {
+    startChapter('wanjia');
+    state.run.evidence.push('x');
+    state.run.flags.allied = true;
+    state.run.liqi = 3;
+    startChapter('xinying');
+    expect(state.run.slots).toBe(5);
+    expect(state.run.held.map((h) => h.id)).toEqual(['yamupo', 'shuigui', 'huosha']);
+    expect(state.run.evidence).toEqual([]);
+    expect(state.run.flags).toEqual({});
+    expect(state.run.liqi).toBe(0);
   });
 });

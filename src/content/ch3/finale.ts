@@ -1,6 +1,6 @@
 /**
  * 第三章最後一戰：疾水溪・蛟（core/boss.ts 的 jiao 模式）。
- * 蛟的頭伸上岸咬前排；翻江（浪頭升起預告 2.5 秒）掃過前排；蝦兵一波波上岸；每 ~20 秒拖後排一人下水。
+ * 蛟的頭伸上岸咬前排；翻江（浪頭升起預告 2.5 秒）掃過前排；蝦兵一波波上岸；每 25 秒拖後排一人下水（大綱 ~20 秒；第 7 階段放寬，D87）。
  * 太子的法術：乾坤圈、太子出轎。五營合陣：四將與出轎的太子各在前排站滿 5 秒插旗，五面插齊大傷蛟。
  * 陣前審問三輪（70%／40%／10%）照大綱 §9；第 3 輪之後太子全開。
  */
@@ -8,7 +8,7 @@ import type { RunState } from '../../state';
 import type { BossSetup, JiaoCamp, MemberStats, Row, SkillId, Wave } from '../../core/boss';
 import type { FinaleRound } from '../finale';
 
-/** 五將與收編的鬼（第 5 階段初版數值；第 7 階段平衡定案） */
+/** 五將與收編的鬼（第 5 階段初版數值，第 7 階段平衡定案：拖人間隔 20 → 25 秒，其他不變） */
 export const MEMBER_STATS3: Record<string, MemberStats & { tex: string[]; desc: string }> = {
   zhang: { key: 'zhang', name: '東營・章將軍', role: 'melee', hp: 320, atk: 18, cd: 1.3, range: 170, aoe: 0, guard: 0.85, trait: 'cover', tex: ['b3_zhang'], desc: '前排肉盾：格擋，替前排隊友擋蛟一口' },
   xiao: { key: 'xiao', name: '南營・霄將軍', role: 'melee', hp: 210, atk: 26, cd: 1.1, range: 170, aoe: 0, guard: 1, trait: 'combo', tex: ['b3_xiao'], desc: '前排爆發：和出轎的太子同在前排就合擊' },
@@ -48,8 +48,8 @@ export function finaleSetup3(r: RunState): BossSetup {
     if (row === 'front') front++;
     return { stats: st, row };
   });
-  // 隊伍越大，蛟要磨得越久（每多一個成員力氣 +8%）；重來一次，蛟的力氣也耗掉一些（每次 -15%）
-  const big = 1 + 0.08 * (members.length - 4);
+  // 隊伍越大，蛟要磨得越久（每多一個成員力氣 +4%；第三章收編的鬼多半是輔助、攻擊弱，第 7 階段從 +8% 降下來，D88）；重來一次，蛟的力氣也耗掉一些（每次 -15%）
+  const big = 1 + 0.04 * (members.length - 4);
   // 阿玲的孩子、阿凱的陣頭：凡人的聲音傳過來，太子全開更久（D10）
   const voices = r.b.aling === 'pacifier' || r.b.akai === 'danced';
   return {
@@ -66,7 +66,7 @@ export function finaleSetup3(r: RunState): BossSetup {
     waves: WAVES3,
     jiao: {
       surgeEvery: 12,
-      dragEvery: 20,
+      dragEvery: 25,
       formationDmg: 0.15,
       taizi: { ...MEMBER_STATS3.taizi },
       chujiaoTime: 8,

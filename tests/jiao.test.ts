@@ -13,7 +13,9 @@ import { finaleSetup2 } from '../src/content/ch2/finale';
 import { newRun, type RunState } from '../src/state';
 import { CHAPTER3 } from '../src/content/ch3';
 
-type Policy = 'idle' | 'spells' | 'rotate' | 'flags';
+/** human：照營旗輪換，但像真人一樣每 2 秒才看一次：最多換一個人，順手按下冷卻好了的法術、技能 */
+type Policy = 'idle' | 'spells' | 'rotate' | 'flags' | 'human';
+const HUMAN_PACE = 2;
 
 const ch3Run = (f?: (r: RunState) => void): RunState => {
   const r = newRun();
@@ -52,12 +54,24 @@ function wantFront(b: BossBattle): Unit[] {
 export function simulate(r: RunState, pol: Policy, seed = 7, setup?: Partial<BossSetup>) {
   const b = new BossBattle({ ...finaleSetup3(r), ...setup, seed });
   let swaps = 0;
+  let next = 0;
   const ev: Record<string, number> = {};
   while (!b.result && b.t < 400) {
     b.step(1 / 30);
     for (const e of b.drainEvents()) {
       ev[e.type] = (ev[e.type] ?? 0) + 1;
       if (e.type === 'trial') b.answer(e.round, r.flags[`ans${e.round}`] !== false);
+    }
+    if (pol === 'human') {
+      if (b.t < next) continue;
+      next = b.t + HUMAN_PACE;
+      castAll(b);
+      const want = wantFront(b);
+      const out = b.front.find((u) => !u.taizi && !want.includes(u));
+      if (out && b.swap(out.uid)) { swaps++; continue; }
+      const inn = want.find((u) => u.row === 'back' && u.moving <= 0);
+      if (inn && b.frontCount() < FRONT_MAX && b.swap(inn.uid)) swaps++;
+      continue;
     }
     if (pol !== 'idle') castAll(b);
     if (pol === 'rotate') {
@@ -374,42 +388,84 @@ describe('蛟：規則', () => {
   });
 });
 
-describe('蛟：平衡（初版，第 7 階段定案）', () => {
+/** 準備很好：收編虎頭、鴨母婆、紙紮童、渡伯（帶路），超渡不到鴨母婆（收編了），阿玲請到奶嘴 */
+const good = () => ch3Run((r) => {
+  r.flags.recruit_hutou = r.flags.recruit_yamupo = r.flags.recruit_zhizha = r.flags.recruit_dubo = true;
+  r.cases.dubo = { verdict: 'recruit', truths: [] };
+  r.b.aling = 'pacifier';
+});
+/** 準備很好（另一種）：超渡鴨母婆與渡伯 → 群鴨陣、擺渡篙兩個技能；收編虎頭 */
+const goodRelease = () => ch3Run((r) => {
+  r.cases.yamupo = { verdict: 'release', truths: [] };
+  r.cases.dubo = { verdict: 'release', truths: [] };
+  r.flags.recruit_hutou = true;
+  r.b.akai = 'danced';
+});
+/** 準備很糟：略過小妖、用神蹟，蝦兵多 4 波；陣前審問前兩輪都答錯 */
+const bad = (retries = 0) => ch3Run((r) => { r.bossAdds = 4; r.flags.ans1 = r.flags.ans2 = false; r.retries = retries; });
+const plain = (retries = 0) => ch3Run((r) => { r.retries = retries; });
+
+/**
+ * 平衡定案（第 7 階段）。目標（計畫 §2.4 最後一列）：
+ *  只按法術不換位會輸；換位但沒湊齊合陣很辛苦；輪到五營合陣可以穩贏——而且是真人做得到的節奏（human：每 2 秒一個動作）。
+ *  準備越好越輕鬆；準備很糟仍有機會；輸了重來（蛟每次 -15%）要越來越容易，重來兩次後連「換位不管旗」也打得過。
+ * 結果記在計畫 §9。
+ */
+describe('蛟：平衡（第 7 階段定案）', () => {
   it('什麼都不做會輸', () => {
-    const o = avg(ch3Run(), 'idle');
+    const o = avg(plain(), 'idle');
     console.log('jiao idle', o);
     expect(o.win).toBe(0);
   });
-  it('只按法術、不換位：會輸', () => {
-    const o = avg(ch3Run(), 'spells');
+  it('只按法術、不換位：會輸（準備很好也一樣）', () => {
+    const o = avg(plain(), 'spells');
     console.log('jiao spells', o);
-    expect(o.win).toBeLessThanOrEqual(1);
+    expect(o.win).toBe(0);
+    expect(avg(good(), 'spells').win).toBeLessThanOrEqual(2);
   });
-  it('換位但不管營旗：很辛苦', () => {
-    const o = avg(ch3Run(), 'rotate');
+  it('換位但不管營旗：很辛苦（輸多贏少）', () => {
+    const o = avg(plain(), 'rotate');
     console.log('jiao rotate', o);
+    expect(o.win).toBeGreaterThanOrEqual(1);
     expect(o.win).toBeLessThanOrEqual(4);
   });
-  it('照營旗輪換：穩贏', () => {
-    const o = avg(ch3Run(), 'flags');
+  it('照營旗輪換：穩贏（反應最快的模擬與每 2 秒一個動作的真人節奏都是）', () => {
+    const o = avg(plain(), 'flags');
     console.log('jiao flags', o);
-    expect(o.win).toBeGreaterThanOrEqual(7);
-  });
-  it('準備很好（收編三隻鬼、渡伯帶路、兩個技能、凡人的聲音）照營旗輪換：全勝', () => {
-    const r = ch3Run((r) => {
-      r.flags.recruit_hutou = r.flags.recruit_yamupo = r.flags.recruit_zhizha = r.flags.recruit_dubo = true;
-      r.cases.dubo = { verdict: 'recruit', truths: [] };
-      r.b.aling = 'pacifier';
-    });
-    const o = avg(r, 'flags');
-    console.log('jiao prepared/flags', o);
     expect(o.win).toBe(SEEDS.length);
+    const h = avg(plain(), 'human');
+    console.log('jiao human', h);
+    expect(h.win).toBeGreaterThanOrEqual(SEEDS.length - 1);
+    // 換位次數：真人節奏平均一場 45 次以內、比反應最快的模擬少（第 5 階段初版平均要 50 次以上，§7 Q24）
+    const mean = (pol: Policy) => SEEDS.map((s) => simulate(plain(), pol, s).swaps).reduce((a, b) => a + b, 0) / SEEDS.length;
+    expect(mean('human')).toBeLessThanOrEqual(45);
+    expect(mean('human')).toBeLessThan(mean('flags'));
   });
-  it('準備很糟（蝦兵多 4 波、審問全錯）照營旗輪換：還有機會；不換位必輸', () => {
-    const r = ch3Run((r) => { r.bossAdds = 4; r.flags.ans1 = r.flags.ans2 = false; });
-    const o = avg(r, 'flags');
+  it('準備很好（收編三隻鬼＋渡伯帶路＋凡人的聲音／或超渡出兩個技能）照營旗輪換：全勝，而且比沒準備快', () => {
+    for (const r of [good, goodRelease]) {
+      const o = avg(r(), 'human');
+      console.log('jiao prepared/human', o);
+      expect(o.win).toBe(SEEDS.length);
+    }
+    const t = (r: RunState) => SEEDS.map((s) => simulate(r, 'flags', s).t).reduce((a, b) => a + b, 0);
+    expect(t(good())).toBeLessThan(t(plain()));
+  });
+  it('準備很糟（蝦兵多 4 波、審問前兩輪都錯）：照營旗輪換還有機會；不換位必輸', () => {
+    const o = avg(bad(), 'flags');
     console.log('jiao bad/flags', o);
     expect(o.win).toBeGreaterThanOrEqual(1);
-    expect(avg(r, 'spells').win).toBe(0);
+    expect(avg(bad(), 'spells').win).toBe(0);
+    expect(avg(bad(), 'human').win).toBeLessThan(SEEDS.length);
+  });
+  it('重來：每重來一次更容易；準備很糟重來兩次，真人節奏照營旗輪換也穩贏', () => {
+    const w = [0, 1, 2].map((n) => avg(bad(n), 'human').win);
+    console.log('jiao bad/human retries 0,1,2', w);
+    expect(w[1]).toBeGreaterThanOrEqual(w[0]);
+    expect(w[2]).toBeGreaterThanOrEqual(w[1]);
+    expect(w[2]).toBeGreaterThanOrEqual(SEEDS.length - 1);
+    // 沒準備、重來兩次：換位但不管營旗也多半打得過（給卡關的玩家一條路）
+    const r2 = avg(plain(2), 'rotate');
+    console.log('jiao plain/rotate retries 2', r2);
+    expect(r2.win).toBeGreaterThanOrEqual(5);
   });
 });

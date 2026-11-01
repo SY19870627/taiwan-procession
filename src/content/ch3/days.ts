@@ -71,6 +71,7 @@ const DAY2: DayPlan = {
         ghost('shuyao2', '廟埕・祝壽供桌', 'shuyao'),
         { kind: 'talk', id: 'kids', place: '廟埕', who: '廟埕的小孩們', evidence: 'kids_word', hours: 1, tex: 'n3_kids', text: '一群小孩舉著糖果跑來跑去，說舊壇那邊的「太子」會說話。' },
         { kind: 'clue', id: 'paper_book', place: '紙紮店', evidence: 'paper_book', hours: 1, text: '廟埕旁的紙紮店，老闆在翻一本很舊的帳本。' },
+        { kind: 'clue', id: 'censer_order', place: '紙紮店・櫃台', evidence: 'censer_order', hours: 1, text: '紙紮店的櫃台上壓著一疊訂單，最上面那張的字歪歪扭扭的，像小孩寫的。' },
         { kind: 'imp', id: 'stage', place: '廟埕・電音三太子陣頭後台', tex: 'xia_imp', text: '陣頭後台的電線堆裡，蝦兵咬著電線，想讓音響斷電。' },
       ],
     },

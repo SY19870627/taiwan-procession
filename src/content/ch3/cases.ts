@@ -38,6 +38,8 @@ export const EVIDENCE3: Record<string, Evidence> = {
   kids_word: { id: 'kids_word', kind: '證詞', name: '小孩們的話', text: '「舊壇那個太子會說話喔！可是下雨天他會皺皺的，背後還有一條竹子。」', ghost: 'zhizha', where: '廟埕的小孩們（第二天廟埕線）' },
   swapped_censer: { id: 'swapped_censer', kind: '物證', name: '被換掉的香爐', text: '舊神壇上的香爐是紙糊的，一碰就凹。原本的銅香爐被丟在壇後的草叢裡，裡面的香灰早就冷了。', ghost: 'zhizha', where: '舊神壇的線索（第二天舊壇線）' },
   paper_book: { id: 'paper_book', kind: '文獻', name: '紙紮店的舊帳', text: '紙紮店的舊帳本：「某年某月，喪家訂紙紮童子一對。」旁邊用紅筆補了一行：「出殯那天下雨，只燒了一個。」', ghost: 'zhizha', where: '紙紮店的線索（第二天廟埕線）' },
+  // 第 7 階段補：被換掉的香爐只在舊壇線、小孩們的話與舊帳只在廟埕線，同一天只能走一條，原本沒有任何路線組合查得完紙紮童（D89）
+  censer_order: { id: 'censer_order', kind: '文獻', name: '紙香爐的訂單', text: '夾在紙紮店舊帳裡的一張訂單：「舊壇，紙香爐一個，照銅爐的樣子糊。」訂的人沒寫名字，只歪歪扭扭簽了兩個字：太子。', ghost: 'zhizha', where: '紙紮店櫃台的線索（第二天廟埕線）' },
   akai_creek: { id: 'akai_creek', kind: '證詞', name: '阿凱的話（半夜的小孩）', text: '「我上大夜，凌晨三點常看到小孩自己往溪邊走，前面好像有一個穿紅肚兜的小孩在帶路。我追過去，就不見了。」', ghost: 'zhizha', where: '阿凱（第二天太子殿・祝壽，陪他聊大夜班）' },
   zhizha_word: { id: 'zhizha_word', kind: '證詞', name: '紙紮童的話', text: '「是溪底那位叫我的……他說，帶小孩去溪灣玩，就讓我當真的太子。」', ghost: 'zhizha', where: '夜審紙紮童（氣焰打到歸零）才問得到；直接斬就問不到' },
   // 渡伯
@@ -195,7 +197,7 @@ export const CASES3: Record<string, GhostCase> = {
     flare: 4,
     taunts: [
       { line: '「喔？你也是太子？我才是太子！小孩都這樣叫我！」', type: 'lie', evidence: ['kids_word'], truth: 0, hit: '章將軍：「小孩們說，你下雨天會皺，背後還有一條竹子。」\n「才、才沒有！」紙紮童趕緊把背貼到牆上。', miss: '「你看，你連證據都沒有。我才是真的！」' },
-      { line: '「香爐本來就是這個樣子的啦！」', type: 'excuse', evidence: ['swapped_censer'], truth: 1, hit: '柳將軍：「中。」\n真正的銅香爐落在紙香爐旁邊，紙香爐被壓扁了。', miss: '「拿不出來喔？哈哈。」' },
+      { line: '「香爐本來就是這個樣子的啦！」', type: 'excuse', evidence: ['swapped_censer', 'censer_order'], truth: 1, hit: '柳將軍：「中。」\n香爐是照銅爐的樣子糊的紙，一按就凹。紙香爐被壓扁了。', miss: '「拿不出來喔？哈哈。」' },
       { line: '「我是神壇供的，有開光的！」', type: 'excuse', evidence: ['paper_book'], truth: 2, hit: '柳將軍：「中。」\n紙紮店的帳本攤開：「出殯那天下雨，只燒了一個。」\n紙紮童的臉一下子白了，比紙還白。', miss: '「有開光就是有開光！」' },
       { line: '「我只是陪小孩玩，哪有去什麼溪邊！」', type: 'lie', evidence: ['akai_creek'], truth: 3, hit: '章將軍：「上大夜的阿凱說，凌晨三點看到穿紅肚兜的小孩帶人往溪邊走。」\n太子的臉沉了下來。', miss: '「小孩自己要跟的啊。」' },
       { line: '「你們算什麼東西？給我跪下！」', type: 'taunt', hit: '太子：「喔？」\n乾坤圈落地，噹的一聲。紙紮童當場跪了下去，膝蓋都折出了摺痕。', miss: '「哼，不敢動手吧！」' },
