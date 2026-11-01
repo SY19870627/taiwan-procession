@@ -66,8 +66,8 @@ describe('第一、二章白天互嗆', () => {
     const used = new Set<string>();
     for (const line of daySrc.split('\n').filter((l) => /\bbanter\(/.test(l))) for (const m of line.matchAll(/'(\w+)'/g)) used.add(m[1]);
     if (daySrc.includes('this.banter(`walk${this.plan.day}`)')) for (const d of [1, 2, 3]) used.add(`walk${d}`);
-    // 夜審 t_* 在 TrialScene（tests/trial12.test.ts 檢查）
-    for (const lib of [BANTER1, BANTER2]) for (const key of Object.keys(lib).filter((k) => !k.startsWith('t_'))) expect(used.has(key), key).toBe(true);
+    // 夜審 t_* 在 TrialScene（tests/trial12.test.ts 檢查）、最後一戰 b_* 在 BossScene（tests/boss12.test.ts）
+    for (const lib of [BANTER1, BANTER2]) for (const key of Object.keys(lib).filter((k) => !k.startsWith('t_') && !k.startsWith('b_'))) expect(used.has(key), key).toBe(true);
   });
 
   it('小妖：驅散（第一章）與押煞上船（第二章）都播 imp，第三章乾坤圈不碰', () => {

@@ -33,6 +33,8 @@ const SHOW_GAP = 90;
 const SHOW_TAIZI_ROOM = 70;
 
 export const BAND_Y = 132;
+/** 陣前審問動畫的長度（滑出結束）；互嗆等它播完才插嘴 */
+export const TRIAL_ANIM_MS = 4500;
 const ZOOM = W / FW;
 export const BAND_H = Math.round(FH * ZOOM);
 const BIG = 1.6;
@@ -510,12 +512,14 @@ export class BossScene extends Phaser.Scene {
           break;
         case 'quake':
           this.ring(e.x, e.r, 0xe9b949);
+          this.hud.chat('b_quake');
           break;
         case 'chain': {
           const g = this.add.graphics().setDepth(68);
           g.lineStyle(4, 0xc8c8d8, 1);
           g.lineBetween(e.fromX, GROUND_Y - 60, e.toX, GROUND_Y - 60);
           this.tweens.add({ targets: g, alpha: 0, duration: 500, onComplete: () => g.destroy() });
+          this.hud.chat('b_chain');
           break;
         }
         case 'block':
@@ -528,16 +532,17 @@ export class BossScene extends Phaser.Scene {
           if (e.ally) {
             this.ft(this.showX(e.x), GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
             this.hud.toast(`${e.name}倒下了`, 0xff8a8a);
-            if (this.jiao) this.hud.chat('b_down');
+            this.hud.chat('b_down');
           }
           break;
         case 'paw':
           this.cameras.main.shake(300, 0.003);
           this.hud.toast(this.jiao ? '蛟退回溪裡，浪頭升起來了！要翻江：讓北營廉將軍站前排（傷害減半）、血少的退下' : esc ? '黑潮的浪頭升起來了！馬上要捲浪：血少的退到後排' : '石駒刨地！馬上要衝鋒：血少的退到後排', 0xff6a6a, 2600);
-          if (this.jiao) this.hud.chat('b_wave');
+          this.hud.chat(this.jiao ? 'b_wave' : 'b_paw');
           break;
         case 'charge':
           this.cameras.main.shake(500, 0.008);
+          this.hud.chat('b_charge');
           break;
         case 'breath':
           if (this.jiao) {
@@ -546,6 +551,7 @@ export class BossScene extends Phaser.Scene {
             break;
           }
           this.hud.toast(esc ? '退潮了：王船順著退潮走得快' : run.intel.bellyWound ? '石駒喘息中：打肚子的舊傷！把輸出推上前排' : '石駒喘息中：趁現在猛攻', 0xffd0d0, 2600);
+          this.hud.chat('b_breath');
           break;
         case 'callout':
           if (esc || this.jiao) this.hud.toast(this.jiao ? '浪頭半路散了：蛟動搖了' : '浪頭半路散了', 0xfff3c4, 2400);
@@ -569,9 +575,11 @@ export class BossScene extends Phaser.Scene {
         case 'grab':
           this.ring(e.x, 120, 0x5a5aaa);
           this.hud.toast('觸手從沙裡伸出來，拖住王船！（王令、五王火）', 0xb0b0ff, 2400);
+          this.hud.chat('b_grab');
           break;
         case 'pushback':
           this.hud.toast('前排沒人：浪打上王船，往回推了一段', 0xff8a8a, 2400);
+          this.hud.chat('b_shipLow');
           break;
         case 'palanquin':
           this.cameras.main.shake(120, 0.004);
@@ -810,7 +818,7 @@ export class BossHud extends Phaser.Scene {
   private cueBox?: Phaser.GameObjects.Container;
   private cueTxt?: Phaser.GameObjects.Text;
   private cueShown = -1;
-  /** 第三章：戰鬥中的互嗆（兩組之間至少隔幾秒，不洗版） */
+  /** 戰鬥中的互嗆（兩組之間至少隔幾秒，不洗版） */
   private chatter = new BanterPicker(undefined);
 
   constructor() {
@@ -838,7 +846,8 @@ export class BossHud extends Phaser.Scene {
     const esc = this.battle.mode === 'escort';
     const jiao = this.battle.mode === 'jiao';
     this.cameras.main.fadeIn(500, 10, 8, 18);
-    if (jiao) this.time.delayedCall(1500, () => this.chat('b_start', true));
+    // 互嗆：這一章有這個場合的台詞才播（第三章 key 都已存在，行為不變；第一、二章第 7 階段加上）
+    this.time.delayedCall(1500, () => this.chat('b_start', true));
     txt(this, 24, 16, F.title, 30, C.gold, { serif: true });
     txt(this, 24, 58, F.place, 20, C.paper, { bold: false });
     this.clock = txt(this, W - 96, 34, '19:00', 30, C.paper).setOrigin(1, 0.5);
@@ -978,7 +987,7 @@ export class BossHud extends Phaser.Scene {
     this.toast(`太子全開！${sec} 秒：全員攻擊 ×1.5、法術冷卻 ×0.4、太子出轎可以再用`, 0xffd76a, 3200);
   }
 
-  /** 第三章互嗆：一句一行從右邊滑進戰鬥帶上方，不擋操作；10% 特寫字幕播放時不插嘴 */
+  /** 互嗆（三章共用；第一、二章第 7 階段加上）：一句一行從右邊滑進戰鬥帶上方，不擋操作；10% 特寫字幕播放時不插嘴 */
   chat(key: string, force = false): void {
     if (this.cueBox && this.cueBox.alpha > 0) return;
     const lines = this.chatter.pick(key, this.time.now, force);
@@ -1122,6 +1131,8 @@ export class BossHud extends Phaser.Scene {
       return;
     }
     if (person?.id === 'yamupo') this.boss.ducks(false);
+    // 審問動畫滑出後才插嘴（不疊在審問字幕上）
+    this.time.delayedCall(TRIAL_ANIM_MS, () => this.chat(ok ? 'b_trial' : 'b_trialMiss', true));
     const E = CH().evidence;
     const used = person ? { tag: '上前', name: person.label.replace('請', '').replace('上前', ''), say: person.say } : ev ? { tag: E[ev].kind, name: E[ev].name, say: E[ev].text } : null;
     this.playTrial(round, `${F.bossName}：${r.line}`, used, ok ? `${r.ok}\n${r.effect}` : `手上沒有能說動牠的證據。\n${F.wrong}`, ok);
@@ -1178,7 +1189,7 @@ export class BossHud extends Phaser.Scene {
       this.boss.ft(bx, GROUND_Y - 260, ok ? '動搖了' : '更兇了', ok ? 0xfff3c4 : 0xff6a6a, 34);
     });
     // 幾秒後滑出
-    this.tweens.add({ targets: c, x: W, delay: 4200, duration: 300, ease: 'Cubic.in', onComplete: () => c.destroy() });
+    this.tweens.add({ targets: c, x: W, delay: TRIAL_ANIM_MS - 300, duration: 300, ease: 'Cubic.in', onComplete: () => c.destroy() });
   }
 
   // ---------- 結束 ----------

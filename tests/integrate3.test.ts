@@ -186,7 +186,8 @@ describe('互嗆台詞庫（白天、夜審、最後一戰）', () => {
     }
     if (src.includes('this.banter(`walk${this.plan.day}`)')) for (const d of [1, 2, 3]) used.add(`walk${d}`);
     for (const key of Object.keys(BANTER3)) expect(used.has(key), `${key} 沒有接到畫面上`).toBe(true);
-    for (const key of used) if (/^(b_|walk)/.test(key)) expect(BANTER3[key], key).toBeDefined();
+    // 最後一戰的 b_* 三章共用掛勾（第一、二章熱鬧化第 7 階段）：每個 key 至少有一章有台詞
+    for (const key of used) if (/^(b_|walk)/.test(key)) expect(Object.values(CHAPTERS).some((c) => c.banter?.[key]), key).toBe(true);
   });
 
   it('輪流播、最後一戰兩組之間至少隔一段時間（大事件不受限）', () => {
@@ -197,8 +198,9 @@ describe('互嗆台詞庫（白天、夜審、最後一戰）', () => {
     expect(p.pick('b_formation', 3500, true)).toBe(BANTER3.b_formation[0]);
     expect(p.pick('b_qiankun', 11000)).toBe(BANTER3.b_qiankun[1]);
     expect(p.pick('nope', 99999)).toBeNull();
-    // 第一章還沒有最後一戰的台詞（第 7 階段才補）：不播
-    expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_start', 0, true)).toBeNull();
+    // 第一章（第一、二章熱鬧化第 7 階段）有自己的最後一戰台詞；第三章才有的場合不播
+    expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_start', 0, true)).toBe(CHAPTERS.wanjia.banter!.b_start[0]);
+    expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_qiankun', 0, true)).toBeNull();
   });
 });
 
