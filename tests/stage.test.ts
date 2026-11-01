@@ -9,7 +9,9 @@ import { describe, expect, it } from 'vitest';
 import { ART, CUTSCENES, SPEAKERS } from '../src/content/story';
 import { STAGES } from '../src/content/stage';
 import { STAGE_ART, STAGE_EXTRA, STAGE_FILES, STAGE_PORTRAIT_FILES, STAGE_PORTRAITS, STAGE_SIZES } from '../src/art/stageSpec';
-import { FAR_MAX_H, STAGE_MAX_K, actorScale, bubbleBox, farBandHeight, stageLayout } from '../src/core/stageLayout';
+import { FAR_MAX_H, NEAR_WALK, STAGE_MAX_K, actorScale, bubbleBox, farBandHeight, nearBand, pickFar, stageLayout, stageSize } from '../src/core/stageLayout';
+import { BATTLE_ART, BG_FILES, PLAIN_ART } from '../src/art/xinyingSpec';
+import { CASES3 } from '../src/content/ch3/cases';
 import { isBorrowedPortrait, portraitKey } from '../src/art/portraits';
 import { BASE_H, W } from '../src/theme';
 
@@ -36,7 +38,8 @@ function drawnTextures(): { names: Set<string>; families: string[] } {
 
 describe('演出腳本', () => {
   const { names, families } = drawnTextures();
-  const drawn = (k: string) => names.has(k) || families.some((f) => new RegExp(`^${f}[a-z0-9]+$`).test(k));
+  // 第三章街景的夜版本是 `${key}N`（xinyingScenery.ts 照 PLAIN_ART 一張一張畫）
+  const drawn = (k: string) => names.has(k) || families.some((f) => new RegExp(`^${f}[a-z0-9]+$`).test(k)) || (k.endsWith('N') && k.slice(0, -1) in PLAIN_ART);
 
   it('第 1 階段至少有第一章的 recall、dusk3', () => {
     expect(STAGES.recall).toBeDefined();
@@ -80,7 +83,13 @@ describe('演出腳本', () => {
 
     it(`${id}：用到的貼圖都有程式畫的暫代`, () => {
       const tex = [...sc.actors.map((a) => a.tex), ...sc.beats.flatMap((b) => (b.moves ?? []).flatMap((m) => (m.tex ? [m.tex] : [])))];
-      if (sc.far) tex.push(sc.far);
+      // 遠景有暫代（farAlt）的：正式圖要在 BG_FILES（會被載入），暫代要有畫
+      if (sc.far && sc.farAlt) {
+        expect(BG_FILES, `${id} 遠景 ${sc.far}`).toContain(sc.far);
+        tex.push(sc.farAlt);
+      } else if (sc.far) tex.push(sc.far);
+      // 近景（溪邊堤防）沒有暫代：沒載到就不畫，但檔名要在 BG_FILES
+      if (sc.near) expect(BG_FILES, `${id} 近景 ${sc.near}`).toContain(sc.near);
       if (sc.temple) tex.push(sc.temple);
       for (const k of tex) expect(drawn(k), `${id} 貼圖 ${k}`).toBe(true);
     });
@@ -122,6 +131,45 @@ describe('演出腳本', () => {
     for (const id of ch2) {
       for (const b of STAGES[id].beats) expect(['wupan', 'qiye', 'baye', 'baoma', 'judge', 'god', 'kaijiang'], `${id}「${b.text}」`).not.toContain(b.who);
     }
+  });
+
+  it('第 4 階段：第三章 8 段過場都有演出；太子、四將用戰鬥圖、泡泡放立繪小頭像，不用旨意', () => {
+    const ch3 = ['kaiying3', 'zhizha3', 'river3', 'jiao3', 'jiaoRecall', 'jiaoSlay3', 'jiaoReturn3', 'shouying3'];
+    const ch3Who = ['narrator', 'taizi', 'zhangjiang', 'xiaojiang', 'liujiang', 'lianjiang', 'jiao', 'jiaoCalm', 'zhizha', 'xiabing', 'bingbo', 'hebo'];
+    for (const id of ch3) {
+      const sc = STAGES[id];
+      expect(sc, id).toBeDefined();
+      expect(sc.faces, id).toBe(true);
+      // 第三章神明畫臉（決策紀錄 2026-10-27）：沒有旨意
+      expect(sc.actors.some((a) => a.tex === 'decree'), id).toBe(false);
+      // 說話的人都是第三章的角色（不混進第一、二章的隨從）
+      for (const b of sc.beats) expect(ch3Who, `${id}「${b.text}」`).toContain(b.who ?? 'narrator');
+      // 太子說話時泡泡掛在太子的戰鬥圖上
+      for (const b of sc.beats.filter((x) => x.who === 'taizi')) {
+        expect(sc.actors.find((a) => a.id === b.at)?.tex, id).toBe('b3_taizi');
+      }
+      // 第三章原本台詞就夠多，不補寫（只有狀聲字）
+      expect(sc.beats.some((b) => b.draft), id).toBe(false);
+    }
+    // 溪邊：正式遠景＋堤防，沒載到用程式畫的；晚上用夜版本並把正式圖壓暗
+    for (const id of ch3) {
+      if (CUTSCENES[id].bg !== 'river') continue;
+      const sc = STAGES[id];
+      expect(sc.far, id).toBe('bg_ferry_far');
+      expect(sc.near, id).toBe('bg_ferry_near');
+      expect(sc.fore, id).toBe('river');
+      expect(sc.farAlt, id).toBe(sc.mood === 'demon' ? 'x3_riverFarN' : 'x3_riverFar');
+      if (sc.mood === 'demon') expect(sc.farTint, id).toBeDefined();
+      // 蛟、蝦兵在溪裡（堤防後面），岸上的人站在堤防前面
+      for (const a of sc.actors) {
+        if (a.tex === 'jiao' || a.tex === 'xia') expect(a.behind, `${id} ${a.id}`).toBe(true);
+        if (a.tex.startsWith('b3_') || a.tex.startsWith('n3_')) expect(a.behind, `${id} ${a.id}`).toBeUndefined();
+      }
+    }
+    // 蛟現身那段：浪頭升起換圖
+    expect(STAGES.jiao3.beats.some((b) => b.moves?.some((m) => m.id === 'jiao' && m.tex === 'jiao_rise'))).toBe(true);
+    // 紙紮童跪下仍然是蓋在畫面上播的那段
+    expect(Object.values(CASES3).some((c) => c.kneelStory === 'zhizha3')).toBe(true);
   });
 
   it('翻面、轉角度的走位只用在有那個演員的拍子上；石駒回頭那拍有翻面', () => {
@@ -303,6 +351,37 @@ describe('演出版面（手機直式）', () => {
     expect(actorScale('st_wenpan', 0.5, 1.2, h)).toBeCloseTo(0.6);
     // 一般貼圖不換算
     expect(actorScale('qiye', 0.95, 1, 190)).toBeCloseTo(0.95);
+  });
+
+  it('第三章戰鬥圖也用設計尺寸（BATTLE_ART）：正式圖比暫代大，演出裡一樣高', () => {
+    expect(stageSize('b3_taizi')).toEqual(BATTLE_ART.b3_taizi);
+    expect(stageSize('st_wenpan')).toEqual(STAGE_SIZES.st_wenpan);
+    expect(stageSize('qiye')).toBeUndefined();
+    const [, h] = BATTLE_ART.b3_taizi;
+    // 正式圖 800 高、暫代 200 高：顯示都是 1.1 × 200
+    expect(actorScale('b3_taizi', 1.1, 1, 800) * 800).toBeCloseTo(1.1 * h);
+    expect(actorScale('b3_taizi', 1.1, 1, h) * h).toBeCloseTo(1.1 * h);
+    expect(actorScale('jiao', 0.85, 1.2, 720) * 720).toBeCloseTo(0.85 * 1.2 * BATTLE_ART.jiao[1]);
+  });
+
+  it('遠景：正式圖有載到就用（套色），沒載到用暫代（不套色），都沒有就不畫', () => {
+    const sc = { far: 'bg_ferry_far', farAlt: 'x3_riverFarN', farTint: 0x445566 };
+    expect(pickFar(sc, () => true)).toEqual({ key: 'bg_ferry_far', tint: 0x445566 });
+    expect(pickFar(sc, (k) => k === 'x3_riverFarN')).toEqual({ key: 'x3_riverFarN' });
+    expect(pickFar(sc, () => false)).toBeUndefined();
+    expect(pickFar({ far: 'mtnFarN' }, () => true)).toEqual({ key: 'mtnFarN', tint: undefined });
+  });
+
+  it('近景（溪邊堤防）：路面對齊演員腳底附近，手機直式跟著放大', () => {
+    for (const h of [BASE_H, 1560]) {
+      const L = stageLayout(h);
+      const nb = nearBand(L.G, L.k, 400);
+      expect(nb.top + nb.h * NEAR_WALK).toBeCloseTo(L.G + 20 * L.k);
+      expect(nb.s).toBeCloseTo(0.55 * L.k);
+      // 堤防下緣在前景上緣附近，不會留一條縫
+      expect(nb.top + nb.h).toBeGreaterThan(L.G);
+      expect(nb.top + nb.h).toBeLessThanOrEqual(L.foreTop + 10);
+    }
   });
 });
 

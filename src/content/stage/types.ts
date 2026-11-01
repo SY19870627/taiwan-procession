@@ -20,6 +20,8 @@ export interface StageActor {
   alpha?: number;
   /** 圖的錨點：預設腳底（0.5, 1）；飄著的東西（旨意、煙）用中心 */
   center?: boolean;
+  /** 站在近景（near，例如溪邊堤防）後面：水裡的蛟、蝦兵 */
+  behind?: boolean;
 }
 
 export interface StageMove {
@@ -63,8 +65,8 @@ export interface StageBeat {
   sfx?: { text: string; at: string; color?: number };
 }
 
-/** 地面前景（畫面下方、演員前面）：廟埕石板＋香爐、山路草叢、海邊浪花 */
-export type StageFore = 'temple' | 'mountain' | 'sea' | 'none';
+/** 地面前景（畫面下方、演員前面）：廟埕石板＋香爐、山路草叢、海邊浪花、溪邊（第三章） */
+export type StageFore = 'temple' | 'mountain' | 'sea' | 'river' | 'none';
 
 export interface StageScript {
   /** 對應 CUTSCENES 裡原本的那一段 */
@@ -74,6 +76,18 @@ export interface StageScript {
   sky: [number, number];
   /** 遠景貼圖（tileSprite） */
   far?: string;
+  /** 遠景貼圖沒載到時改用這張（第三章正式背景 bg_* → 程式畫的 x3_*） */
+  farAlt?: string;
+  /** 遠景用正式圖時的色調（晚上把白天的圖壓暗；改用 farAlt 時不套） */
+  farTint?: number;
+  /** 遠景帶的下緣在地面線下面多少（預設 -30，就是地面線上方 30）；溪邊要讓溪面接到堤防 */
+  farY?: number;
+  /** 近景（演員後面、地面上）：第三章溪邊渡口的堤防 bg_ferry_near；沒載到就不畫 */
+  near?: string;
+  /** 近景的色調（晚上壓暗） */
+  nearTint?: number;
+  /** 泡泡旁邊放說話者的立繪小頭像（第三章：神明可以畫臉，決策紀錄 2026-10-27） */
+  faces?: boolean;
   /** 廟（神明視角） */
   temple?: string;
   /** 地面顏色 */

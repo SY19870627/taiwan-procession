@@ -6,6 +6,7 @@
  */
 import { BASE_H, W } from '../theme';
 import { STAGE_SIZES } from '../art/stageSpec';
+import { BATTLE_ART } from '../art/xinyingSpec';
 
 /** 演員放大的上限（手機最高 1560 時） */
 export const STAGE_MAX_K = 1.2;
@@ -40,9 +41,17 @@ export function stageLayout(h: number): StageLayout {
   };
 }
 
-/** 演員的實際縮放：演出小人（st_*）以設計尺寸為準，畫師的圖大小不同也縮成一樣高 */
+/**
+ * 演員的設計尺寸：演出小人（st_*）照 stageSpec；第三章的戰鬥圖（太子、四將、蛟）照 xinyingSpec 的 BATTLE_ART
+ * （正式圖比暫代大，腳本的 scale 以暫代大小為準）。其他程式畫的貼圖沒有設計尺寸。
+ */
+export function stageSize(tex: string): readonly [number, number] | undefined {
+  return STAGE_SIZES[tex] ?? (BATTLE_ART as Record<string, readonly [number, number]>)[tex];
+}
+
+/** 演員的實際縮放：演出小人（st_*）、第三章戰鬥圖以設計尺寸為準，正式圖大小不同也縮成一樣高 */
 export function actorScale(tex: string, scale: number, k: number, texHeight: number): number {
-  const size = STAGE_SIZES[tex];
+  const size = stageSize(tex);
   const norm = size && texHeight > 0 ? size[1] / texHeight : 1;
   return scale * k * norm;
 }
@@ -70,4 +79,27 @@ export const FAR_MAX_H = 260;
  */
 export function farBandHeight(texHeight: number): number {
   return texHeight > 0 ? Math.min(FAR_MAX_H, texHeight) : FAR_MAX_H;
+}
+
+/**
+ * 遠景用哪張：正式圖（far）有載到就用它、套 farTint；沒載到用 farAlt（程式畫的暫代，不套色）。
+ * 兩張都沒有就不畫遠景。
+ */
+export function pickFar(sc: { far?: string; farAlt?: string; farTint?: number }, exists: (k: string) => boolean): { key: string; tint?: number } | undefined {
+  if (sc.far && exists(sc.far)) return { key: sc.far, tint: sc.farTint };
+  if (sc.farAlt && exists(sc.farAlt)) return { key: sc.farAlt };
+  return undefined;
+}
+
+/** 近景圖（溪邊堤防 2048×400）的路面在圖高的幾成：演員腳底踩在這條線上 */
+export const NEAR_WALK = 0.675;
+
+/**
+ * 近景帶怎麼擺：縮成 0.55k 倍，路面（NEAR_WALK）對齊地面線下 20k（演員腳底附近）。
+ * 回傳上緣 y、高度、縮放。
+ */
+export function nearBand(G: number, k: number, texHeight: number): { top: number; h: number; s: number } {
+  const s = 0.55 * k;
+  const h = texHeight * s;
+  return { top: G + 20 * k - h * NEAR_WALK, h, s };
 }

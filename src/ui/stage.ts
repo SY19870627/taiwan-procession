@@ -10,13 +10,15 @@
  */
 import Phaser from 'phaser';
 import { C, W } from '../theme';
-import { SPEAKERS, type SpeakerId } from '../content/story';
-import type { StageBeat, StageFore, StageMove, StageScript } from '../content/stage';
-import { STAGE_SIZES } from '../art/stageSpec';
-import { actorScale, bubbleBox, farBandHeight, stageLayout, type StageLayout } from '../core/stageLayout';
+import { ART, CUTSCENES, SPEAKERS, type SpeakerId } from '../content/story';
+import type { StageActor, StageBeat, StageFore, StageMove, StageScript } from '../content/stage';
+import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
+import { actorScale, bubbleBox, farBandHeight, nearBand, pickFar, stageLayout, stageSize, type StageLayout } from '../core/stageLayout';
 import { txt } from './widgets';
 
 const BUBBLE_W = 400;
+/** 泡泡裡立繪小頭像的大小 */
+const FACE = 76;
 
 export interface StageOptions {
   /** 播完或略過 */
@@ -38,6 +40,15 @@ export class StagePlayer {
   /** 每個演員腳本上的縮放（換圖時照這個重新算） */
   private base = new Map<string, number>();
   private extras = new Map<string, Phaser.GameObjects.GameObject>();
+  /** 遠景帶、近景（正式背景圖晚一點才載到時換上去） */
+  private farBand?: Phaser.GameObjects.TileSprite;
+  private nearBand?: Phaser.GameObjects.TileSprite;
+  /** 近景要插在舞台容器的第幾層（堤防後面的演員之後） */
+  private nearAt = 0;
+  /** 每個演員正在跳的動畫（正式圖換上來時要停掉） */
+  private hops = new Map<string, Phaser.Tweens.Tween>();
+  /** 這一拍的泡泡有沒有放小頭像 */
+  private hasFace = false;
   private cam = { x: W / 2, y: 0, zoom: 1 };
   private i = -1;
   private ui: Phaser.GameObjects.GameObject[] = [];
@@ -62,18 +73,25 @@ export class StagePlayer {
 
     // 舞台：遠景、廟、地面、演員、前景都在這個容器裡，鏡頭就是縮放、平移它
     this.world = scene.add.container(0, 0);
-    if (sc.far && scene.textures.exists(sc.far)) {
-      const fh = farBandHeight(scene.textures.get(sc.far).getSourceImage().height);
-      this.world.add(scene.add.tileSprite(-100, G - 30, W + 200, fh, sc.far).setOrigin(0, 1).setAlpha(0.85));
+    // 遠景：正式圖沒載到就用暫代（第三章 bg_* → x3_*）
+    const far = pickFar(sc, (t) => scene.textures.exists(t));
+    if (far) {
+      const fh = farBandHeight(scene.textures.get(far.key).getSourceImage().height);
+      const band = scene.add.tileSprite(-100, G + (sc.farY ?? -30), W + 200, fh, far.key).setOrigin(0, 1).setAlpha(0.85);
+      if (far.tint !== undefined) band.setTint(far.tint);
+      this.world.add(band);
+      this.farBand = band;
     }
     if (sc.temple && scene.textures.exists(sc.temple)) {
       this.world.add(scene.add.image(W / 2 + 60, G + 8, sc.temple).setOrigin(0.5, 1).setScale(0.8 * k).setTint(0x8a6a50));
     }
     const ground = scene.add.graphics();
     ground.fillStyle(sc.ground, 1);
-    ground.fillRect(-100, G, W + 200, H - G + 200);
+    // 遠景帶往下接到地面線以下（溪面接到堤防）時，地面從遠景下緣開始畫
+    const groundTop = G + Math.max(0, sc.farY ?? 0);
+    ground.fillRect(-100, groundTop, W + 200, H - groundTop + 200);
     ground.lineStyle(1, 0x3a3444, 1);
-    for (let y = G; y < H + 200; y += 40) ground.lineBetween(-100, y, W + 100, y);
+    for (let y = groundTop; y < H + 200; y += 40) ground.lineBetween(-100, y, W + 100, y);
     this.world.add(ground);
     // 海邊：遠景的海和沙灘之間補一段近海（浪一條一條打上來）
     if (sc.fore === 'sea') {
@@ -92,31 +110,98 @@ export class StagePlayer {
     if (sc.mood === 'temple') {
       for (let n = 0; n < 5; n++) this.world.add(scene.add.image(80 + n * 140, G - 330 * k, 'lantern').setScale(0.7 * k));
     }
-    for (const a of sc.actors) {
-      if (!scene.textures.exists(a.tex)) continue;
-      const img = scene.add.image(a.x, G + a.y * k, a.tex).setFlipX(!!a.flip).setAlpha(a.alpha ?? 1);
-      this.base.set(a.id, a.scale);
-      img.setScale(actorScale(a.tex, a.scale, k, img.height));
-      if (a.center) img.setOrigin(0.5); else img.setOrigin(0.5, 1);
-      if (a.tint !== undefined) img.setTint(a.tint);
-      if (a.tex === 'decree') {
-        scene.tweens.add({ targets: img, scale: img.scale * 1.06, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
-        const glow = scene.add.circle(a.x, G + a.y * k, 70 * k, 0xffd76a, 0).setBlendMode(Phaser.BlendModes.ADD);
-        this.world.add(glow);
-        // 旨意上的「令」字（和過場對話框裡的一樣）
-        const ling = txt(scene, a.x, G + a.y * k, '令', 48, 0x8a1b14, { serif: true }).setOrigin(0.5).setAlpha(a.alpha ?? 1);
-        this.extras.set('decreeGlow', glow);
-        this.extras.set('decreeLing', ling);
-      }
-      if (a.tex === 'smoke') scene.tweens.add({ targets: img, angle: 360, duration: 20000, repeat: -1 });
-      this.world.add(img);
-      this.actors.set(a.id, img);
-    }
+    // 站在近景後面的（水裡的蛟、蝦兵）先放，再放近景（堤防），其他演員站在堤防上
+    for (const a of sc.actors) if (a.behind) this.addActor(a);
+    this.nearAt = this.world.length;
+    this.addNear();
+    for (const a of sc.actors) if (!a.behind) this.addActor(a);
     // 「令」字要疊在旨意圖上面
     const ling = this.extras.get('decreeLing');
     if (ling) this.world.add(ling);
     this.foreground(sc.fore ?? (sc.mood === 'temple' ? 'temple' : 'mountain'));
+    this.watchArt();
+    this.ready();
+  }
 
+  /** 近景（溪邊堤防）：正式圖有載到才畫，插在堤防後面的演員之後 */
+  private addNear(): void {
+    const { scene, sc } = this;
+    if (this.nearBand || !sc.near || !scene.textures.exists(sc.near)) return;
+    const { G, k } = this.L;
+    const nb = nearBand(G, k, scene.textures.get(sc.near).getSourceImage().height);
+    const near = scene.add.tileSprite(-100, nb.top, W + 200, nb.h, sc.near).setOrigin(0, 0).setTileScale(nb.s);
+    if (sc.nearTint !== undefined) near.setTint(sc.nearTint);
+    this.world.addAt(near, this.nearAt);
+    this.nearBand = near;
+  }
+
+  /**
+   * 演出開始後才載到的正式圖（深層連結一開就播，AssetScene 還在背後載）：
+   *  - 正式背景（遠景、近景）：換掉暫代、補上近景；
+   *  - 戰鬥圖、演出小人（AssetScene 已經換好貼圖、保持顯示高度）：停掉一跳一跳的縮放動畫
+   *    （不然動畫會把縮放設回舊圖的倍數，正式圖會變好幾倍大），照設計尺寸重新算縮放。
+   */
+  private watchArt(): void {
+    const game = this.scene.game;
+    const onBg = (key: string) => {
+      if (this.done) return;
+      const { sc } = this;
+      // 立繪載到了：這一拍的泡泡還沒有小頭像就重畫（不重播動畫）
+      const beat = sc.beats[this.i];
+      if (key.startsWith('pt_') && beat?.at && !this.hasFace && this.faceKey(beat) === key) {
+        for (const o of this.ui) o.destroy();
+        this.ui = [];
+        this.bubble(beat, true);
+      }
+      if (key === sc.near) this.addNear();
+      if (key === sc.far && this.farBand && this.farBand.texture.key !== key) {
+        this.farBand.setTexture(key).setSize(this.farBand.width, farBandHeight(this.scene.textures.get(key).getSourceImage().height));
+        if (sc.farTint !== undefined) this.farBand.setTint(sc.farTint);
+      }
+    };
+    const onArt = (key: string) => {
+      if (this.done) return;
+      for (const [id, img] of this.actors) {
+        if (img.texture.key !== key) continue;
+        this.hops.get(id)?.stop();
+        img.setScale(actorScale(key, this.base.get(id) ?? 1, this.L.k, img.height));
+      }
+    };
+    game.events.on('artloaded', onBg);
+    game.events.on('battleart', onArt);
+    this.scene.events.once('shutdown', () => {
+      game.events.off('artloaded', onBg);
+      game.events.off('battleart', onArt);
+    });
+  }
+
+  /** 把一個演員放上舞台 */
+  private addActor(a: StageActor): void {
+    const scene = this.scene;
+    const { G, k } = this.L;
+    if (!scene.textures.exists(a.tex)) return;
+    const img = scene.add.image(a.x, G + a.y * k, a.tex).setFlipX(!!a.flip).setAlpha(a.alpha ?? 1);
+    this.base.set(a.id, a.scale);
+    img.setScale(actorScale(a.tex, a.scale, k, img.height));
+    if (a.center) img.setOrigin(0.5); else img.setOrigin(0.5, 1);
+    if (a.tint !== undefined) img.setTint(a.tint);
+    if (a.tex === 'decree') {
+      scene.tweens.add({ targets: img, scale: img.scale * 1.06, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      const glow = scene.add.circle(a.x, G + a.y * k, 70 * k, 0xffd76a, 0).setBlendMode(Phaser.BlendModes.ADD);
+      this.world.add(glow);
+      // 旨意上的「令」字（和過場對話框裡的一樣）
+      const ling = txt(scene, a.x, G + a.y * k, '令', 48, 0x8a1b14, { serif: true }).setOrigin(0.5).setAlpha(a.alpha ?? 1);
+      this.extras.set('decreeGlow', glow);
+      this.extras.set('decreeLing', ling);
+    }
+    if (a.tex === 'smoke') scene.tweens.add({ targets: img, angle: 360, duration: 20000, repeat: -1 });
+    this.world.add(img);
+    this.actors.set(a.id, img);
+  }
+
+  /** 地名、點擊、從第幾拍開始 */
+  private ready(): void {
+    const { scene, sc, opts, H } = this;
     const label = sc.mood === 'demon' ? '妖怪視角' : '神明視角';
     txt(scene, 24, 26, `${label}｜${sc.place}`, 22, sc.mood === 'demon' ? 0xc9a0ff : C.gold, { serif: true }).setDepth(600);
     const hit = scene.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.001).setDepth(499).setInteractive();
@@ -239,6 +324,7 @@ export class StagePlayer {
       if (m.hop) {
         const sx = img.scaleX;
         hop = this.scene.tweens.add({ targets: img, scaleY: img.scaleY * 0.96, scaleX: sx * 1.02, duration: 140, yoyo: true, repeat: Math.max(0, Math.round(ms / 280) - 1) });
+        this.hops.set(m.id, hop);
       }
       // 換圖時先停掉一跳一跳（不然跳完會回到舊圖的縮放）
       if (tex) this.scene.time.delayedCall(ms / 2, () => { hop?.stop(); retex(); });
@@ -261,7 +347,8 @@ export class StagePlayer {
     const ax = mv?.x ?? img.x;
     const ay = mv?.y !== undefined ? G + mv.y * k : img.y;
     let h = img.displayHeight;
-    if (mv?.tex && STAGE_SIZES[mv.tex]) h = STAGE_SIZES[mv.tex][1] * actorScale(mv.tex, mv.scale ?? this.base.get(id) ?? 1, k, STAGE_SIZES[mv.tex][1]);
+    const size = mv?.tex ? stageSize(mv.tex) : undefined;
+    if (mv?.tex && size) h = size[1] * actorScale(mv.tex, mv.scale ?? this.base.get(id) ?? 1, k, size[1]);
     else if (mv?.scale !== undefined) h = img.height * actorScale(img.texture.key, mv.scale, k, img.height);
     return { x: ax, top: a.center ? ay - h / 2 : ay - h };
   }
@@ -274,8 +361,12 @@ export class StagePlayer {
     const p = this.toScreen(head.x, head.top);
     const name = beat.name ?? (beat.who && beat.who !== 'narrator' ? SPEAKERS[beat.who as Exclude<SpeakerId, 'narrator'>].name : '');
     const body = txt(scene, 0, 0, beat.text, 28, C.ink, { wordWrap: { width: BUBBLE_W - 40, useAdvancedWrap: true }, lineSpacing: 6 });
-    const bw = Math.max(150, body.width + 40);
-    const bh = body.height + 32;
+    // 第三章：泡泡左邊放說話者的立繪小頭像（表情照原台詞）
+    const face = this.faceKey(beat);
+    this.hasFace = !!face;
+    const fw = face ? FACE + 14 : 0;
+    const bw = Math.max(150, body.width + 40 + fw);
+    const bh = Math.max(body.height, face ? FACE : 0) + 32;
     const { x: bx, y: by, tipX, tipY } = bubbleBox(p.x, p.y, bw, bh, this.L, this.H);
     const g = scene.add.graphics();
     g.fillStyle(0x000000, 0.3);
@@ -283,11 +374,12 @@ export class StagePlayer {
     g.fillStyle(C.paper, 1);
     g.fillRoundedRect(0, 0, bw, bh, 18);
     g.fillTriangle(tipX - bx - 14, bh - 2, tipX - bx + 14, bh - 2, tipX - bx, tipY - by);
-    const demon = beat.who === 'shiju' || beat.who === 'heichao' || beat.who === 'jiao';
+    const demon = beat.who === 'shiju' || beat.who === 'heichao' || beat.who === 'jiao' || beat.who === 'zhizha' || beat.who === 'xiabing';
     g.lineStyle(3, demon ? 0x6a3a9a : C.temple, 1);
     g.strokeRoundedRect(0, 0, bw, bh, 18);
-    body.setPosition(20, 16);
+    body.setPosition(20 + fw, 16);
     const parts: Phaser.GameObjects.GameObject[] = [g, body];
+    if (face) parts.push(portraitThumb(scene, face, 16, 16, FACE));
     if (name) parts.push(txt(scene, 14, -20, name, 20, C.gold, { serif: true, backgroundColor: '#17121f', padding: { x: 10, y: 3 } }));
     const c = scene.add.container(bx, by, parts).setDepth(450);
     if (instant) c.setAlpha(1);
@@ -296,6 +388,15 @@ export class StagePlayer {
       scene.tweens.add({ targets: c, alpha: 1, scale: 1, duration: 220, ease: 'Back.out', delay: 120 });
     }
     this.ui.push(c, this.hint(bx + bw - 6, by + bh + 4, instant));
+  }
+
+  /** 泡泡旁邊的立繪小頭像（腳本有 faces、說話的人有立繪、圖已載到才有） */
+  private faceKey(beat: StageBeat): string | undefined {
+    if (!this.sc.faces || !beat.who || beat.who === 'narrator') return undefined;
+    const art = ART[beat.who];
+    if (!art) return undefined;
+    const line = beat.src !== undefined ? CUTSCENES[this.sc.id]?.lines[beat.src] : undefined;
+    return portraitKey(this.scene, art[0], (line?.expr ?? art[1]) as Expr);
   }
 
   /** 旁白字幕：畫面下 40% 的字幕區 */
@@ -391,6 +492,20 @@ export class StagePlayer {
       for (let n = 0; n < 14; n++) {
         const x = n * 56;
         g.fillTriangle(x - 30, this.H + 10, x + 30, this.H + 10, x + ((n % 3) - 1) * 14, this.H - (70 + (n % 4) * 26) * k);
+      }
+    } else if (kind === 'river') {
+      // 溪邊（第三章）：堤防下的河灘＋近處的蘆葦剪影（天亮偏土色，晚上偏暗）
+      const night = this.sc.mood === 'demon';
+      g.fillStyle(night ? 0x16161e : 0x3a362e, 1);
+      g.fillRect(-100, foreTop, W + 200, bottom - foreTop);
+      g.fillStyle(night ? 0x1e2028 : 0x4a4436, 1);
+      for (let n = 0; n < 8; n++) g.fillEllipse(-20 + n * 110 + ((n * 31) % 30), foreTop + (30 + ((n * 47) % 4) * 22) * k, 120 * k, 26 * k);
+      g.fillStyle(night ? 0x0a0a10 : 0x1c1a14, 1);
+      for (let n = 0; n < 18; n++) {
+        const x = n * 44 + ((n * 17) % 20);
+        g.fillTriangle(x - 8, this.H + 10, x + 8, this.H + 10, x + ((n % 3) - 1) * 18, this.H - (90 + (n % 5) * 24) * k);
+        // 蘆葦穗
+        g.fillEllipse(x + ((n % 3) - 1) * 18, this.H - (96 + (n % 5) * 24) * k, 8 * k, 26 * k);
       }
     } else {
       // 海邊：沙灘＋浪花（白天、天亮是沙色，晚上偏暗）
