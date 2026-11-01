@@ -9,7 +9,7 @@ import { STAGE_SIZES } from '../art/stageSpec';
 import { BATTLE_ART } from '../art/xinyingSpec';
 
 /** 演員放大的上限（手機最高 1560 時） */
-export const STAGE_MAX_K = 1.2;
+export const STAGE_MAX_K = 1.3;
 
 export interface StageLayout {
   /** 地平線（腳底 y = G + 腳本的 y × k） */
@@ -26,10 +26,14 @@ export interface StageLayout {
   bubbleTop: number;
 }
 
-/** 依畫面高度算版面：1280 高的地平線和原型一樣；越高地平線越往下、演員越大 */
+/**
+ * 依畫面高度算版面：1280 高的地平線和原型一樣；越高地平線越往下、演員越大。
+ * 視覺修正：手機直式原本上面 40% 只有天空、下面 30% 空地——地平線少往下一點（多出來的高度只拿 11%）、
+ * 演員多放大一點（1560 高約 1.3 倍），讓演員和泡泡落在畫面中線附近。
+ */
 export function stageLayout(h: number): StageLayout {
-  const k = Math.min(STAGE_MAX_K, Math.max(1, h / BASE_H));
-  const G = Math.round(h * 0.66 - (h - BASE_H) * 0.11);
+  const k = Math.min(STAGE_MAX_K, Math.max(1, 1 + (h / BASE_H - 1) * 1.4));
+  const G = Math.round(h * 0.66 - (h - BASE_H) * 0.55);
   const capTop = Math.round(h * 0.6);
   return {
     G,

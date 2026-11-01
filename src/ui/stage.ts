@@ -14,9 +14,24 @@ import { ART, CUTSCENES, SPEAKERS, type SpeakerId } from '../content/story';
 import type { StageActor, StageBeat, StageFore, StageMove, StageScript } from '../content/stage';
 import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
 import { actorScale, bubbleBox, farBandHeight, nearBand, pickFar, stageLayout, stageSize, type StageLayout } from '../core/stageLayout';
+import { wrapWidth } from '../core/layout';
 import { txt } from './widgets';
 
 const BUBBLE_W = 400;
+
+/**
+ * 站在地上、要畫落地影的演員（視覺修正：原本像浮在地上）。第一、二章的陣頭小人與神轎；海上的船、黑潮、飄著的東西不畫。
+ * 神轎（畫師圖底下有一圈淡白的影子）的影子疊在轎子前面，把那圈淡白壓暗；其他人的影子在腳後面。
+ */
+const SHADOW: Record<string, { w: number; front?: boolean }> = {
+  st_wenpan: { w: 0.7 }, st_wupan: { w: 0.7 }, st_baoma: { w: 0.6 }, st_zhongjun: { w: 0.7 }, st_xunbu: { w: 0.7 },
+  st_shiju: { w: 0.75 }, st_shiju_calm: { w: 0.75 }, st_shiju_look: { w: 0.75 }, st_shiju_kneel: { w: 0.8 },
+  st_jiao_qingling: { w: 1.1, front: true }, jb_blue: { w: 1.05 },
+  qiye: { w: 0.9 }, baye: { w: 0.9 }, jiaoban: { w: 0.9 },
+};
+
+/** 程式畫的暫代小人（還沒有畫師的 B 組圖）：加一圈深色描邊，和畫師圖並排時不那麼突兀 */
+const OUTLINE = new Set(['qiye', 'baye', 'jiaoban']);
 /** 泡泡裡立繪小頭像的大小 */
 const FACE = 76;
 
@@ -49,6 +64,9 @@ export class StagePlayer {
   private hops = new Map<string, Phaser.Tweens.Tween>();
   /** 這一拍的泡泡有沒有放小頭像 */
   private hasFace = false;
+  /** 落地影與描邊（每一幀跟著演員走） */
+  private shadows = new Map<string, { e: Phaser.GameObjects.Ellipse; w: number }>();
+  private outlines = new Map<string, Phaser.GameObjects.Image[]>();
   private cam = { x: W / 2, y: 0, zoom: 1 };
   private i = -1;
   private ui: Phaser.GameObjects.GameObject[] = [];
@@ -119,6 +137,9 @@ export class StagePlayer {
     const ling = this.extras.get('decreeLing');
     if (ling) this.world.add(ling);
     this.foreground(sc.fore ?? (sc.mood === 'temple' ? 'temple' : 'mountain'));
+    this.syncDecor();
+    scene.events.on('update', this.syncDecor, this);
+    scene.events.once('shutdown', () => scene.events.off('update', this.syncDecor, this));
     this.watchArt();
     this.ready();
   }
@@ -195,8 +216,44 @@ export class StagePlayer {
       this.extras.set('decreeLing', ling);
     }
     if (a.tex === 'smoke') scene.tweens.add({ targets: img, angle: 360, duration: 20000, repeat: -1 });
+    const sh = !a.center && !a.behind ? SHADOW[a.tex] : undefined;
+    if (sh && !sh.front) this.addShadow(a.id, sh.w);
+    if (OUTLINE.has(a.tex)) {
+      const outs = [[-3, 0], [3, 0], [0, -3], [0, 3]].map(([dx, dy]) => {
+        const o = scene.add.image(0, 0, a.tex).setOrigin(img.originX, img.originY).setTintFill(0x120a10).setData('d', [dx, dy]);
+        this.world.add(o);
+        return o;
+      });
+      this.outlines.set(a.id, outs);
+    }
     this.world.add(img);
     this.actors.set(a.id, img);
+    if (sh?.front) this.addShadow(a.id, sh.w);
+  }
+
+  private addShadow(id: string, w: number): void {
+    const e = this.scene.add.ellipse(0, 0, 100, 18, 0x08060c, 1);
+    this.world.add(e);
+    this.shadows.set(id, { e, w });
+  }
+
+  /** 落地影、描邊跟著演員（位置、大小、翻面、透明度、換圖） */
+  private syncDecor(): void {
+    for (const [id, { e, w }] of this.shadows) {
+      const img = this.actors.get(id);
+      if (!img) continue;
+      const dw = img.displayWidth * w;
+      e.setPosition(img.x, img.y - 3).setScale(dw / 100, Math.max(0.5, (dw * 0.14) / 18)).setAlpha(0.5 * img.alpha);
+    }
+    for (const [id, outs] of this.outlines) {
+      const img = this.actors.get(id);
+      if (!img) continue;
+      for (const o of outs) {
+        const [dx, dy] = o.getData('d') as number[];
+        if (o.texture.key !== img.texture.key) o.setTexture(img.texture.key);
+        o.setPosition(img.x + dx, img.y + dy).setScale(img.scaleX, img.scaleY).setFlipX(img.flipX).setAngle(img.angle).setAlpha(0.9 * img.alpha);
+      }
+    }
   }
 
   /** 地名、點擊、從第幾拍開始 */
@@ -361,6 +418,11 @@ export class StagePlayer {
     const p = this.toScreen(head.x, head.top);
     const name = beat.name ?? (beat.who && beat.who !== 'narrator' ? SPEAKERS[beat.who as Exclude<SpeakerId, 'narrator'>].name : '');
     const body = txt(scene, 0, 0, beat.text, 28, C.ink, { wordWrap: { width: BUBBLE_W - 40, useAdvancedWrap: true }, lineSpacing: 6 });
+    // 標點不放行首（「今年打幾隻／？我賭十隻」）：寬一點或窄一點再換一次
+    body.setWordWrapWidth(wrapWidth(BUBBLE_W - 40, BUBBLE_W, 28, (w) => {
+      body.setWordWrapWidth(w, true);
+      return body.getWrappedText();
+    }), true);
     // 第三章：泡泡左邊放說話者的立繪小頭像（表情照原台詞）
     const face = this.faceKey(beat);
     this.hasFace = !!face;

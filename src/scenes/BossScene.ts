@@ -991,7 +991,8 @@ export class BossHud extends Phaser.Scene {
   chat(key: string, force = false): void {
     if (this.cueBox && this.cueBox.alpha > 0) return;
     const lines = this.chatter.pick(key, this.time.now, force);
-    if (lines) banter(this, lines, BAND_Y + 34, 60);
+    // 字幕疊在戰場特效（飛過去的王令、旨意）上面、底色不透明，字不會被壓住
+    if (lines) banter(this, lines, BAND_Y + 34, 255, undefined, { alpha: 0.88 });
   }
 
   toast(s: string, color: number, ms = 1800): void {

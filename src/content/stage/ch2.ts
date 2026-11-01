@@ -45,7 +45,8 @@ export const STAGES2: Record<string, StageScript> = {
         moves: [{ id: 'xunbu', x: 500, ms: 400 }],
       },
       {
-        at: 'jiaoban', who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！', src: 5, fx: 'firecracker',
+        // 視覺修正：泡泡指向扛轎的轎班（王轎底下那排人），不指到令旗
+        at: 'jiao', who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！', src: 5, fx: 'firecracker',
         cam: { x: 480, y: -100, zoom: 1.1, ms: 800 },
         moves: [{ id: 'jiao', y: 0, hop: true, ms: 600 }, { id: 'jiaoban', x: 640, hop: true, ms: 400 }],
         sfx: { text: '嘿——！', at: 'jiaoban', color: 0xffd76a },
@@ -179,9 +180,10 @@ export const STAGES2: Record<string, StageScript> = {
     fore: 'sea',
     actors: [
       { id: 'decree', tex: 'decree', x: 200, y: -340, scale: 0.8, alpha: 0, center: true },
-      { id: 'ship', tex: 'st_wangchuan', x: 300, y: 20, scale: 0.5 },
+      // 視覺修正：程式畫的黑潮放在王船後面；畫師的黑潮人影出來時整個淡掉（不和人影疊兩層）
       { id: 'heichao', tex: 'heichao_calm', x: 600, y: 10, scale: 0.8, alpha: 0.85 },
-      { id: 'figs', tex: 'st_heichao_figures', x: 600, y: 20, scale: 0.42, alpha: 0 },
+      { id: 'ship', tex: 'st_wangchuan', x: 300, y: 20, scale: 0.5 },
+      { id: 'figs', tex: 'st_heichao_figures', x: 590, y: 20, scale: 0.42, alpha: 0 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 70, y: 60, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 170, y: 85, scale: 0.44 },
     ],
@@ -196,7 +198,7 @@ export const STAGES2: Record<string, StageScript> = {
       {
         at: 'figs', who: 'heichaoCalm', text: '……可以回家了嗎？', src: 1,
         cam: { x: 560, y: -100, zoom: 1.2, ms: 1400 },
-        moves: [{ id: 'decree', alpha: 0, ms: 600 }, { id: 'heichao', alpha: 0.2, ms: 1400 }, { id: 'figs', alpha: 1, ms: 1400 }],
+        moves: [{ id: 'decree', alpha: 0, ms: 600 }, { id: 'heichao', alpha: 0, ms: 1400 }, { id: 'figs', alpha: 1, ms: 1400 }],
       },
       {
         at: 'xunbu', who: 'xunbu', text: '可以！位子都留好了，一人一個！', draft: true,
@@ -227,12 +229,14 @@ export const STAGES2: Record<string, StageScript> = {
     fore: 'sea',
     actors: [
       { id: 'decree', tex: 'decree', x: 200, y: -340, scale: 0.8, alpha: 0, center: true },
-      { id: 'ship', tex: 'st_wangchuan', x: 420, y: 10, scale: 0.46 },
+      // 視覺修正：程式畫的黑潮放在王船後面（不蓋船尾）
       { id: 'heichao', tex: 'heichao', x: 600, y: 10, scale: 0.8, alpha: 0.85 },
+      { id: 'ship', tex: 'st_wangchuan', x: 420, y: 10, scale: 0.46 },
       { id: 'mist', tex: 'smoke', x: 560, y: -40, scale: 7, tint: 0xcfe0f0, alpha: 0, center: true },
+      // 視覺修正：轎班暫代退到中軍府、巡捕後面一排，縮小一點
+      { id: 'jiaoban', tex: 'jiaoban', x: 125, y: 30, scale: 1.45 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 70, y: 55, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 170, y: 80, scale: 0.44 },
-      { id: 'jiaoban', tex: 'jiaoban', x: 270, y: 95, scale: 1.75 },
     ],
     beats: [
       {
@@ -240,7 +244,7 @@ export const STAGES2: Record<string, StageScript> = {
         cam: { x: 420, y: -100, zoom: 1, ms: 1600 },
         moves: [
           { id: 'heichao', x: 700, y: -10, alpha: 0, scale: 0.6, ms: 1800 },
-          { id: 'ship', tex: 'st_wangchuan_fire', x: 520, y: -26, scale: 0.3, ms: 2400 },
+          { id: 'ship', tex: 'st_wangchuan_fire', x: 500, y: -20, scale: 0.42, ms: 2400 },
         ],
         sfx: { text: '嘩——', at: 'heichao', color: 0x9ad0f0 },
       },
@@ -274,12 +278,14 @@ export const STAGES2: Record<string, StageScript> = {
     ground: 0x443a42,
     fore: 'sea',
     actors: [
-      { id: 'ship', tex: 'st_wangchuan', x: 400, y: 10, scale: 0.46 },
+      // 視覺修正：程式畫的黑潮放在王船後面（不蓋船尾）
       { id: 'heichao', tex: 'heichao', x: 600, y: 10, scale: 0.85 },
+      { id: 'ship', tex: 'st_wangchuan', x: 400, y: 10, scale: 0.46 },
       { id: 'spray', tex: 'smoke', x: 600, y: -80, scale: 3, tint: 0xe8eef4, alpha: 0, center: true },
+      // 視覺修正：轎班暫代退到中軍府、巡捕後面一排，縮小一點
+      { id: 'jiaoban', tex: 'jiaoban', x: 125, y: 30, scale: 1.45 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 70, y: 55, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 170, y: 80, scale: 0.44 },
-      { id: 'jiaoban', tex: 'jiaoban', x: 270, y: 95, scale: 1.75 },
     ],
     beats: [
       {
@@ -298,7 +304,7 @@ export const STAGES2: Record<string, StageScript> = {
       {
         who: 'narrator', text: '王船點了火，出海了。船上留的那五個位子，一直空著。', src: 4,
         cam: { x: 440, y: -100, zoom: 1, ms: 1600 },
-        moves: [{ id: 'ship', tex: 'st_wangchuan_fire', x: 520, y: -26, scale: 0.3, ms: 2600 }],
+        moves: [{ id: 'ship', tex: 'st_wangchuan_fire', x: 500, y: -20, scale: 0.42, ms: 2600 }],
       },
       { at: 'zhongjun', who: 'zhongjun', text: '……五個人的名字，我一個也沒問到。', src: 5, cam: { x: 120, y: -100, zoom: 1.22, ms: 1400 } },
     ],

@@ -401,14 +401,14 @@ export class TrialScene extends Phaser.Scene {
 
   /**
    * 第一、二章夜審互嗆（各章 banter 的 t_* 台詞）：一句一行，不擋操作。
-   * 比照點將問罪，放在鬼的立繪左邊、限寬到光圈左緣（core/layout.ts 的 TRIAL），不蓋鬼的臉與下方面板。
+   * 放在下方面板上面的字幕條（core/layout.ts 的 TRIAL）：不蓋判官與鬼的臉、不蓋下方面板，字放大、底色加深。
    * 第三章沒有 t_* 台詞（點將問罪用 ui/dianjiang.ts 的 chat），這裡自己跳過。
    */
   private quip(key: string, delay = 350): void {
     const lib = CH().banter?.[key];
     if (!lib?.length) return;
     const n = (this.quipN[key] = (this.quipN[key] ?? -1) + 1);
-    this.time.delayedCall(delay, () => banter(this, lib[n % lib.length], TRIAL.chatY, 40, TRIAL.chatW));
+    this.time.delayedCall(delay, () => banter(this, lib[n % lib.length], TRIAL.chatY, 40, TRIAL.chatW, { size: TRIAL.chatSize, alpha: 0.82 }));
   }
 
   // ---------- 第三章：點將問罪的大廳 ----------

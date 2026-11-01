@@ -16,6 +16,8 @@ const arg = (k, d) => {
   return i > 0 ? process.argv[i + 1] : d;
 };
 const BASE = arg('--base', 'http://localhost:4173/');
+/** 只截檔名符合這個規則的（例如 --only "^(trial|boss)"） */
+const ONLY = new RegExp(arg('--only', '.'));
 const OUT = arg('--out', 'C:\\Users\\nelso\\grokbot_transfer\\ch12\\shots');
 const CHROME = arg('--chrome', 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
 const TEST = 'https://sy19870627.github.io/taiwan-procession/test/';
@@ -34,12 +36,21 @@ const STORY_SHOTS = [
   ['xinying', 'kaiying3', [2, 6]],
   ['xinying', 'jiaoRecall', [3, 7]],
 ];
+/** 評分補截（extra\ 資料夾，視覺修正後重截）：石駒回頭、王船起火 */
+const EXTRA_SHOTS = [
+  ['wanjia', 'shijuReturn1', [3, 5]],
+  ['dongjin', 'heichaoSlay2', [0, 4]],
+];
+/**
+ * 夜審：深層連結一開，判官的立繪還沒載到（堂上是程式畫的小人）；等圖載好重開一次夜審（和正常玩到夜審一樣是立繪），再叫掛勾
+ */
+const TRIAL_JS = "(() => { const s = __game.scene.getScene('trial'); s.scene.restart(s.sys.settings.data); setTimeout(() => __game.scene.getScene('trial').quip('t_open', 0), 1200); })()";
 /** 互嗆：白天起駕、夜審升堂（直接叫掛勾）、最後一戰開打（1.5 秒後播 b_start）與開打後 */
 const BANTER_SHOTS = [
   { name: 'day_wanjia', q: 'scene=day&n=1&ch=wanjia', wait: 3200 },
   { name: 'day_dongjin', q: 'scene=day&n=1&ch=dongjin', wait: 3200 },
-  { name: 'trial_wanjia', q: 'scene=trial&n=1&ch=wanjia', wait: 1500, js: "__game.scene.getScene('trial').quip('t_open', 0)", after: 2600 },
-  { name: 'trial_dongjin', q: 'scene=trial&n=1&ch=dongjin', wait: 1500, js: "__game.scene.getScene('trial').quip('t_open', 0)", after: 2600 },
+  { name: 'trial_wanjia', q: 'scene=trial&n=1&ch=wanjia', wait: 3000, js: TRIAL_JS, after: 4200 },
+  { name: 'trial_dongjin', q: 'scene=trial&n=1&ch=dongjin', wait: 3000, js: TRIAL_JS, after: 4200 },
   { name: 'boss_wanjia', q: 'scene=boss&ch=wanjia', wait: 4200 },
   { name: 'boss_dongjin', q: 'scene=boss&ch=dongjin', wait: 4200 },
   // 打一段時間後（事件真的觸發的互嗆，不叫掛勾）
@@ -118,6 +129,7 @@ async function main() {
     const send = cdp(ws);
 
     const shoot = async (url, file, dev, js, after = 0, wait = 3000) => {
+      if (!ONLY.test(file)) return;
       const d = DEVICES[dev];
       const { targetId } = await send('Target.createTarget', { url: 'about:blank' });
       const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
@@ -139,6 +151,9 @@ async function main() {
 
     for (const [ch, id, beats] of STORY_SHOTS)
       for (const b of beats) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, `${id}_b${b}_${dev}.png`, dev, undefined, 0, 3500);
+    mkdirSync(join(OUT, 'extra'), { recursive: true });
+    for (const [ch, id, beats] of EXTRA_SHOTS)
+      for (const b of beats) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, join('extra', `${id}_b${b}_pc.png`), 'pc', undefined, 0, 3500);
     for (const o of BANTER_SHOTS) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?${o.q}`, `${o.name}_${dev}.png`, dev, o.js, o.after, o.wait);
 
     await send('Browser.close').catch(() => {});

@@ -3,6 +3,7 @@
  * 不攔點擊、不暫停（大綱 §3：每句 1 行、不擋操作）。同一場景同時只顯示一組，新的一組會蓋掉舊的。
  * 也不蓋住按鈕：每句放在不和場景裡任何可點的東西重疊的高度；之後才冒出來的按鈕也會讓開（freeY）。
  * 可以限制寬度（maxW），太長就換行，不蓋到畫面中間的東西（夜審的立繪）。
+ * 也可以放大字、加深底色（style）：夜審字幕條、最後一戰（戰場特效會飛過字幕）。
  */
 import Phaser from 'phaser';
 import { H, W, WHO_COLOR } from '../theme';
@@ -11,6 +12,12 @@ import type { BanterLine } from '../content/chapter';
 import { txt } from './widgets';
 
 const LINE_MS = 2200;
+
+/** 字級與底色（預設 19 號字、底色 0.55） */
+export interface BanterStyle {
+  size?: number;
+  alpha?: number;
+}
 const live = new WeakMap<Phaser.Scene, Phaser.GameObjects.GameObject[]>();
 
 /**
@@ -18,7 +25,8 @@ const live = new WeakMap<Phaser.Scene, Phaser.GameObjects.GameObject[]>();
  * maxW：字幕框最寬多少（從 x = 16 算起）。太長就縮小一號字、換行（夜審：不蓋到中間的立繪與光圈）；
  * 不給就和以前一樣一句一行。
  */
-export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth = 40, maxW?: number): void {
+export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth = 40, maxW?: number, style: BanterStyle = {}): void {
+  const size = style.size ?? 19;
   for (const o of live.get(scene) ?? []) o.destroy();
   const objs: Phaser.GameObjects.GameObject[] = [];
   live.set(scene, objs);
@@ -26,8 +34,8 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
     scene.time.delayedCall(i * LINE_MS, () => {
       if (live.get(scene) !== objs) return;
       // 名字依五營上色，後面接著台詞
-      let name = txt(scene, 10, 4, `${l.who}：`, 19, WHO_COLOR[l.who] ?? 0xffd76a, { stroke: '#120a10', strokeThickness: 5 });
-      let t = txt(scene, 10 + name.width, 4, l.text, 19, 0xfbf3e2, { bold: false, stroke: '#120a10', strokeThickness: 5 });
+      let name = txt(scene, 10, 4, `${l.who}：`, size, WHO_COLOR[l.who] ?? 0xffd76a, { stroke: '#120a10', strokeThickness: 5 });
+      let t = txt(scene, 10 + name.width, 4, l.text, size, 0xfbf3e2, { bold: false, stroke: '#120a10', strokeThickness: 5 });
       let bw = name.width + t.width + 20;
       let pad = 8;
       if (maxW !== undefined && bw > maxW) {
@@ -36,23 +44,23 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
         name.destroy();
         t.destroy();
         const st = { bold: false, stroke: '#120a10', strokeThickness: 4 };
-        t = txt(scene, 10, 3, `${l.who}：${l.text}`, 17, 0xfbf3e2, st);
+        t = txt(scene, 10, 3, `${l.who}：${l.text}`, size - 2, 0xfbf3e2, st);
         const rows = Math.ceil(t.width / (maxW - 20));
         // 標點不放在行首：寬一點或窄一點再換一次
         const tt = t;
-        const ww = wrapWidth(Math.min(maxW - 20, Math.ceil(t.width / rows) + 17), maxW - 20, 17, (w) => {
+        const ww = wrapWidth(Math.min(maxW - 20, Math.ceil(t.width / rows) + size - 2), maxW - 20, size - 2, (w) => {
           tt.setWordWrapWidth(w, true);
           return tt.getWrappedText();
         });
         t.setWordWrapWidth(ww, true);
-        name = txt(scene, 10, 3, `${l.who}：`, 17, WHO_COLOR[l.who] ?? 0xffd76a, st);
+        name = txt(scene, 10, 3, `${l.who}：`, size - 2, WHO_COLOR[l.who] ?? 0xffd76a, st);
         bw = Math.min(maxW, t.width + 20);
         pad = 6;
       }
-      const box = scene.add.rectangle(0, 0, bw, t.height + pad, 0x120a10, 0.55).setOrigin(0);
+      const box = scene.add.rectangle(0, 0, bw, t.height + pad, 0x120a10, style.alpha ?? 0.55).setOrigin(0);
       // 照順序往下排（接在上一句下面），但要避開按鈕和上面幾句
       const prev = objs[objs.length - 1] as Phaser.GameObjects.Container | undefined;
-      const want = prev ? prev.y + (maxW !== undefined ? Math.max(34, prev.height + 4) : 34) : y;
+      const want = prev ? prev.y + (maxW !== undefined || style.size ? Math.max(34, prev.height + 4) : 34) : y;
       const c = scene.add.container(W + 10, 0, [box, name, t]).setDepth(depth);
       c.setSize(box.width, box.height);
       c.y = freeY({ x: 16, w: c.width, h: c.height }, want, [...buttons(scene), ...lineRects(objs)], H);

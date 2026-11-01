@@ -83,30 +83,30 @@ describe('第一、二章夜審互嗆', () => {
   });
 });
 
-describe('夜審互嗆字幕的位置（比照點將問罪）', () => {
-  // 立繪是 420×560，畫面上的寬 = 高 × 0.75
-  const left = (h: number) => W / 2 - (h * 420) / 560 / 2;
+describe('夜審互嗆字幕的位置（視覺修正：下方面板上面的字幕條）', () => {
   const G = TRIAL.glow;
 
   it('光圈在畫面正中', () => {
     expect(G.x).toBe(W / 2);
   });
 
-  it('字幕框的右緣在光圈（脈動最大）左緣 − 8 以內，也不碰鬼的立繪', () => {
-    const right = 16 + TRIAL.chatW;
-    expect(right).toBeLessThanOrEqual(G.x - G.r * G.pulse - 8);
-    expect(right).toBeLessThan(left(TRIAL.ghost.h));
-    expect(right).toBeLessThan(left(TRIAL.verdict.h));
-    expect(TRIAL.chatW).toBeGreaterThan(160);
+  it('字幕條從判官、鬼的臉下面開始排（立繪上半露出來），寬到整個畫面、字夠大', () => {
+    // 判官立繪底 506、高 250；鬼的立繪（審問、判決）上半都不蓋
+    expect(TRIAL.chatY).toBeGreaterThanOrEqual(506 - 250 * 0.5);
+    expect(TRIAL.chatY).toBeGreaterThanOrEqual(TRIAL.ghost.bottom - TRIAL.ghost.h * 0.5);
+    expect(TRIAL.chatY).toBeGreaterThanOrEqual(TRIAL.verdict.bottom - TRIAL.verdict.h * 0.5);
+    expect(16 + TRIAL.chatW).toBeLessThanOrEqual(W - 16);
+    expect(TRIAL.chatW).toBeGreaterThanOrEqual(390);
+    expect(TRIAL.chatSize).toBeGreaterThanOrEqual(23);
   });
 
   it('最長的一組排下來不碰下方面板（審問與判決結果）', () => {
-    // 照 ui/banter.ts：太寬就縮成 17 號字換行（每行約 maxW − 20 寬、一字約 17px）；一句之間至少隔 34
-    const rowsOf = (s: string) => Math.ceil(([...s].length * 17) / (TRIAL.chatW - 20));
+    // 照 ui/banter.ts：一句一行（太寬才縮小一號換行），每句佔 chatRowH
+    const rowsOf = (s: string) => Math.ceil(([...s].length * TRIAL.chatSize) / (TRIAL.chatW - 20));
     for (const id of ['wanjia', 'dongjin']) {
       for (const [key, sets] of Object.entries(CHAPTERS[id].banter!).filter(([k]) => k.startsWith('t_'))) {
         for (const set of sets) {
-          const h = set.reduce((sum, l) => sum + Math.max(34, rowsOf(`${l.who}：${l.text}`) * 22 + 6 + 4), 0);
+          const h = set.reduce((sum, l) => sum + rowsOf(`${l.who}：${l.text}`) * TRIAL.chatRowH, 0);
           expect(TRIAL.chatY + h, `${id} ${key} ${set[0].text}`).toBeLessThanOrEqual(Math.min(TRIAL.panelY, TRIAL.verdict.panelY));
         }
       }
@@ -119,7 +119,7 @@ describe('夜審互嗆字幕的位置（比照點將問罪）', () => {
     expect(trialSrc).toContain('TRIAL.ghost.bottom');
     expect(trialSrc).toContain('y: TRIAL.panelY');
     expect(trialSrc).toContain('y: TRIAL.verdict.panelY');
-    expect(trialSrc).toContain('banter(this, lib[n % lib.length], TRIAL.chatY, 40, TRIAL.chatW)');
+    expect(trialSrc).toContain('banter(this, lib[n % lib.length], TRIAL.chatY, 40, TRIAL.chatW, { size: TRIAL.chatSize');
   });
 });
 
