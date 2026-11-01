@@ -55,18 +55,67 @@ export class TitleScene extends Phaser.Scene {
     fullscreenButton(this);
     // 版本號（左下角小字）
     txt(this, 12, H - 12, __VERSION__, 14, C.muted, { bold: false }).setOrigin(0, 1).setAlpha(0.7);
-    // 開發者資訊（右下角小字，連結開新分頁）
-    txt(this, W - 14, H - 84, '開發者：SY', 20, C.muted, { bold: false }).setOrigin(1, 1).setAlpha(0.8);
-    this.link(W - 14, H - 48, 'GitHub ↗', 'https://github.com/SY19870627');
-    this.link(W - 14, H - 12, 'X（推特）↗', 'https://x.com/nelsonyehfon');
+    // 開發者資訊（右下角：小字署名＋兩顆金框小按鈕，連結開新分頁）
+    this.devInfo();
   }
 
-  /** 可點的小字連結：手指放開才開新分頁 */
-  private link(x: number, y: number, label: string, url: string): void {
-    const t = txt(this, x, y, label, 20, C.gold, { bold: false, padding: { x: 8, y: 6 } }).setOrigin(1, 1).setAlpha(0.85);
-    t.setInteractive({ useHandCursor: true });
-    t.on('pointerover', () => t.setAlpha(1));
-    t.on('pointerout', () => t.setAlpha(0.85));
-    t.on('pointerup', () => window.open(url, '_blank', 'noopener,noreferrer'));
+  /**
+   * 開發者資訊。尺寸用 CSS px 想，再依畫面縮放換回遊戲座標，
+   * 保證手機上字 ≥12px、每顆按鈕 ≥44×44、按鈕間距 ≥8px、離畫面底緣 ≥16px
+   * （#game 本身已用 env(safe-area-inset-bottom) 讓出底部橫條，這裡是再往上留的邊距）。
+   */
+  private devInfo(): void {
+    const canvas = this.game.canvas;
+    const cssW = canvas?.getBoundingClientRect().width || this.scale.displaySize.width;
+    const s = cssW > 0 ? Math.min(1, cssW / W) : 0.6; // 每 1 遊戲 px 等於幾 CSS px
+    const css = (px: number) => Math.ceil(px / s);
+    const font = css(13);
+    const btnH = css(46);
+    const gap = css(10);
+    const labels = ['GitHub ↗', 'X ↗'];
+    const urls = ['https://github.com/SY19870627', 'https://x.com/nelsonyehfon'];
+    const texts = labels.map((l) => txt(this, 0, 0, l, font, C.gold, { bold: false }).setOrigin(0.5));
+    const btnW = Math.max(css(46), ...texts.map((t) => Math.ceil(t.width) + css(14)));
+    // 靠右留 12px；窄螢幕（約 320 寬）會碰到起駕按鈕（寬 300）就縮成 6px
+    const roomy = W - css(12) - btnW >= W / 2 + 150 + css(8);
+    const cx = W - css(roomy ? 12 : 6) - btnW / 2;
+    // 底緣對齊起駕按鈕的下緣（H - 65），螢幕很窄時再往上留夠 16px
+    const bottom = H - Math.max(65, css(16));
+    texts.forEach((t, i) => {
+      const cy = bottom - btnH / 2 - (texts.length - 1 - i) * (btnH + gap);
+      this.devLink(t, cx, cy, btnW, btnH, urls[i]);
+    });
+    const top = bottom - texts.length * btnH - (texts.length - 1) * gap;
+    txt(this, cx, top - css(6), '開發者：SY', css(12), C.muted, { bold: false }).setOrigin(0.5, 1).setAlpha(0.9);
+  }
+
+  /** 金框小按鈕：文字本身用 padding 撐成整顆按鈕大小，可點範圍＝整顆按鈕；手指放開才開新分頁 */
+  private devLink(t: Phaser.GameObjects.Text, x: number, y: number, w: number, h: number, url: string): void {
+    const padX = Math.max(0, (w - t.width) / 2);
+    const padY = Math.max(0, (h - t.height) / 2);
+    t.setPadding(padX, padY, padX, padY).setPosition(x, y).setOrigin(0.5).setDepth(1);
+    const g = this.add.graphics();
+    const r = Math.min(12, h / 4);
+    const draw = (hover: boolean) => {
+      g.clear();
+      g.fillStyle(0x000000, 0.25);
+      g.fillRoundedRect(x - w / 2, y - h / 2 + 3, w, h, r);
+      g.fillStyle(hover ? 0x3a3048 : C.panel, hover ? 0.85 : 0.6);
+      g.fillRoundedRect(x - w / 2, y - h / 2, w, h, r);
+      g.lineStyle(2, C.gold, hover ? 0.9 : 0.45);
+      g.strokeRoundedRect(x - w / 2, y - h / 2, w, h, r);
+    };
+    draw(false);
+    t.setAlpha(0.85);
+    t.setInteractive({ hitArea: new Phaser.Geom.Rectangle(0, 0, t.width, t.height), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
+    let downAt: { x: number; y: number } | null = null;
+    t.on('pointerover', () => { t.setAlpha(1); draw(true); });
+    t.on('pointerout', () => { t.setAlpha(0.85); draw(false); downAt = null; });
+    t.on('pointerdown', (p: Phaser.Input.Pointer) => { downAt = { x: p.x, y: p.y }; });
+    t.on('pointerup', (p: Phaser.Input.Pointer) => {
+      const ok = !downAt || Math.hypot(p.x - downAt.x, p.y - downAt.y) < 24;
+      downAt = null;
+      if (ok) window.open(url, '_blank', 'noopener,noreferrer');
+    });
   }
 }
