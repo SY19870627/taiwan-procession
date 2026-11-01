@@ -18,7 +18,7 @@ import { flashback } from '../ui/talk';
 import { isLooked, LOOK_TAG, natureOf, slayGhost, slayPreview, truthReel } from '../core/renown';
 import { beginNight, canOpen, dawnHeld, flareOf, judge as judge3, knelt, muted, useTrial } from '../core/dianjiang';
 import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
-import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
+import { isBorrowedPortrait, portraitKey, portraitThumb, type Expr } from '../art/portraits';
 
 const WATCHES = 3;
 const DEFECT_COLOR: Record<string, number> = { 塗改: 0xff9a6a, 缺頁: 0xd9b0ff, 模糊: 0x9fd0ff };
@@ -71,7 +71,8 @@ export class TrialScene extends Phaser.Scene {
         ? this.add.image(x, 506, art).setOrigin(0.5, 1).setFlipX(i === 1)
         : this.add.image(x, 500, o.tex).setOrigin(0.5, 1).setScale(1.2).setFlipX(i === 1);
       if (art) img.setScale(Math.min(250 / img.height, 190 / img.width)).setAlpha(0.95);
-      if (o.tint) img.setTint(o.tint);
+      // 換色只給借來的圖（武判官、巡捕的立繪還沒到時）；畫師的正式立繪不換色
+      if (o.tint && (!art || isBorrowedPortrait(o.label, art))) img.setTint(o.tint);
       txt(this, x, 510, o.label, 16, C.muted).setOrigin(0.5, 0);
     });
     fullscreenButton(this);

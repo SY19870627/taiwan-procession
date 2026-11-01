@@ -50,7 +50,7 @@ function smallPalanquin(g: G, w: number, h: number, shirt: number, body: number,
 }
 
 /** 王船：紅黑船身、龍目、三桅、帆與旗 */
-function ship(g: G, w: number, h: number, wheels: boolean): void {
+export function ship(g: G, w: number, h: number, wheels: boolean): void {
   const base = h - (wheels ? 34 : 14);
   // 帆柱與帆
   const masts = [w * 0.32, w * 0.52, w * 0.72];

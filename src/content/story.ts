@@ -6,7 +6,8 @@
 import { CUTSCENES3 } from './ch3/story';
 
 export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun'
-  | 'taizi' | 'zhangjiang' | 'xiaojiang' | 'liujiang' | 'lianjiang' | 'jiao' | 'jiaoCalm' | 'zhizha' | 'xiabing' | 'bingbo' | 'hebo';
+  | 'taizi' | 'zhangjiang' | 'xiaojiang' | 'liujiang' | 'lianjiang' | 'jiao' | 'jiaoCalm' | 'zhizha' | 'xiabing' | 'bingbo' | 'hebo'
+  | 'wupan' | 'qiye' | 'baye' | 'xunbu' | 'jiaoban';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -18,11 +19,17 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   kaijiang: { name: '開疆聖王（旨意）', tex: 'decree', side: 'left', scale: 1.4 },
   judge: { name: '文判官', tex: 'judge', side: 'left', scale: 1.7 },
   baoma: { name: '報馬仔', tex: 'baoma', side: 'left', scale: 1.8 },
+  // 第一、二章熱鬧化：隨從開口（暫代貼圖：武判官、巡捕、轎班在 art/stage.ts；七爺八爺用陣頭小人）
+  wupan: { name: '武判官', tex: 'wupan', side: 'left', scale: 1.7 },
+  qiye: { name: '七爺', tex: 'qiye', side: 'left', scale: 1.3 },
+  baye: { name: '八爺', tex: 'baye', side: 'right', scale: 1.8 },
   // 第二章（東津）
   yun: { name: '雲王爺（旨意）', tex: 'decree', side: 'left', scale: 1.4 },
   heichao: { name: '黑潮', tex: 'heichao', side: 'right', scale: 1.0 },
   heichaoCalm: { name: '黑潮', tex: 'heichao_calm', side: 'right', scale: 1.0 },
   zhongjun: { name: '中軍府', tex: 'zhongjun', side: 'left', scale: 1.7 },
+  xunbu: { name: '巡捕', tex: 'xunbu', side: 'right', scale: 1.7 },
+  jiaoban: { name: '轎班', tex: 'jiaoban', side: 'right', scale: 1.8 },
   // 第三章（新瀛）：神明可以畫臉（決策紀錄 2026-10-27），太子與五將用立繪
   // 神明在左、妖怪與凡人在右（同一邊換人時，前一位會退下）
   taizi: { name: '太子爺', tex: 'w3_flags', side: 'left', scale: 1.4 },
@@ -44,6 +51,9 @@ export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import
   shiju: ['shiju', 'angry'], shijuCalm: ['shiju', 'calm'],
   god: ['decree', 'normal'], kaijiang: ['decree', 'normal'], yun: ['decree', 'normal'],
   judge: ['judge', 'normal'], zhongjun: ['zhongjun', 'normal'],
+  // 新角色：畫師的立繪到了就用（art/stageSpec.ts），沒到就用程式畫的小人
+  wupan: ['wupan', 'normal'], qiye: ['qiye', 'normal'], baye: ['baye', 'normal'], baoma: ['baoma', 'normal'],
+  xunbu: ['xunbu', 'normal'], jiaoban: ['jiaoban', 'normal'],
   heichao: ['heichao', 'angry'], heichaoCalm: ['heichao', 'calm'],
   taizi: ['taizi', 'normal'], zhangjiang: ['zhangjiang', 'normal'],
   xiaojiang: ['xiaojiang', 'normal'], liujiang: ['liujiang', 'normal'], lianjiang: ['lianjiang', 'normal'],

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { loadPortraits } from '../art/portraits';
 import { BATTLE_FILES, BG_FILES } from '../art/xinyingSpec';
+import { STAGE_DIR, STAGE_FILES } from '../art/stageSpec';
 
 /** 正式戰鬥圖先用這個暫時的名字載入，載完再換成正式的貼圖名稱 */
 const TMP = 'art:';
@@ -25,6 +26,12 @@ export class AssetScene extends Phaser.Scene {
     // （檔案不在就什麼都不做，繼續用程式畫的）
     for (const k of BATTLE_FILES) {
       this.load.image(TMP + k, `battle/${k}.webp`);
+      this.load.once(`filecomplete-image-${TMP}${k}`, () => this.replaceTexture(k));
+    }
+    // 第一、二章演出用小人（畫師的圖：public/stage/st_*.webp）：同一套做法，載到就蓋掉 art/stage.ts 畫的暫代
+    // （立繪 A 組已經合進 portraits.ts 的 SETS，由 loadPortraits 載）
+    for (const k of STAGE_FILES) {
+      this.load.image(TMP + k, `${STAGE_DIR}/${k}.webp`);
       this.load.once(`filecomplete-image-${TMP}${k}`, () => this.replaceTexture(k));
     }
   }

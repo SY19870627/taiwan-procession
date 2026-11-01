@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
-import { CUTSCENES } from '../content/story';
+import { CUTSCENES, type Cutscene } from '../content/story';
+import { STAGES } from '../content/stage';
 import { fitBattleArt } from '../art/xinyingBattle';
 import { Dialogue } from '../ui/dialogue';
+import { StagePlayer } from '../ui/stage';
 import { button, go, txt } from '../ui/widgets';
 
 export interface StoryData {
@@ -10,6 +12,10 @@ export interface StoryData {
   next?: { key: string; data?: object };
   /** 蓋在目前的畫面上播（第三章：紙紮童跪下）：播完回到原本暫停的場景 */
   overlay?: { caller: string; done: () => void };
+  /** 強制播文字版（測試、對照用：網址 &text=1） */
+  text?: boolean;
+  /** 演出直接跳到第幾拍（從 0 算；截圖、驗收用：網址 &beat=N） */
+  beat?: number;
 }
 
 /**
@@ -29,11 +35,43 @@ export class StoryScene extends Phaser.Scene {
   }
 
   create(data: StoryData): void {
-    const cs = CUTSCENES[data.id] ?? CUTSCENES.opening;
+    const id = CUTSCENES[data.id] ? data.id : 'opening';
+    const cs = CUTSCENES[id];
     const next = data.next ?? { key: 'title' };
     const overlay = data.overlay;
     if (overlay) this.scene.bringToTop();
     this.cameras.main.fadeIn(400, 10, 8, 18);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (!overlay) return go(this, next.key, next.data);
+      this.cameras.main.fadeOut(300, 10, 8, 18);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.resume(overlay.caller);
+        this.scene.stop();
+        overlay.done();
+      });
+    };
+    // 有演出腳本就播演出（沒有 &text=1 時）；播放器出錯就退回文字版
+    const sc = STAGES[id];
+    if (sc && !data.text) {
+      try {
+        const player = new StagePlayer(this, sc, { onDone: finish, startBeat: data.beat });
+        button(this, W - 90, 40, 120, 50, '略過 ▶▶', () => player.skip(), { size: 18, fill: 0x2a2236 }).setDepth(700);
+        return;
+      } catch (e) {
+        console.warn('演出播放失敗，改播文字版', id, e);
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+        this.children.removeAll(true);
+      }
+    }
+    this.playText(cs, finish);
+  }
+
+  /** 文字版：背景＋立繪＋下方對話框 */
+  private playText(cs: Cutscene, finish: () => void): void {
     const [top, bottom] = cs.mood === 'demon' ? [0x0a0614, 0x2e1446] : cs.mood === 'temple' ? [0x1a0e08, 0x5a3412] : [0x2a2a4a, 0xd88a5a];
     const bg = this.add.graphics();
     bg.fillGradientStyle(top, top, bottom, bottom, 1);
@@ -82,18 +120,6 @@ export class StoryScene extends Phaser.Scene {
           this.tweens.add({ targets: sp, x: sp.x + Phaser.Math.Between(-120, 120), y: sp.y + Phaser.Math.Between(40, 200), alpha: 0, duration: 700, onComplete: () => sp.destroy() });
         }
       }
-    };
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      if (!overlay) return go(this, next.key, next.data);
-      this.cameras.main.fadeOut(300, 10, 8, 18);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.resume(overlay.caller);
-        this.scene.stop();
-        overlay.done();
-      });
     };
     const dlg = new Dialogue(this, cs.lines, finish, fx);
     button(this, W - 90, 40, 120, 50, '略過 ▶▶', () => dlg.skip(), { size: 18, fill: 0x2a2236 }).setDepth(700);
