@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import { H, W, WHO_COLOR } from '../theme';
-import { freeY, type Rect } from '../core/layout';
+import { freeY, wrapWidth, type Rect } from '../core/layout';
 import type { BanterLine } from '../content/chapter';
 import { txt } from './widgets';
 
@@ -38,7 +38,13 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
         const st = { bold: false, stroke: '#120a10', strokeThickness: 4 };
         t = txt(scene, 10, 3, `${l.who}：${l.text}`, 17, 0xfbf3e2, st);
         const rows = Math.ceil(t.width / (maxW - 20));
-        t.setWordWrapWidth(Math.min(maxW - 20, Math.ceil(t.width / rows) + 17), true);
+        // 標點不放在行首：寬一點或窄一點再換一次
+        const tt = t;
+        const ww = wrapWidth(Math.min(maxW - 20, Math.ceil(t.width / rows) + 17), maxW - 20, 17, (w) => {
+          tt.setWordWrapWidth(w, true);
+          return tt.getWrappedText();
+        });
+        t.setWordWrapWidth(ww, true);
         name = txt(scene, 10, 3, `${l.who}：`, 17, WHO_COLOR[l.who] ?? 0xffd76a, st);
         bw = Math.min(maxW, t.width + 20);
         pad = 6;
