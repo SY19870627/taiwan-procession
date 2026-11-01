@@ -96,8 +96,25 @@ describe('第三章過場劇情', () => {
     expect(takeKneelStory(r(), ch3.cases.hutou)).toBeUndefined();
   });
 
-  it('第一、二章沒有接上第三章的劇情（序章、天亮前、結局、收營），最好結局照舊用 recallStory', () => {
-    for (const id of ['wanjia', 'dongjin']) {
+  it('第一章（熱鬧化第 2 階段）：序章、天亮前、三種結局、回宮指到的劇情都存在，最好結局仍是 recall', () => {
+    const c = CHAPTERS.wanjia;
+    const F = c.finale;
+    expect(c.prologueStory).toBe('anfang1');
+    expect(c.dawnStory).toEqual({ 3: 'shanlu1' });
+    expect(F.endStory).toEqual({ recall: 'recall', return: 'shijuReturn1', slay: 'shijuSlay1' });
+    expect(F.closeStory).toBe('huigong1');
+    expect(F.recallStory).toBe('recall');
+    for (const s of [c.prologueStory!, ...Object.values(c.dawnStory!), ...Object.values(F.endStory!), F.closeStory!, F.recallStory, F.story]) {
+      expect(CUTSCENES[s], s).toBeDefined();
+      // 說話的人都在 SPEAKERS（文字版也播得出來）
+      for (const l of CUTSCENES[s].lines) if (l.who !== 'narrator') expect(SPEAKERS[l.who], `${s} ${l.who}`).toBeDefined();
+    }
+    // 第一章不是第三章的點將問罪：沒有跪下劇情
+    expect(Object.values(c.cases).some((k) => k.kneelStory)).toBe(false);
+  });
+
+  it('第二章沒有接上第三章的劇情（序章、天亮前、結局、收營），最好結局照舊用 recallStory（第 3 階段再改）', () => {
+    for (const id of ['dongjin']) {
       const c = CHAPTERS[id];
       expect(c.prologueStory, id).toBeUndefined();
       expect(c.dawnStory, id).toBeUndefined();

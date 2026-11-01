@@ -85,6 +85,30 @@ describe('演出腳本', () => {
     });
   }
 
+  it('第 2 階段：第一章 7 段過場都有演出；新的 5 段每段 ≤ 8 句', () => {
+    const ch1 = ['recall', 'dusk3', 'anfang1', 'shanlu1', 'shijuReturn1', 'shijuSlay1', 'huigong1'];
+    for (const id of ch1) expect(STAGES[id], id).toBeDefined();
+    for (const id of ch1.slice(2)) {
+      expect(CUTSCENES[id].lines.length, id).toBeGreaterThan(0);
+      expect(CUTSCENES[id].lines.length, id).toBeLessThanOrEqual(8);
+    }
+    // retreat 目前沒有場景會播（計畫 Q16）：不寫演出
+    expect(STAGES.retreat).toBeUndefined();
+  });
+
+  it('翻面、轉角度的走位只用在有那個演員的拍子上；石駒回頭那拍有翻面', () => {
+    const ret = STAGES.shijuReturn1;
+    const look = ret.beats.find((b) => b.src === 4)!;
+    // 畫師的「回頭」臉朝左：走回山裡時翻面（朝右），回頭那拍翻回來（朝左看隊伍）
+    expect(ret.beats[0].moves?.find((m) => m.id === 'shiju')?.flip).toBe(true);
+    expect(look.moves?.find((m) => m.id === 'shiju')?.flip).toBe(false);
+    for (const sc of Object.values(STAGES)) {
+      for (const b of sc.beats) for (const m of b.moves ?? []) {
+        if (m.angle !== undefined) expect(Math.abs(m.angle), sc.id).toBeLessThanOrEqual(180);
+      }
+    }
+  });
+
   it('所有過場裡的神明那一拍沒有隨從插話（旨意說話時泡泡掛在旨意上）', () => {
     for (const sc of Object.values(STAGES)) {
       for (const b of sc.beats) {

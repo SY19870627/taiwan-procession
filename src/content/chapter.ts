@@ -243,11 +243,17 @@ const CHAPTER1: ChapterDef = {
     winTitle: '石駒的煞氣散了',
     winText: '牠跪在廟埕上，喘著氣，看著你們。要怎麼判？',
     recallStory: 'recall',
+    // 第一章熱鬧化（第 2 階段）：三種結局各自的劇情＋回宮
+    endStory: { recall: 'recall', return: 'shijuReturn1', slay: 'shijuSlay1' },
+    closeStory: 'huigong1',
     loseText: '隊伍退回廟裡重整。\n試著把血少的陣頭輪流退到後排回血；石駒刨地時先讓脆的退下來。\n下次石駒的煞氣會少一些。',
     dawnText: '石駒退回山裡。今晚再試一次：\n下次石駒的煞氣會少一些。',
   },
   temple: 'temple_qingling',
   endSub: '青嶺王暗訪・三日之後',
+  // 第一章熱鬧化（第 2 階段）：開場（暗訪出廟）、第二夜天亮前（報馬仔回報蹄印）
+  prologueStory: 'anfang1',
+  dawnStory: { 3: 'shanlu1' },
 };
 
 export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin: CHAPTER2, xinying: CHAPTER3 };

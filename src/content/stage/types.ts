@@ -32,6 +32,10 @@ export interface StageMove {
   tint?: number | null;
   /** 換圖（石駒煞氣散了換成平靜的那張） */
   tex?: string;
+  /** 左右翻面（走位結束時翻；石駒走回山裡、回頭看一眼） */
+  flip?: boolean;
+  /** 轉幾度（報馬仔累倒） */
+  angle?: number;
   ms?: number;
   /** 走路時一跳一跳 */
   hop?: boolean;

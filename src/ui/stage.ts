@@ -191,6 +191,7 @@ export class StagePlayer {
     if (m.x !== undefined) to.x = m.x;
     if (m.y !== undefined) to.y = G + m.y * k;
     if (m.alpha !== undefined) to.alpha = m.alpha;
+    if (m.angle !== undefined) to.angle = m.angle;
     const tex = m.tex && this.scene.textures.exists(m.tex) ? m.tex : undefined;
     const retex = () => {
       if (!tex) return;
@@ -204,15 +205,17 @@ export class StagePlayer {
       img.setPosition(to.x ?? img.x, to.y ?? img.y);
       if (to.alpha !== undefined) img.setAlpha(to.alpha);
       if (to.scale !== undefined) img.setScale(to.scale);
+      if (to.angle !== undefined) img.setAngle(to.angle);
+      if (m.flip !== undefined) img.setFlipX(m.flip);
       retex();
       if (m.id === 'decree') {
-        glow?.setPosition(glow.x, to.y ?? glow.y).setFillStyle(0xffd76a, 0.3);
+        glow?.setPosition(glow.x, to.y ?? glow.y).setFillStyle(0xffd76a, 0.3 * (to.alpha ?? img.alpha));
         ling?.setPosition(ling.x, to.y ?? ling.y).setAlpha(to.alpha ?? ling.alpha);
       }
     } else {
       this.scene.tweens.add({ targets: img, ...to, duration: ms, ease: 'Sine.inOut' });
       if (m.id === 'decree') {
-        if (glow) this.scene.tweens.add({ targets: glow, fillAlpha: 0.3, y: to.y ?? glow.y, duration: ms });
+        if (glow) this.scene.tweens.add({ targets: glow, fillAlpha: 0.3 * (to.alpha ?? img.alpha), y: to.y ?? glow.y, duration: ms });
         if (ling) this.scene.tweens.add({ targets: ling, alpha: to.alpha ?? ling.alpha, y: to.y ?? ling.y, duration: ms });
       }
       let hop: Phaser.Tweens.Tween | undefined;
@@ -222,6 +225,8 @@ export class StagePlayer {
       }
       // 換圖時先停掉一跳一跳（不然跳完會回到舊圖的縮放）
       if (tex) this.scene.time.delayedCall(ms / 2, () => { hop?.stop(); retex(); });
+      // 翻面：有換圖就和換圖一起翻，沒有就走完再翻
+      if (m.flip !== undefined) this.scene.time.delayedCall(tex ? ms / 2 : ms, () => img.setFlipX(m.flip!));
     }
     if (m.tint === null) {
       if (instant) img.clearTint();

@@ -99,6 +99,80 @@ export const CUTSCENES: Record<string, Cutscene> = {
       { who: 'shijuCalm', text: '……主公。' },
     ],
   },
+  // ---------- 第一章熱鬧化（docs/第一二章_熱鬧化計畫.md 第 2 階段）：以下 5 段台詞全部【待定】 ----------
+  // 開場：序章擲筊之後、第一天黃曆之前
+  anfang1: {
+    mood: 'temple',
+    place: '萬舺青嶺宮・入夜',
+    temple: 'temple_qingling',
+    lines: [
+      { who: 'narrator', text: '十月十九，入夜。青嶺宮的廟門開了，\n燈籠一盞一盞點起來。' },
+      { who: 'baoma', text: '鏘——！青嶺王暗訪，閒人迴避——！' },
+      { who: 'qiye', text: '扇子帶了，鎖鏈也帶了。八弟，走吧。' },
+      { who: 'baye', text: '我走前面。七哥你腿長，別踩到我。' },
+      { who: 'judge', text: '燈點好了。今晚帶回來的，我一個一個問。' },
+      { who: 'wupan', text: '刀也磨好了。問不出來的，交給我。' },
+      { who: 'judge', text: '不急。先問。' },
+      { who: 'god', text: '今晚暗訪，閒人迴避。', fx: 'flash' },
+    ],
+  },
+  // 第二夜天亮前（第三天黃曆之前）
+  shanlu1: {
+    mood: 'dawn',
+    place: '芝林山路・天亮前',
+    lines: [
+      { who: 'narrator', text: '第二夜快過去了。山路上有人一路跑下來，\n鑼都忘了敲。' },
+      { who: 'baoma', text: '蹄、蹄印！山上有蹄印！' },
+      { who: 'baye', text: '喘口氣再說。什麼蹄印？' },
+      { who: 'baoma', text: '這——麼大！石頭踩出來的，一路往北！', fx: 'shake' },
+      { who: 'qiye', text: '是石駒。往北……就是芝嶺巖。' },
+      { who: 'wupan', text: '正好。今天就上山。' },
+      { who: 'judge', text: '牠為什麼往北走，總有個原因。路上再問問。' },
+    ],
+  },
+  // 最後一戰・送回山中
+  shijuReturn1: {
+    mood: 'dawn',
+    place: '芝嶺巖・天將亮',
+    lines: [
+      { who: 'narrator', text: '天將亮。石駒站起來，一步一步走回山裡。' },
+      { who: 'god', text: '回去吧。山還在，你等的人也還記得你。', fx: 'flash' },
+      { who: 'baye', text: '就這樣讓牠走？' },
+      { who: 'qiye', text: '噓。你看。' },
+      { who: 'narrator', text: '走到山腰，石駒停下來，回頭看了一眼。' },
+      { who: 'shijuCalm', text: '……鑼聲，我記得。' },
+      { who: 'narrator', text: '然後牠轉過身，走進了晨霧裡。' },
+    ],
+  },
+  // 最後一戰・斬
+  shijuSlay1: {
+    mood: 'dawn',
+    place: '芝嶺巖・天將亮',
+    lines: [
+      { who: 'narrator', text: '武判官的刀落下。石駒化成一地碎石。', fx: 'shake' },
+      { who: 'wupan', text: '……斬了。' },
+      { who: 'narrator', text: '文判官放下了筆，很久沒有說話。' },
+      { who: 'baye', text: '判官，您寫啊。' },
+      { who: 'judge', text: '牠肚子那個洞……到最後，都沒有人問牠痛不痛。' },
+      { who: 'wupan', text: '……我去把碎石撿起來，放回山上。' },
+    ],
+  },
+  // 回宮：三種結局都播，之後是信徒錄
+  huigong1: {
+    mood: 'dawn',
+    place: '萬舺青嶺宮・天亮',
+    temple: 'temple_qingling',
+    lines: [
+      { who: 'narrator', text: '天亮了。暗訪的隊伍回到青嶺宮。' },
+      { who: 'qiye', text: '扇子收起來囉。' },
+      { who: 'baye', text: '鎖鏈也收了。……七哥，我腳好痠。' },
+      { who: 'qiye', text: '你走最前面，走最多。' },
+      { who: 'baoma', text: '我、我跑了三天……我先躺一下……' },
+      { who: 'narrator', text: '報馬仔一躺下，就在廟埕上睡著了，鑼還抱在懷裡。' },
+      { who: 'judge', text: '三天的口供，都記好了。' },
+      { who: 'god', text: '辛苦了。暗訪，到此為止。', fx: 'flash' },
+    ],
+  },
   // ---------- 第二章：東津・迎王 ----------
   tide3: {
     mood: 'demon',

@@ -70,7 +70,14 @@ export function makeStageArt(scene: Phaser.Scene): void {
 
   for (const calm of [false, true]) stage(scene, calm ? 'st_shiju_calm' : 'st_shiju', (g, w, h) => shiju(g, w, h, 'stand', calm));
   stage(scene, 'st_shiju_kneel', (g, w, h) => shiju(g, w, h, 'kneel', true));
-  stage(scene, 'st_shiju_look', (g, w, h) => shiju(g, w, h, 'look', true));
+  // 畫師的「回頭」臉朝左（2026-11-01 改版），暫代也左右翻過來，腳本的翻面才一致
+  stage(scene, 'st_shiju_look', (g, w, h) => {
+    g.save();
+    g.translateCanvas(w, 0);
+    g.scaleCanvas(-1, 1);
+    shiju(g, w, h, 'look', true);
+    g.restore();
+  });
 
   stage(scene, 'st_heichao_figures', heichaoFigures);
   for (const fire of [false, true]) {
@@ -90,6 +97,8 @@ export function makeStageArt(scene: Phaser.Scene): void {
       if (fire) flames(g, w, h);
     });
   }
+  // 碎石（第一章「斬」：石駒化成一地碎石）；只給演出用，沒有畫師圖
+  make(scene, 'st_rubble', 260, 90, rubble);
   stage(scene, 'st_jiao_qingling', (g, w, h) => {
     g.fillStyle(0x000000, 0.25);
     g.fillEllipse(w / 2, h - 6, w * 0.9, 14);
@@ -105,6 +114,25 @@ export function makeStageArt(scene: Phaser.Scene): void {
     for (let x = cx - 22; x < cx + 26; x += 8) g.lineBetween(x, by - 116, x, by - 74);
     g.restore();
   });
+}
+
+/** 一地碎石：大小不一的灰色石塊，上面有一點青苔 */
+function rubble(g: G, w: number, h: number): void {
+  g.fillStyle(0x000000, 0.25);
+  g.fillEllipse(w / 2, h - 8, w * 0.9, 16);
+  for (let i = 0; i < 16; i++) {
+    const x = 24 + ((i * 67) % (w - 48));
+    const r = 10 + ((i * 29) % 4) * 6;
+    const y = h - 10 - r * 0.6 - ((i * 13) % 3) * 6;
+    g.fillStyle([0x8a8478, 0x9e978a, 0x6e6a62][i % 3], 1);
+    g.fillEllipse(x, y, r * 2.2, r * 1.5);
+    g.fillStyle(0xd8d0c0, 0.35);
+    g.fillEllipse(x - r * 0.4, y - r * 0.4, r * 0.9, r * 0.5);
+    if (i % 4 === 0) {
+      g.fillStyle(0x6a7a3a, 0.7);
+      g.fillEllipse(x + r * 0.3, y - r * 0.5, r * 0.8, r * 0.4);
+    }
+  }
 }
 
 /** 王船燒起來：船身上方一排火舌 */
