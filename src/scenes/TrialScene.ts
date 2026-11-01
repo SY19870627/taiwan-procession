@@ -5,6 +5,8 @@
  *    塗改要用物證、缺頁要用文獻、模糊要用證詞來補正。補對了就揭開一層真相，補錯了「駁回」。
  * 出示（補正）錯了，怨氣 +1；怨氣到 3，牠就不肯再開口。
  * 查到一個段落就可以下判決，也可以改日再審（天亮時怨氣 +1）。
+ *  - 點將問罪（太子爺・第三章）：畫面在 ui/dianjiang.ts（與白天路邊點將共用），規則在 core/dianjiang.ts。
+ *    每晚 2 案；大廳上可以快判（太子親斬、押送，不算名額）；天亮押著的鬼被太子壓一晚（不加怨氣、不掙脫）。
  */
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
@@ -13,6 +15,9 @@ import { CH, evidenceOf, verdictName } from '../content/chapter';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { flashback } from '../ui/talk';
+import { isLooked, LOOK_TAG, natureOf, slayGhost, slayPreview, truthReel } from '../core/renown';
+import { beginNight, canOpen, dawnHeld, flareOf, judge as judge3, knelt, muted, useTrial } from '../core/dianjiang';
+import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
 import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
 
 const WATCHES = 3;
@@ -33,6 +38,9 @@ export class TrialScene extends Phaser.Scene {
     this.watch = 0;
     this.messages = [];
     const T = CH().trial;
+    // 第三章每晚 2 案（其他章不限，trialsLeft 不設）
+    beginNight(run, CH());
+    if (T.style === 'dianjiang') this.time.delayedCall(700, () => chat(this, 'lobby'));
     this.cameras.main.fadeIn(500, 10, 8, 18);
     const bg = this.add.graphics();
     const dossier = T.style === 'dossier';
@@ -84,6 +92,7 @@ export class TrialScene extends Phaser.Scene {
   }
 
   private lobby(): void {
+    if (CH().trial.style === 'dianjiang') return this.lobbyDj();
     this.reset();
     const T = CH().trial;
     const left = WATCHES - this.watch;
@@ -277,7 +286,8 @@ export class TrialScene extends Phaser.Scene {
       const why = this.why(k, v);
       let result = v.result;
       if (v.verdict === 'ship') result += '。不加戾氣；王船重一些（最後一戰走得慢一點）';
-      if (v.verdict === 'slay' && k.innocent && unsolved) result += '（若牠有冤：戾氣再 +1，記遺憾）';
+      if (v.verdict === 'slay' && CH().slayRule === 'renown') result += `（${slayPreview(run, k, CH())}）`;
+      else if (v.verdict === 'slay' && k.innocent && unsolved) result += '（若牠有冤：戾氣再 +1，記遺憾）';
       else if (v.verdict === 'slay' && k.innocent) result += '（牠有冤：戾氣再 +1，記遺憾）';
       const g = this.add2(this.add.graphics());
       g.fillStyle(v.verdict === 'slay' ? 0x4a1a1a : v.verdict === 'ship' ? 0x1e3a4a : 0x2f3a4a, why ? 0.35 : 0.85);
@@ -333,9 +343,17 @@ export class TrialScene extends Phaser.Scene {
         lines.push(T.shipLine(name), '不加戾氣・王船重了一些（最後一戰走得慢一點）');
         break;
       case 'slay': {
-        run.liqi = Math.min(3, run.liqi + 1);
         this.cameras.main.flash(300, 255, 255, 255);
         this.cameras.main.shake(300, 0.01);
+        if (CH().slayRule === 'renown') {
+          // 第三章：看斬的是誰（core/renown.ts；與白天快判同一套）
+          const res = slayGhost(run, k, CH());
+          lines.push(T.slayLine(name), res.weiming ? `威名 +${res.weiming}` : res.wronged ? '' : '不加戾氣');
+          if (res.lost.length) lines.push(`沒審清楚就斬：拿不到「${res.lost.map((id) => CH().evidence[id].name).join('、')}」了`);
+          if (res.wronged) lines.push(T.wrongedLine, `牠是有冤的：戾氣 +${res.liqi}・記遺憾`);
+          break;
+        }
+        run.liqi = Math.min(3, run.liqi + 1);
         lines.push(T.slayLine(name), '戾氣 +1');
         if (k.innocent) {
           run.liqi = Math.min(3, run.liqi + 1);
@@ -369,24 +387,101 @@ export class TrialScene extends Phaser.Scene {
     this.add2(button(this, W / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.lobby(), { size: 24, fill: 0x8a1b14 }));
   }
 
+  // ---------- 第三章：點將問罪的大廳 ----------
+  private lobbyDj(): void {
+    this.reset();
+    const T = CH().trial;
+    const left = run.trialsLeft ?? 0;
+    this.add2(txt(this, W / 2, 90, T.lobbyTitle(this.n), 34, C.gold, { serif: true }).setOrigin(0.5, 0));
+    this.add2(txt(this, W / 2, 140, `今晚還能審 ${left} 案（升堂就算一案；快判不算）`, 22, left ? C.paper : 0xff9a8a, { bold: false }).setOrigin(0.5, 0));
+    const p = { x: 16, y: 190, w: W - 32, h: H - 206 };
+    this.add2(panel(this, p.x, p.y, p.w, p.h));
+    for (const m of this.messages.slice(-2)) this.add2(txt(this, W / 2, 174, m, 17, 0xffd76a, { bold: false }).setOrigin(0.5, 1));
+    if (!run.held.length) {
+      this.add2(txt(this, p.x + 24, p.y + 24, `${CH().held.label}沒有要審的鬼了。`, 24, C.paper, { bold: false }));
+    } else {
+      this.add2(txt(this, p.x + 24, p.y + 16, `${CH().held.label}的鬼`, 26, C.gold, { serif: true }));
+      const rowH = Math.min(176, Math.floor((p.h - 190) / Math.max(1, run.held.length)));
+      run.held.forEach((h, i) => {
+        const k = CH().cases[h.id];
+        const st = run.cases[h.id] ?? { truths: [] };
+        const y = p.y + 62 + i * rowH;
+        const g = this.add2(this.add.graphics());
+        g.fillStyle(0x241d32, 1);
+        g.fillRoundedRect(p.x + 16, y, p.w - 32, rowH - 10, 12);
+        const art = portraitKey(this, k.id);
+        const th = Math.min(92, rowH - 30);
+        if (art) this.add2(portraitThumb(this, art, p.x + 26, y + 8, th)).setAlpha(0.92);
+        else {
+          const img = this.add2(this.add.image(p.x + 70, y + th + 6, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.7));
+          img.setScale(Math.min(th / img.height, 70 / img.width));
+        }
+        const tag = isLooked(run, h.id) ? `【${LOOK_TAG[natureOf(k)].s}】` : '';
+        this.add2(txt(this, p.x + 128, y + 8, `${st.truths.length ? k.name : k.dayName}${tag}`, 21, 0x9fd0ff, { wordWrap: { width: p.w - 300, useAdvancedWrap: true } }));
+        const bits = [`查明 ${st.truths.length}／${k.truths.length}`, `氣焰 ${st.dj ? flareOf(run, k) : (k.flare ?? 3)}`, `怨氣 ${h.grudge}／3`];
+        if (h.tamed) bits.push('壓過一晚');
+        if (knelt(run, k)) bits.push('跪了');
+        this.add2(txt(this, p.x + 128, y + 40, bits.join('・'), 17, C.muted, { bold: false, wordWrap: { width: p.w - 300, useAdvancedWrap: true } }));
+        const mute = muted(run, k);
+        const ob = this.add2(button(this, p.x + p.w - 92, y + 34, 132, 52, '升堂', () => this.openDj(k), { size: 22, fill: 0x8a1b14 }));
+        ob.setEnabled(canOpen(run) && !mute);
+        if (mute) this.add2(txt(this, p.x + 128, y + 66, '縮起來不肯開口（押一晚冷靜下來，怨氣 -1）', 15, 0xff9a8a, { bold: false }));
+        // 快判：太子親斬、押送（不花名額）
+        const by = y + rowH - 40;
+        if (rowH >= 140) {
+          this.add2(button(this, p.x + 200, by, 150, 44, '太子親斬', () => this.quick(k, 'slay'), { size: 18, fill: 0x6a1a14 }));
+          this.add2(button(this, p.x + 360, by, 150, 44, '押送', () => this.quick(k, 'escort'), { size: 18, fill: 0x4a3a6a }));
+          this.add2(txt(this, p.x + 444, by, '快判不算名額', 14, C.muted, { bold: false }).setOrigin(0, 0.5));
+        }
+      });
+    }
+    this.add2(txt(this, W / 2, p.y + p.h - 110, run.held.length ? '沒審的押在營旗下過夜：太子壓一晚，不加怨氣、不會掙脫；明天氣焰 -1。' : '', 16, C.muted, { bold: false, align: 'center', wordWrap: { width: p.w - 40, useAdvancedWrap: true } }).setOrigin(0.5, 1));
+    const label = this.n === 3 ? T.finalLabel : run.held.length && left ? '今夜不再審，天亮' : '天亮';
+    this.add2(button(this, W / 2, p.y + p.h - 56, 300, 66, label, () => this.finish(), { size: 22, fill: run.held.length && left ? 0x3a3442 : 0x8a1b14 }));
+  }
+
+  private openDj(k: GhostCase): void {
+    if (!canOpen(run)) return;
+    useTrial(run);
+    this.reset();
+    openDianjiang(this, {
+      k, mode: 'night', day: this.n,
+      onClose: (how) => {
+        if (how === 'postpone') this.messages.push(`${k.dayName}押回營旗下，改日再審。`);
+        this.lobbyDj();
+      },
+    });
+  }
+
+  /** 大廳快判：太子親斬或押送（不花名額） */
+  private quick(k: GhostCase, verdict: 'slay' | 'escort'): void {
+    const v = k.verdicts.find((x) => x.verdict === verdict) ?? { verdict, result: '' };
+    if (verdict === 'slay') {
+      this.cameras.main.flash(300, 255, 255, 255);
+      this.cameras.main.shake(300, 0.01);
+    }
+    const j = judge3(run, k, v, CH());
+    const root = this.reset();
+    const show = () => resultScreen(this, root, k, verdict, j.lines, () => this.lobbyDj());
+    if (!j.wronged) return show();
+    const reel = truthReel(k);
+    flashback(this, { tex: portraitKey(this, k.id, 'sad') ?? k.tex, name: k.name, reveal: reel.reveal, summary: reel.summary, fx: k.memory }, show);
+  }
+
   // ---------- 天亮 ----------
   private finish(): void {
-    // 沒審的鬼怨氣 +1；到 3 會掙脫
-    const out: string[] = [];
-    for (const h of [...run.held]) {
-      h.grudge++;
-      if (h.grudge >= 3) {
-        run.held = run.held.filter((x) => x !== h);
-        (run.cases[h.id] ??= { truths: [] }).escaped = true;
-        out.push(`${CH().held.label}的${CH().cases[h.id].dayName}怨氣太重，掙脫逃走了。`);
-      }
-    }
+    // 第一、二章：沒審的鬼怨氣 +1，到 3 會掙脫；第三章：太子壓一晚（core/dianjiang.ts）
+    const out = dawnHeld(run, CH());
     const F = CH().finale;
     if (this.n >= 3) {
       go(this, 'story', { id: F.story, next: { key: 'cut', data: { kind: 'boss', title: F.cutTitle, sub: F.cutSub, next: { key: 'boss' } } } });
       return;
     }
     run.yesterday = [...out, ...CH().dawn(run, this.n)];
-    go(this, 'cut', { kind: 'dawn', title: '雞啼・天亮', sub: `第${'二三'[this.n - 1]}天`, next: { key: 'almanac', data: { day: this.n + 1 } } });
+    const dawn = { key: 'cut', data: { kind: 'dawn', title: '雞啼・天亮', sub: `第${'二三'[this.n - 1]}天`, next: { key: 'almanac', data: { day: this.n + 1 } } } };
+    // 第三章：第三天之前先播「溪水倒流」（妖怪視角）
+    const story = CH().dawnStory?.[this.n + 1];
+    if (story) go(this, 'story', { id: story, next: dawn });
+    else go(this, dawn.key, dawn.data);
   }
 }

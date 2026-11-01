@@ -81,6 +81,43 @@ export interface VerdictDef {
   result: string;
 }
 
+// ---------- 第三章：點將問罪（見 docs/第三章_開發計畫.md §2.3） ----------
+/** 鬼的身分：冤魂（斬了算斬錯）／十惡不赦（直接斬，威名 +1）／真惡（查得到來歷，查完確定是惡） */
+export type Nature = 'wronged' | 'wicked' | 'villain';
+/** 五營：東青、南紅、西白、北黑、中黃 */
+export type Camp = 'east' | 'south' | 'west' | 'north' | 'center';
+/**
+ * 狠話的類型：
+ *  - lie 說謊 → 點東營，帶「證詞」對質
+ *  - excuse 狡辯 → 點西營，甩出「物證」或「文獻」
+ *  - taunt 純嗆聲 → 點南營，當場嚇破膽（不用證據）
+ */
+export type TauntType = 'lie' | 'excuse' | 'taunt';
+
+export interface Taunt {
+  /** 牠在堂前說的狠話 */
+  line: string;
+  type: TauntType;
+  /** 對得上的證據（說謊只收證詞；狡辯只收物證、文獻；純嗆聲沒有） */
+  evidence?: string[];
+  /** 點對之後揭開第幾層真相（truths 的索引） */
+  truth?: number;
+  /** 冤魂嘴硬：看起來是嗆聲，正解是「讓牠說」（點南營會嚇到牠，怨氣 +1） */
+  sore?: boolean;
+  /** 點對：將軍上前的一句＋牠的反應 */
+  hit: string;
+  /** 點錯：牠嗆回來 */
+  miss: string;
+}
+
+/** 第三章押著過夜（太子壓下去教訓一晚）隔天的變化 */
+export interface Overnight {
+  /** 隔天開審前牠先說的話（惡鬼：吐出一句實話；冤魂：多說一層心事） */
+  say: string;
+  /** 自動破掉第幾句狠話（算點對，若那句連著真相也一併查明） */
+  breaks?: number;
+}
+
 export interface GhostCase {
   id: string;
   /** 真名（夜審查明前顯示 dayName） */
@@ -117,6 +154,25 @@ export interface GhostCase {
   /** 出示錯的證據時的反應 */
   wrong: string;
   verdicts: VerdictDef[];
+  // ----- 第三章（可選；第一、二章不填） -----
+  /** 身分（沒填就看 innocent） */
+  nature?: Nature;
+  /** 編入五營時進哪一營 */
+  camp?: Camp;
+  /** 氣焰 3–5：點對一次 -1，歸零就跪地求饒 */
+  flare?: number;
+  /** 點將問罪的狠話（依序說出） */
+  taunts?: Taunt[];
+  /** 押著過夜後隔天的變化 */
+  overnight?: Overnight;
+  /** 北營看相時廉將軍說的話 */
+  lookLine?: string;
+  /** 只有審過（氣焰歸零）才拿得到的證據；不審直接斬就拿不到 */
+  dropsOnTrial?: string[];
+  /** 冤魂讓牠說（嘴硬那句）時多說的心事 */
+  heart?: string[];
+  /** 第一次跪地求饒時播的劇情（第三章：紙紮童跪下，妖怪視角） */
+  kneelStory?: string;
 }
 
 export const CASES: Record<string, GhostCase> = {

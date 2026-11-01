@@ -2,15 +2,35 @@
  * 最後一戰。戰鬥邏輯在 core/boss.ts，這裡負責畫出來。每一章的戰場不同：
  *  - 第一章：芝嶺巖惠澤宮廟埕，喚回石駒（打到煞氣歸零）。
  *  - 第二章：大鵬澳沙灘，護送王船出海（王船走到岸邊）；黑潮在海裡，觸手從沙裡伸出來拖船。
+ *  - 第三章：疾水溪舊渡口，斬蛟或收蛟。浪頭預告、翻江水牆、拖人的水繩、五色營旗、五營合陣、
+ *    太子出轎、乾坤圈、陣前審問第 3 輪的鏡頭特寫與太子全開。
  * 上方：戰場（1280×720 邏輯座標）整片縮小放進戰鬥帶。
  * 下方（BossHud）：目標進度、神轎（王船）、陣頭卡片（點一下換前排／後排）、主神的兩個法術、超渡技能、陣前審問。
  */
 import Phaser from 'phaser';
 import { C, H, W, FIELD_W as FW, FIELD_H as FH, GROUND_Y, TIME_SCALE } from '../theme';
-import { BossBattle, FRONT_MAX, SKILLS, SPELLS, TIDE_X, type BossEvent, type SkillId, type Unit } from '../core/boss';
+import { BossBattle, CUE_TIME, FLAG_TIME, FRONT_MAX, FRONT_X, JIAO_CAMPS, JIAO_HOME, SKILLS, SPELLS, TIDE_X, type BossEvent, type JiaoCamp, type SkillId, type Unit } from '../core/boss';
 import { CH } from '../content/chapter';
+import { FULLPOWER_CUES3 } from '../content/ch3/finale';
+import { BOSS_NIGHT_BG, CAMP_COLORS } from '../art/xinyingSpec';
+import { fitBattleArt } from '../art/xinyingBattle';
 import { run } from '../state';
+import { banter } from '../ui/banter';
+import { BanterPicker } from '../core/banterPick';
 import { button, floatText, fullscreenButton, panel, txt, type Button } from '../ui/widgets';
+
+/** 五營的名字（HUD 的營旗列） */
+const CAMP_NAME: Record<JiaoCamp, string> = { east: '東', south: '南', west: '西', north: '北', center: '中' };
+/** 戰場上方五面營旗的位置（逐一立起）：放在溪面上空、月亮下面，不和左上角的互嗆字幕疊在一起 */
+const FLAG_X = [760, 840, 920, 1000, 1080];
+/** 營旗旗竿底的高度（插滿時旗竿高 FLAG_POLE） */
+const FLAG_BASE = 250;
+const FLAG_POLE = 150;
+/** 第三章：前排①在畫面上的位置、前排每格在畫面上拉開多少（只改畫的位置，戰鬥邏輯照 core/boss.ts） */
+const SHOW_FRONT0 = 620;
+const SHOW_GAP = 90;
+/** 太子出轎時，我方整排往左讓多少（太子站在前排①前面、蛟頭左邊） */
+const SHOW_TAIZI_ROOM = 70;
 
 export const BAND_Y = 132;
 const ZOOM = W / FW;
@@ -23,6 +43,11 @@ interface View {
   hp: Phaser.GameObjects.Graphics;
   phase: number;
 }
+
+/** 柳將軍射斷水繩時箭從哪裡飛出（後排） */
+const BACK_X_LIU = 380;
+/** 第三章：程式畫的神轎在夜景裡略調暗 */
+const PAL_TINT = 0xc8c0d8;
 
 export class BossScene extends Phaser.Scene {
   battle!: BossBattle;
@@ -38,6 +63,11 @@ export class BossScene extends Phaser.Scene {
   private lastProg = 0;
   private t = 0;
   private over = false;
+  /** 第三章：五面營旗、水繩、太子全開的光 */
+  private flagG?: Phaser.GameObjects.Graphics;
+  private lastCombo = 0;
+  /** 0–1：太子出轎時我方往左讓位（慢慢滑過去，不要瞬間跳） */
+  private tzShift = 0;
 
   constructor() {
     super('boss');
@@ -45,6 +75,10 @@ export class BossScene extends Phaser.Scene {
 
   get escort(): boolean {
     return this.battle.mode === 'escort';
+  }
+
+  get jiao(): boolean {
+    return this.battle.mode === 'jiao';
   }
 
   create(): void {
@@ -55,18 +89,25 @@ export class BossScene extends Phaser.Scene {
     this.fire = [];
     this.scroll = [];
     this.lastProg = 0;
+    this.lastCombo = 0;
+    this.tzShift = 0;
     this.waveImg = undefined;
+    this.flagG = undefined;
     this.battle = new BossBattle(CH().finale.setup(run));
     this.cameras.main.setViewport(0, BAND_Y, W, BAND_H).setZoom(ZOOM).centerOn(FW / 2, FH / 2);
     this.cameras.main.fadeIn(500, 10, 8, 18);
     if (this.escort) this.drawBeach();
+    else if (CH().look === 'plain') this.drawRiver();
     else this.drawBackground();
     const glow = this.add.circle(this.battle.palanquin.x, GROUND_Y - 80, 110, 0xffd76a, 0.12).setDepth(5);
     this.tweens.add({ targets: glow, scale: 1.15, alpha: 0.22, duration: 1300, yoyo: true, repeat: -1 });
     if (this.escort) {
       this.palImg = this.add.image(this.battle.palanquin.x + 10, GROUND_Y + 14, 'wangchuan').setOrigin(0.5, 1).setScale(0.95).setDepth(18);
     } else {
-      this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 10, 'palanquin').setOrigin(0.5, 1).setScale(0.78 * BIG).setDepth(20);
+      const key = CH().look === 'plain' ? 'w3_palanquin' : 'palanquin';
+      if (CH().look === 'plain') this.palOutline(key);
+      this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 10, key).setOrigin(0.5, 1).setScale(0.78 * BIG).setDepth(20);
+      if (CH().look === 'plain') this.palImg.setTint(PAL_TINT);
     }
     this.palHp = this.add.graphics().setDepth(210);
     this.ropes = this.add.graphics().setDepth(19);
@@ -74,9 +115,35 @@ export class BossScene extends Phaser.Scene {
     // 前排的位置標示
     const g = this.add.graphics().setDepth(-60);
     g.fillStyle(0xd23a2a, 0.12);
-    g.fillRect(500, GROUND_Y - 60, 170, 90);
+    if (this.jiao) g.fillRect(this.showX(FRONT_X[2]) - 60, GROUND_Y - 60, this.showX(FRONT_X[0]) - this.showX(FRONT_X[2]) + 120, 90);
+    else g.fillRect(500, GROUND_Y - 60, 170, 90);
+    if (this.jiao) this.flagG = this.add.graphics().setDepth(190);
     this.scene.launch('bosshud', { boss: this });
     this.events.once('shutdown', () => this.scene.stop('bosshud'));
+  }
+
+  /**
+   * 第三章：我方在畫面上的 x。正式戰鬥圖比暫代圖寬，照邏輯位置畫會擠成一團，所以前排三格拉開
+   * （SHOW_GAP）、後排往神轎靠一點；太子出轎站在前排①前面。只改畫的位置，打不打得到照 core/boss.ts。
+   */
+  showX(x: number, taizi = false): number {
+    if (!this.jiao) return x;
+    if (taizi) return x - 25;
+    const room = SHOW_TAIZI_ROOM * this.tzShift;
+    const front = FRONT_X[0] - FRONT_X[1];
+    if (x >= FRONT_X[2]) return SHOW_FRONT0 + (x - FRONT_X[0]) * (SHOW_GAP / front) - room;
+    // 後排離前排越遠讓得越少（最少 4 成），不要擠到神轎上
+    const k = Phaser.Math.Clamp(0.4 + ((x - (FRONT_X[2] - 100)) / 100) * 0.6, 0.4, 1);
+    return SHOW_FRONT0 - 2 * SHOW_GAP - (FRONT_X[2] - x) * 0.6 - room * k;
+  }
+
+  /** 第三章：程式畫的神轎放在正式夜景上，加腳下影子和深色描邊（正式神轎圖還沒有） */
+  private palOutline(key: string): void {
+    const x = this.battle.palanquin.x;
+    this.add.ellipse(x, GROUND_Y + 8, 250, 36, 0x000000, 0.45).setDepth(19);
+    for (const [dx, dy] of [[-4, 0], [4, 0], [0, -4], [0, 4]]) {
+      this.add.image(x + dx, GROUND_Y + 10 + dy, key).setOrigin(0.5, 1).setScale(0.78 * BIG).setTintFill(0x07060e).setAlpha(0.85).setDepth(19.5);
+    }
   }
 
   private drawBackground(): void {
@@ -95,6 +162,53 @@ export class BossScene extends Phaser.Scene {
     for (let i = 0; i < Math.ceil(FW / 120); i++) {
       const l = this.add.image(30 + i * 120, 150 + Math.abs(Math.sin(i * 0.9)) * 18, 'lantern').setScale(0.7).setDepth(-60);
       this.tweens.add({ targets: l, angle: { from: -3, to: 3 }, duration: 1500 + i * 70, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    }
+  }
+
+  /**
+   * 第三章：疾水溪舊渡口的夜（【暫代美術】程式畫）。遠方對岸與鐵橋、倒流的溪面、近岸護岸與蘆葦、
+   * 岸邊插著五營旗竿與何伯的茶攤；太子殿在隊伍後面。jiao 模式用這個背景。
+   * 正式的整張夜景（BOSS_NIGHT_BG）載到了就蓋在上面；還在載的話載完再蓋上。
+   */
+  private drawRiver(): void {
+    const cover = () => this.riverNight();
+    if (this.textures.exists(BOSS_NIGHT_BG)) cover();
+    else {
+      const on = (k: string) => { if (k === BOSS_NIGHT_BG) cover(); };
+      this.game.events.on('artloaded', on);
+      this.events.once('shutdown', () => this.game.events.off('artloaded', on));
+    }
+    const sky = this.add.graphics().setDepth(-100);
+    sky.fillGradientStyle(0x050a16, 0x050a16, 0x1a2440, 0x1a2440, 1);
+    sky.fillRect(0, 0, FW, GROUND_Y);
+    this.add.circle(FW * 0.14, 100, 38, 0xfff3c4, 0.85).setDepth(-99);
+    for (let i = 0; i < 30; i++) this.add.circle(Phaser.Math.Between(0, FW), Phaser.Math.Between(10, 220), 1.5, 0xffffff, Phaser.Math.FloatBetween(0.3, 0.8)).setDepth(-99);
+    this.add.tileSprite(0, GROUND_Y - 170, FW, 200, 'x3_riverFarN').setOrigin(0, 1).setDepth(-95);
+    const water = this.add.tileSprite(0, GROUND_Y - 88, FW, 90, 'x3_waterN').setOrigin(0, 1).setDepth(-94);
+    // 溪水倒流（往右）
+    this.tweens.add({ targets: water, tilePositionX: -4000, duration: 60000, repeat: -1 });
+    this.add.tileSprite(0, GROUND_Y - 88, FW, 24, 'x3_leveeN').setOrigin(0, 1).setDepth(-93);
+    // 右邊（蛟那邊）越來越暗
+    const dark = this.add.graphics().setDepth(-90);
+    for (let i = 0; i < 24; i++) {
+      dark.fillStyle(0x020610, 0.025 * i);
+      dark.fillRect(FW * 0.6 + i * 22, 0, 22, GROUND_Y - 60);
+    }
+    this.add.image(this.battle.palanquin.x - 40, GROUND_Y - 84, 'temple_taizi').setOrigin(0.5, 1).setScale(0.5).setDepth(-92).setTint(0x8a8ab0);
+    this.add.tileSprite(0, GROUND_Y - 90, FW, FH - GROUND_Y + 90, 'x3_levroadN').setOrigin(0, 0).setDepth(-70);
+    const props: [string, number][] = [['x3_reedsN', 20], ['x3_teastallN', 160], ['x3_flagpoleN', 430], ['x3_reedsN', 620], ['x3_stepsN', 820], ['x3_reedsN', 1060]];
+    for (const [k, x] of props) this.add.image(x, GROUND_Y - 88, k).setOrigin(0, 1).setDepth(-65);
+  }
+
+  /** 正式夜景：整張蓋住程式畫的天空、對岸、溪面、護岸與路（太子殿與岸邊擺設圖裡已經有茶攤，不另外擺） */
+  private riverNight(): void {
+    // 放大 1.15 倍、往下推 60：圖裡的岸邊延伸到前排站的位置（x 500～670），蛟那邊才是溪面；月亮不會被切掉
+    this.add.image(0, FH + 60, BOSS_NIGHT_BG).setOrigin(0, 1).setDisplaySize(FW * 1.15, FH * 1.15).setDepth(-64);
+    // 右邊（蛟那邊）越來越暗
+    const dark = this.add.graphics().setDepth(-63);
+    for (let i = 0; i < 24; i++) {
+      dark.fillStyle(0x020610, 0.015 * i);
+      dark.fillRect(FW * 0.6 + i * 22, 0, 22, FH);
     }
   }
 
@@ -156,8 +270,14 @@ export class BossScene extends Phaser.Scene {
       const img = this.add.image((i - (keys.length - 1) / 2) * 34 * BIG, (i % 2) * 6, k).setOrigin(0.5, 1);
       const boss = k === 'shiju';
       const big = k === 'heichao';
-      img.setScale(big ? 1.25 : (enemy ? (boss ? 0.95 : 0.9) : 0.72) * BIG);
-      img.setFlipX(enemy && !big && k !== 'chu');
+      // 蛟的圖本來就面向左（隊伍那邊），不翻
+      const jiao = k === 'jiao';
+      // 第三章的正式戰鬥圖（太子、四將、蛟）縮到和暫代圖一樣大，sync 每幀依目前的貼圖再算一次
+      const base = big ? 1.25 : jiao ? 0.8 : (enemy ? (boss ? 0.95 : 0.9) : 0.72) * BIG;
+      img.setData('bs', base);
+      // 蛟：頭在圖的左邊（錨點），身子在溪裡往右拖
+      fitBattleArt(img, base);
+      img.setFlipX(enemy && !big && !jiao && k !== 'chu');
       if (ghost) img.setTint(0x9ad0ff).setAlpha(0.8);
       img.setData('bx', img.x);
       return img;
@@ -174,31 +294,71 @@ export class BossScene extends Phaser.Scene {
     const seen = new Set<number>();
     const b = this.battle;
     const F = CH().finale;
+    this.ropes.clear();
+    if (this.jiao) {
+      const want = b.taiziOut ? 1 : 0;
+      this.tzShift += Phaser.Math.Clamp(want - this.tzShift, -0.05, 0.05);
+    }
     for (const u of b.units) {
       const st = F.members[u.key];
       const ghost = F.ghostMembers.includes(u.key);
       const v = this.viewFor(u.uid, st.tex, false, ghost);
       seen.add(u.uid);
-      v.c.x = u.x;
+      v.c.x = this.showX(u.x, u.taizi);
       let y = GROUND_Y + 10 + (u.row === 'back' ? -12 : 0);
       if (u.moving > 0) y -= Math.abs(Math.sin(this.t * 10 + v.phase)) * 8;
+      const dragged = b.drag?.uid === u.uid;
+      if (dragged) {
+        // 被水繩拖著往溪邊滑
+        v.c.x = this.showX(u.x) + Math.min(1, b.drag!.t / 3) * 120 + Math.sin(this.t * 30) * 4;
+      }
+      if ((u.sunk ?? 0) > 0) y += 40 + Math.sin(this.t * 3 + v.phase) * 4;
       v.c.y = y;
-      v.c.setAlpha(u.alive ? (u.row === 'back' && u.moving <= 0 ? 0.85 : 1) : 0);
+      for (const img of v.imgs) fitBattleArt(img, img.getData('bs'));
+      v.c.setAlpha(u.alive ? ((u.sunk ?? 0) > 0 ? 0.5 : u.row === 'back' && u.moving <= 0 ? 0.85 : 1) : 0);
       for (const img of v.imgs) {
         if (u.flash > 0.5) img.setTintFill(0xffffff);
+        else if ((u.sunk ?? 0) > 0) img.setTint(0x6a9ac8);
+        else if (b.fullT > 0) img.setTint(Math.sin(this.t * 8) > 0 ? 0xffe8a0 : 0xffd060);
         else if (ghost) img.setTint(0x9ad0ff);
         else img.clearTint();
       }
+      if (dragged && u.alive) {
+        // 水繩：從溪裡伸出來纏住這個人
+        this.ropes.lineStyle(7, 0x2a5a6a, 0.9);
+        this.ropes.beginPath();
+        this.ropes.moveTo(JIAO_HOME - 120, GROUND_Y - 70);
+        this.ropes.lineTo((JIAO_HOME - 120 + v.c.x) / 2, GROUND_Y - 10 + Math.sin(this.t * 6) * 12);
+        this.ropes.lineTo(v.c.x, y - 60);
+        this.ropes.strokePath();
+      }
       this.bar(v, u.alive && u.hp < u.maxHp, u.hp / u.maxHp, -240, 80, 0x6fe08a);
     }
-    this.ropes.clear();
+    // 第三章：浪頭升起時蛟整條拱起來，蝦兵退到蛟後面、變淡，不擋住蛟
+    const rising = this.jiao && (b.boss.state === 'paw' || b.boss.state === 'back' || b.boss.state === 'charge');
+    const riseLeft = rising ? (this.views.get(b.boss.uid)?.imgs[0].getBounds().x ?? JIAO_HOME - 260) : FW;
     for (const e of b.enemies) {
       const boss = e === b.boss;
-      const tex = boss ? (this.escort ? 'heichao' : 'shiju') : e.id;
+      const tex = boss ? (this.escort ? 'heichao' : CH().look === 'plain' ? 'jiao' : 'shiju') : e.id;
       const v = this.viewFor(e.uid, [tex], true);
       seen.add(e.uid);
       v.c.x = e.x;
       let y = GROUND_Y + 10;
+      if (boss && this.jiao) {
+        // 蛟：退回溪裡、浪頭升起時整條拱起來（jiao_rise）；喘息時頭摔在岸上
+        const rise = e.state === 'paw' || e.state === 'back' || e.state === 'charge';
+        v.imgs[0].setTexture(rise ? 'jiao_rise' : 'jiao');
+        fitBattleArt(v.imgs[0], v.imgs[0].getData('bs'));
+        v.c.setDepth(rise ? 40 : 35);
+        v.c.y = GROUND_Y + 40 + (e.state === 'breath' ? 24 : 0) + Math.sin(this.t * 1.6) * 6 - (e.state === 'paw' ? Math.min(1, e.stateTime / 2.5) * 30 : 0);
+        for (const img of v.imgs) {
+          if (e.flash > 0.5) img.setTintFill(0xffffff);
+          else if (e.state === 'breath') img.setTint(0xffb0b0);
+          else if (e.state === 'paw') img.setTint(0x9adfff);
+          else img.clearTint();
+        }
+        continue;
+      }
       if (boss && this.escort) {
         // 黑潮：浪頭升起時整團長高
         const rise = e.state === 'paw' ? Math.min(1, e.stateTime / 2.5) : e.state === 'charge' ? 1 : 0;
@@ -232,7 +392,16 @@ export class BossScene extends Phaser.Scene {
         else img.clearTint();
         if (e.id !== 'chu') img.angle = e.stun > 0 ? Math.sin(this.t * 20) * 8 : 0;
       }
-      if (!boss) this.bar(v, e.alive && e.hp < e.maxHp, e.hp / e.maxHp, e.id === 'chu' ? -230 : -140, 60, 0xd04aff);
+      if (this.jiao && !boss && e.alive) {
+        // 蝦兵從右邊進場：停在畫面裡（右緣留 8）淡入，不要半隻出畫；浪頭升起時在蛟後面、變淡
+        const hw = v.imgs[0].displayWidth / 2;
+        const edge = FW - hw - 8;
+        v.c.x = Math.min(e.x, edge);
+        const enter = Phaser.Math.Clamp(1 - (e.x - edge) / 60, 0, 1);
+        v.c.setAlpha(enter * (v.c.x + hw > riseLeft ? 0.4 : 1));
+      }
+      // 第三章的蝦兵血條放在腳下，不和蛟頭同高
+      if (!boss) this.bar(v, e.alive && e.hp < e.maxHp, e.hp / e.maxHp, e.id === 'chu' ? -230 : this.jiao ? 4 : -140, 60, 0xd04aff);
       if (!e.alive && !v.c.getData('dying')) {
         v.c.setData('dying', true);
         this.tweens.add({ targets: v.c, alpha: 0, duration: 400 });
@@ -246,7 +415,7 @@ export class BossScene extends Phaser.Scene {
     }
     // 捲浪
     if (b.wave) {
-      if (!this.waveImg) this.waveImg = this.add.image(b.wave.x, GROUND_Y + 30, 'wave').setOrigin(0.3, 1).setDepth(60).setScale(1.2);
+      if (!this.waveImg) this.waveImg = this.add.image(b.wave.x, GROUND_Y + 30, this.jiao ? 'x3_wave' : 'wave').setOrigin(0.3, 1).setDepth(60).setScale(this.jiao ? 1.1 : 1.2);
       this.waveImg.x = b.wave.x;
     } else if (this.waveImg) {
       const w = this.waveImg;
@@ -274,6 +443,7 @@ export class BossScene extends Phaser.Scene {
     }
     const p = b.palanquin;
     if (p.flash > 0.5) this.palImg.setTint(0xff8080);
+    else if (CH().look === 'plain' && !this.escort) this.palImg.setTint(PAL_TINT);
     else this.palImg.clearTint();
     this.palHp.clear();
     const hy = this.escort ? GROUND_Y - 330 : GROUND_Y - 300;
@@ -281,6 +451,41 @@ export class BossScene extends Phaser.Scene {
     this.palHp.fillRoundedRect(p.x - 99, hy, 198, 24, 8);
     this.palHp.fillStyle(p.hp / p.maxHp > 0.35 ? 0xffd76a : 0xff5a4a, 1);
     this.palHp.fillRoundedRect(p.x - 95, hy + 4, 190 * Math.max(0, p.hp / p.maxHp), 16, 6);
+    if (this.flagG) this.drawFlags();
+  }
+
+  /** 第三章：戰鬥帶上方五面營旗，站前排的時間越久旗竿越高，插好了旗子展開 */
+  private drawFlags(): void {
+    const g = this.flagG!;
+    const prog = this.battle.flagProgress;
+    g.clear();
+    JIAO_CAMPS.forEach((c, i) => {
+      const x = FLAG_X[i];
+      const base = FLAG_BASE;
+      const f = prog[c];
+      const top = base - FLAG_POLE * f;
+      // 還沒插的旗位只畫地上的旗座（營色），旗竿照站前排的時間長高
+      g.fillStyle(0x2a2230, 0.9);
+      g.fillRect(x - 12, base - 4, 24, 10);
+      g.fillStyle(CAMP_COLORS[c], 0.85);
+      g.fillRect(x - 12, base - 4, 24, 3);
+      if (f > 0.02) {
+        g.fillStyle(0x8a6a3a, f >= 1 ? 1 : 0.75);
+        g.fillRect(x - 3, top, 6, base - top);
+      }
+      if (f >= 1) {
+        const wave = Math.sin(this.t * 5 + i) * 4;
+        g.fillStyle(CAMP_COLORS[c], 1);
+        g.beginPath();
+        g.moveTo(x + 3, top);
+        g.lineTo(x + 62, top + 20 + wave);
+        g.lineTo(x + 3, top + 44);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(3, 0xe9b949, 1);
+        g.strokePath();
+      }
+    });
   }
 
   private bar(v: View, show: boolean, frac: number, top: number, w: number, color: number): void {
@@ -298,10 +503,10 @@ export class BossScene extends Phaser.Scene {
     for (const e of events) {
       switch (e.type) {
         case 'hit':
-          if (e.weak) this.ft(e.x, GROUND_Y - 160, `打肚子！${e.dmg}`, 0xff8a8a, 24);
+          if (e.weak) this.ft(e.x, GROUND_Y - 160, `${this.jiao ? (this.battle.setup.bellyWound ? '打下巴！' : '喘息！') : '打肚子！'}${e.dmg}`, 0xff8a8a, 24);
           break;
         case 'shot':
-          this.shot(e.fromX, e.toX, e.kind);
+          this.shot(this.showX(e.fromX), e.toX, e.kind);
           break;
         case 'quake':
           this.ring(e.x, e.r, 0xe9b949);
@@ -314,29 +519,36 @@ export class BossScene extends Phaser.Scene {
           break;
         }
         case 'block':
-          this.ft(e.x, GROUND_Y - 150, '格擋', 0xbfe0ff, 22);
+          this.ft(this.showX(e.x), GROUND_Y - 150, '格擋', 0xbfe0ff, 22);
           break;
         case 'heal':
-          this.ft(e.x, GROUND_Y - 170, `+${e.amount}`, 0x8ff0a4, 22);
+          this.ft(this.showX(e.x), GROUND_Y - 170, `+${e.amount}`, 0x8ff0a4, 22);
           break;
         case 'die':
           if (e.ally) {
-            this.ft(e.x, GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
+            this.ft(this.showX(e.x), GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
             this.hud.toast(`${e.name}倒下了`, 0xff8a8a);
+            if (this.jiao) this.hud.chat('b_down');
           }
           break;
         case 'paw':
           this.cameras.main.shake(300, 0.003);
-          this.hud.toast(esc ? '黑潮的浪頭升起來了！馬上要捲浪：血少的退到後排' : '石駒刨地！馬上要衝鋒：血少的退到後排', 0xff6a6a, 2600);
+          this.hud.toast(this.jiao ? '蛟退回溪裡，浪頭升起來了！要翻江：讓北營廉將軍站前排（傷害減半）、血少的退下' : esc ? '黑潮的浪頭升起來了！馬上要捲浪：血少的退到後排' : '石駒刨地！馬上要衝鋒：血少的退到後排', 0xff6a6a, 2600);
+          if (this.jiao) this.hud.chat('b_wave');
           break;
         case 'charge':
           this.cameras.main.shake(500, 0.008);
           break;
         case 'breath':
+          if (this.jiao) {
+            this.hud.toast(this.battle.setup.bellyWound ? '渡伯：「牠喘氣的時候下巴露出來，就打那裡！」' : '蛟的頭摔在岸上喘氣：趁現在猛攻', 0xffd0d0, 2600);
+            this.hud.chat('b_breath');
+            break;
+          }
           this.hud.toast(esc ? '退潮了：王船順著退潮走得快' : run.intel.bellyWound ? '石駒喘息中：打肚子的舊傷！把輸出推上前排' : '石駒喘息中：趁現在猛攻', 0xffd0d0, 2600);
           break;
         case 'callout':
-          if (esc) this.hud.toast('浪頭半路散了', 0xfff3c4, 2400);
+          if (esc || this.jiao) this.hud.toast(this.jiao ? '浪頭半路散了：蛟動搖了' : '浪頭半路散了', 0xfff3c4, 2400);
           else this.hud.toast(run.b.xiaoyun === 'invited' && !this.hud.usedCallout ? '小芸：「石駒，不要！」' : '石駒停了下來', 0xfff3c4, 2400);
           this.hud.usedCallout = true;
           break;
@@ -378,10 +590,79 @@ export class BossScene extends Phaser.Scene {
           }
           if (e.id === 'zhensha') this.hud.toast('鎮煞鈴：石駒停了下來', 0xfff3c4, 2400);
           if (e.id === 'dingfeng') this.hud.toast('定風旗：浪頭散了', 0xfff3c4, 2400);
+          if (e.id === 'baidu') {
+            this.ring(JIAO_HOME - 200, 200, 0x9adfff);
+            this.hud.toast('擺渡篙：渡伯的竹篙一撐，浪頭散了，蛟摔在岸上', 0xfff3c4, 2400);
+          }
+          if (e.id === 'qunya') {
+            this.ducks(false);
+            this.hud.toast('群鴨陣：鴨群衝到前排，替大家擋蛟的下一擊', 0xfff3c4, 2400);
+          }
           if (e.id === 'shunfeng') {
             this.cameras.main.flash(200, 200, 230, 255);
             this.hud.toast('順風令：王船乘風走得飛快', 0xbfe8ff, 2400);
           }
+          break;
+        // ----- 第三章・蛟 -----（戰鬥中的提示字與渡伯、紙紮童的喊話是自行補的【待定】，計畫 §7 Q26）
+        case 'drag':
+          this.cameras.main.shake(200, 0.004);
+          this.hud.toast(`水繩纏住了${e.name}，往溪裡拖！（柳將軍在後排會射斷）`, 0x9adfff, 2400);
+          break;
+        case 'cut':
+          this.shot(this.showX(BACK_X_LIU), this.showX(e.x) + 90, 'flag');
+          this.ft(this.showX(e.x) + 60, GROUND_Y - 200, '柳將軍：「中。」', 0xf4f2ea, 24);
+          this.hud.chat('b_snipe');
+          break;
+        case 'paper':
+          this.ft(this.showX(e.x) + 60, GROUND_Y - 200, '紙人替身被拖下去了', 0xf4e2b0, 24);
+          this.hud.toast('紙紮童：「我的紙人借你！」', 0xf4e2b0);
+          break;
+        case 'sunk':
+          this.ring(this.showX(e.x) + 120, 120, 0x2a5a6a);
+          this.hud.toast(`${e.name}被拖進水裡！10 秒爬不上來`, 0xff8a8a, 2400);
+          this.hud.chat('b_sunk');
+          break;
+        case 'flag':
+          this.ft(FLAG_X[JIAO_CAMPS.indexOf(e.camp)] + 30, FLAG_BASE - FLAG_POLE - 20, `${CAMP_NAME[e.camp]}營旗插下`, CAMP_COLORS[e.camp] === CAMP_COLORS.north ? 0xc8c8d8 : CAMP_COLORS[e.camp], 24);
+          this.cameras.main.shake(80, 0.003);
+          this.hud.chat('b_flag');
+          break;
+        case 'formation':
+          this.formation();
+          this.hud.chat('b_formation', true);
+          break;
+        case 'qiankun':
+          this.qiankun();
+          this.hud.chat('b_qiankun');
+          break;
+        case 'chujiao':
+          this.chujiao();
+          this.hud.chat('b_chujiao', true);
+          break;
+        case 'taiziBack':
+          this.hud.toast('太子回轎了', 0xffd76a);
+          this.hud.chat('b_back');
+          break;
+        case 'cover':
+          this.ft(this.showX(e.x), GROUND_Y - 190, '章將軍擋下', 0x8fe0b0, 22);
+          break;
+        case 'combo':
+          if (this.t - this.lastCombo > 1.2) {
+            this.lastCombo = this.t;
+            // 字放在角色頭頂上方（血條上面），不壓在太子身上
+            this.ft(this.showX(e.x) + 40, GROUND_Y - 300, '合擊！', 0xff8a5a, 28);
+            this.hud.chat('b_combo');
+          }
+          break;
+        case 'duck':
+          this.ducks(true);
+          this.hud.toast('鴨群擋下了蛟！', 0xfff3c4);
+          this.hud.chat('b_ducks', true);
+          break;
+        case 'fullpower':
+          this.cameras.main.flash(500, 255, 220, 120);
+          this.cameras.main.shake(400, 0.006);
+          this.hud.fullPower(e.sec);
           break;
         case 'end':
           this.over = true;
@@ -433,6 +714,68 @@ export class BossScene extends Phaser.Scene {
     this.cameras.main.flash(200, 255, 160, 80);
   }
 
+  /** 五營合陣：五色光從五面旗射出，蓋滿全畫面 */
+  private formation(): void {
+    this.cameras.main.shake(600, 0.01);
+    JIAO_CAMPS.forEach((c, i) => {
+      const r = this.add.rectangle(i * (FW / 5), 0, FW / 5, FH, CAMP_COLORS[c], 0).setOrigin(0).setDepth(280).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: r, alpha: { from: 0, to: 0.55 }, duration: 220, delay: i * 90, yoyo: true, hold: 400, onComplete: () => r.destroy() });
+      const beam = this.add.rectangle(FLAG_X[i], 0, 18, FH, CAMP_COLORS[c], 0.9).setOrigin(0.5, 0).setDepth(285);
+      this.tweens.add({ targets: beam, x: this.battle.boss.x, scaleX: 3, alpha: 0, duration: 900, delay: i * 90, ease: 'Cubic.in', onComplete: () => beam.destroy() });
+    });
+    this.ft(FW / 2, 300, '五營合陣！', 0xffd76a, 48);
+    this.hud.toast('五營合陣：蝦兵全清、蛟受重傷！旗子倒下，重新插旗', 0xffd76a, 3000);
+  }
+
+  /** 乾坤圈：從神轎飛出，掃過全場再飛回來 */
+  private qiankun(): void {
+    const ringImg = this.add.image(this.battle.palanquin.x, GROUND_Y - 160, 'x3_ring').setDepth(270).setScale(2);
+    this.tweens.add({ targets: ringImg, angle: 1080, duration: 900 });
+    this.tweens.add({
+      targets: ringImg, x: FW - 80, duration: 450, ease: 'Quad.out', yoyo: true,
+      onUpdate: (tw) => (ringImg.y = GROUND_Y - 160 + Math.sin(tw.progress * Math.PI) * 90),
+      onComplete: () => ringImg.destroy(),
+    });
+    this.cameras.main.shake(160, 0.005);
+    this.time.delayedCall(250, () => {
+      for (const e of this.battle.enemies) if (e.id === 'xia') this.ring(e.x, 60, 0xffd76a);
+    });
+  }
+
+  /** 太子出轎：踩著風火輪從轎裡衝出來 */
+  private chujiao(): void {
+    const tz = this.battle.taiziOut;
+    const x = tz ? this.showX(tz.x, true) : this.battle.palanquin.x + 300;
+    const trail = this.add.image(this.battle.palanquin.x, GROUND_Y - 10, 'x3_firetrail').setOrigin(0, 0.5).setDepth(40).setScale(1.5);
+    this.tweens.add({ targets: trail, scaleX: (x - this.battle.palanquin.x) / 160, alpha: 0, duration: 700, onComplete: () => trail.destroy() });
+    this.cameras.main.flash(200, 255, 120, 80);
+    this.hud.toast('太子出轎！站滿 5 秒插中營旗；霄將軍在前排就合擊', 0xffb04a, 2600);
+  }
+
+  /** 鴨群：一排白鴨從左邊衝到前排（群鴨陣、陣前審問鴨母婆上前） */
+  ducks(hit: boolean): void {
+    for (let i = 0; i < 8; i++) {
+      const d = this.add.image(-40 - i * 40, GROUND_Y + 20 - (i % 2) * 14, 'x3_duck').setDepth(45).setScale(2);
+      this.tweens.add({
+        targets: d, x: 700 + (i % 3) * 30, duration: 900 + i * 60, ease: 'Quad.out',
+        onComplete: () => this.tweens.add({ targets: d, alpha: 0, delay: hit ? 100 : 1600, duration: 400, onComplete: () => d.destroy() }),
+      });
+    }
+  }
+
+  /** 陣前審問第 3 輪：鏡頭停在太子（轎）身上 2 秒，戰鬥不停 */
+  closeUp(): void {
+    const cam = this.cameras.main;
+    const tz = this.battle.taiziOut;
+    const x = tz ? this.showX(tz.x, true) : this.battle.palanquin.x;
+    cam.pan(x, GROUND_Y - 160, 500, 'Sine.easeInOut');
+    cam.zoomTo(ZOOM * 1.8, 500, 'Sine.easeInOut');
+    this.time.delayedCall(500 + 2000, () => {
+      cam.pan(FW / 2, FH / 2, 600, 'Sine.easeInOut');
+      cam.zoomTo(ZOOM, 600, 'Sine.easeInOut');
+    });
+  }
+
   /** 王令：金光一閃，妖怪縮成一點飛向王船 */
   private decree(x: number): void {
     const s = this.add.image(x, GROUND_Y - 80, 'decree').setDepth(250).setScale(0.6).setAlpha(0.9);
@@ -461,6 +804,14 @@ export class BossHud extends Phaser.Scene {
   private readonly moonX = 30;
   private moonW = W - 130;
   private ok = [false, false, false];
+  /** 第三章：營旗列、全開的字幕 */
+  private flagBar?: Phaser.GameObjects.Graphics;
+  private flagBox = { x: 0, y: 0, w: 0, h: 0 };
+  private cueBox?: Phaser.GameObjects.Container;
+  private cueTxt?: Phaser.GameObjects.Text;
+  private cueShown = -1;
+  /** 第三章：戰鬥中的互嗆（兩組之間至少隔幾秒，不洗版） */
+  private chatter = new BanterPicker(undefined);
 
   constructor() {
     super('bosshud');
@@ -478,9 +829,16 @@ export class BossHud extends Phaser.Scene {
     this.spellFills = [];
     this.ok = [false, false, false];
     this.usedCallout = false;
+    this.flagBar = undefined;
+    this.cueBox = undefined;
+    this.cueTxt = undefined;
+    this.cueShown = -1;
+    this.chatter = new BanterPicker(CH().banter, 7000);
     const F = CH().finale;
     const esc = this.battle.mode === 'escort';
+    const jiao = this.battle.mode === 'jiao';
     this.cameras.main.fadeIn(500, 10, 8, 18);
+    if (jiao) this.time.delayedCall(1500, () => this.chat('b_start', true));
     txt(this, 24, 16, F.title, 30, C.gold, { serif: true });
     txt(this, 24, 58, F.place, 20, C.paper, { bold: false });
     this.clock = txt(this, W - 96, 34, '19:00', 30, C.paper).setOrigin(1, 0.5);
@@ -501,7 +859,7 @@ export class BossHud extends Phaser.Scene {
     bg.fillGradientStyle(0x1a1526, 0x1a1526, 0x0e0b16, 0x0e0b16, 1);
     bg.fillRect(0, py, W, H - py);
     let y = py + 16;
-    txt(this, 24, y, esc ? '王船離沙灘' : '石駒的煞氣', 20, esc ? 0x9fd0ff : 0xd9b0ff);
+    txt(this, 24, y, esc ? '王船離沙灘' : jiao ? `${F.bossName}的力氣` : '石駒的煞氣', 20, esc ? 0x9fd0ff : 0xd9b0ff);
     this.goalTxt = txt(this, 190, y, '', 19, C.muted, { bold: false });
     const sp = button(this, W - 90, y + 14, 140, 48, '速度 x1', () => {
       this.boss.speed = this.boss.speed === 1 ? 2 : 1;
@@ -514,7 +872,18 @@ export class BossHud extends Phaser.Scene {
     this.palBar = this.add.graphics().setData('y', y + 30);
     y += 62;
     this.frontTxt = txt(this, 24, y, '', 18, C.paper);
-    txt(this, W - 24, y + 2, '點卡片換前後排（走 2 秒）', 18, C.muted, { bold: false }).setOrigin(1, 0);
+    if (jiao) {
+      // 五面營旗的進度（和「前排 N／3」同一行，不多佔高度）：四將在前排連續站滿 5 秒、太子出轎站滿 5 秒
+      const camps = this.battle.setup.jiao!.camps;
+      const who = (c: JiaoCamp) => (Object.keys(camps).find((k) => camps[k] === c) ?? '');
+      this.flagBox = { x: 130, y: y - 3, w: (W - 130 - 24) / 5, h: 28 };
+      this.flagBar = this.add.graphics();
+      JIAO_CAMPS.forEach((c, i) => {
+        const k = who(c);
+        const name = k === 'taizi' ? '太子' : (F.members[k]?.name.split('・')[1] ?? '').replace('將軍', '');
+        txt(this, this.flagBox.x + i * this.flagBox.w + this.flagBox.w / 2, this.flagBox.y + this.flagBox.h / 2, `${CAMP_NAME[c]}營・${name}`, 16, C.paper, { stroke: '#1d1726', strokeThickness: 4 }).setOrigin(0.5).setDepth(3);
+      });
+    } else txt(this, W - 24, y + 2, '點卡片換前後排（走 2 秒）', 18, C.muted, { bold: false }).setOrigin(1, 0);
     y += 32;
     // 陣頭卡片：位置固定，方便點；卡片上標前排、後排
     const units = this.battle.units;
@@ -567,7 +936,53 @@ export class BossHud extends Phaser.Scene {
     }
     this.time.delayedCall(700, () => this.toast(esc
       ? '點陣頭卡片換前排／後排。觸手會拖住王船：用王令押走、五王火燒掉'
-      : '點陣頭卡片換前排／後排。前排挨打，後排近戰會回血：輪流上陣扛傷害', 0xfff3c4, 4200));
+      : jiao ? '點卡片換前後排（走 2 秒）。四將輪流上前排站滿 5 秒插營旗，太子出轎插中營旗：五面插齊就是五營合陣。柳將軍留在後排才射得斷水繩'
+        : '點陣頭卡片換前排／後排。前排挨打，後排近戰會回血：輪流上陣扛傷害', 0xfff3c4, 5200));
+    if (jiao) {
+      // 陣前審問第 3 輪的字幕（戰鬥帶中間，戰鬥不停）
+      const cy = BAND_Y + BAND_H * 0.3;
+      this.cueBox = this.add.container(0, 0).setDepth(820).setAlpha(0);
+      const top = this.add.rectangle(0, BAND_Y, W, 40, 0x000000, 0.85).setOrigin(0);
+      const bot = this.add.rectangle(0, BAND_Y + BAND_H - 40, W, 40, 0x000000, 0.85).setOrigin(0);
+      this.cueTxt = txt(this, W / 2, cy, '', 26, 0xfff3c4, { align: 'center', serif: true, stroke: '#1d1726', strokeThickness: 6, wordWrap: { width: W - 60, useAdvancedWrap: true } }).setOrigin(0.5);
+      this.cueBox.add([top, bot, this.cueTxt]);
+    }
+  }
+
+  /** 第三章：陣前審問第 3 輪之後，依戰鬥時間播字幕（凡人的聲音只有請到奶嘴、陣頭跳完才有） */
+  private updateCues(): void {
+    const b = this.battle;
+    if (!this.cueBox || !this.cueTxt) return;
+    if (b.cueT < 0) {
+      if (this.cueShown >= 0 && this.cueBox.alpha > 0 && !this.tweens.isTweening(this.cueBox)) this.tweens.add({ targets: this.cueBox, alpha: 0, duration: 400 });
+      return;
+    }
+    const voices = { aling: run.b.aling === 'pacifier', akai: run.b.akai === 'danced' };
+    const lines = FULLPOWER_CUES3.filter((c) => !c.voice || voices[c.voice]);
+    const shown = lines.filter((c) => c.at <= b.cueT);
+    if (shown.length - 1 === this.cueShown) return;
+    this.cueShown = shown.length - 1;
+    // 同一時間點的字幕（兩種凡人的聲音）一起顯示
+    const last = shown[shown.length - 1];
+    const now = shown.filter((c) => c.at === last.at);
+    this.cueTxt.setText(now.map((c) => (c.who ? `${c.who}：${c.text}` : c.text)).join('\n'));
+    this.cueTxt.setColor(last.who === '太子' ? '#ffd76a' : last.voice ? '#ffd0e0' : '#fff3c4');
+    this.cueTxt.setAlpha(0);
+    this.tweens.add({ targets: this.cueTxt, alpha: 1, duration: 250 });
+    this.cueBox.setAlpha(1);
+  }
+
+  /** 第三章：太子全開 */
+  fullPower(sec: number): void {
+    if (this.cueBox) this.tweens.add({ targets: this.cueBox, alpha: 0, delay: 600, duration: 400 });
+    this.toast(`太子全開！${sec} 秒：全員攻擊 ×1.5、法術冷卻 ×0.4、太子出轎可以再用`, 0xffd76a, 3200);
+  }
+
+  /** 第三章互嗆：一句一行從右邊滑進戰鬥帶上方，不擋操作；10% 特寫字幕播放時不插嘴 */
+  chat(key: string, force = false): void {
+    if (this.cueBox && this.cueBox.alpha > 0) return;
+    const lines = this.chatter.pick(key, this.time.now, force);
+    if (lines) banter(this, lines, BAND_Y + 34, 60);
   }
 
   toast(s: string, color: number, ms = 1800): void {
@@ -594,6 +1009,13 @@ export class BossHud extends Phaser.Scene {
     // 陣前審問的刻度
     this.bossBar.fillStyle(0xffd76a, 1);
     for (const f of b.trialMarks) this.bossBar.fillRect(26 + (bw - 4) * f - 1, by - 4, 3, 26);
+    if (b.mode === 'jiao') {
+      const st = b.boss.state;
+      const s = b.fullT > 0 ? `太子全開 ${Math.ceil(b.fullT)} 秒` : st === 'back' || st === 'paw' ? '浪頭升起：要翻江了！' : st === 'charge' ? '翻江！' : st === 'breath' ? '喘息中・猛攻' : b.taiziT > 0 ? `太子出轎 ${Math.ceil(b.taiziT)} 秒` : '';
+      this.goalTxt.setText(s).setColor(st === 'paw' || st === 'back' || st === 'charge' ? '#ff9a8a' : '#9fe8c0');
+      this.drawFlagBar();
+      this.updateCues();
+    }
     if (esc) {
       const g = b.grabbing;
       this.goalTxt.setText(b.windT > 0 ? '順風！' : g ? `被 ${g} 隻觸手拖住${b.shipSpeed <= 0 ? '，動不了' : ''}` : b.boss.state === 'breath' ? '退潮・走得快' : '前進中').setColor(g && b.windT <= 0 ? '#ff9a8a' : '#9fe8c0');
@@ -611,14 +1033,36 @@ export class BossHud extends Phaser.Scene {
     for (const { id, btn } of this.skillBtns) {
       const cd = b.skillCd[id] ?? 0;
       btn.setEnabled(b.canSkill(id));
-      const wait = id === 'zhensha' ? '（等衝鋒）' : id === 'dingfeng' ? '（等捲浪）' : '';
+      const wait = id === 'zhensha' ? '（等衝鋒）' : id === 'dingfeng' ? '（等捲浪）' : id === 'baidu' ? '（等翻江）' : id === 'qunya' ? '（鴨群待命）' : '';
       btn.setLabel(cd > 0 ? `${SKILLS[id].name} ${Math.ceil(cd)}秒` : wait && !b.canSkill(id) ? `${SKILLS[id].name}${wait}` : SKILLS[id].name);
     }
     ([0, 1] as const).forEach((i) => {
       const id = b.spells[i];
       this.spellBtns[i].setEnabled(b.canSpell(i));
       this.spellFills[i].width = this.skillW * (b.spellCd[i] / SPELLS[id].cd);
-      this.spellBtns[i].setLabel(b.spellCd[i] > 0 ? `${SPELLS[id].name} ${Math.ceil(b.spellCd[i])}秒` : SPELLS[id].name);
+      this.spellBtns[i].setLabel(id === 'chujiao' && b.taiziT > 0 ? `出轎中 ${Math.ceil(b.taiziT)}秒` : b.spellCd[i] > 0 ? `${SPELLS[id].name} ${Math.ceil(b.spellCd[i])}秒` : SPELLS[id].name);
+    });
+  }
+
+  /** 第三章：營旗列（插好的整格上營色，還在站的依秒數填一部分） */
+  private drawFlagBar(): void {
+    if (!this.flagBar) return;
+    const g = this.flagBar;
+    const { x, y, w, h } = this.flagBox;
+    const prog = this.battle.flagProgress;
+    g.clear();
+    JIAO_CAMPS.forEach((c, i) => {
+      const bx = x + i * w + 3;
+      g.fillStyle(0x000000, 0.6);
+      g.fillRoundedRect(bx, y, w - 6, h, 6);
+      const f = prog[c];
+      if (f > 0) {
+        // 北營黑色在深色底上看不清楚，營旗列用淺一點的灰黑
+        g.fillStyle(c === 'north' ? 0x5a5a72 : CAMP_COLORS[c], f >= 1 ? 1 : 0.55);
+        g.fillRoundedRect(bx, y, (w - 6) * f, h, 6);
+      }
+      g.lineStyle(2, f >= 1 ? 0xffd76a : 0x4a4256, 1);
+      g.strokeRoundedRect(bx, y, w - 6, h, 6);
     });
   }
 
@@ -632,9 +1076,14 @@ export class BossHud extends Phaser.Scene {
     c.bg.strokeRoundedRect(c.x, c.y, c.w, c.h, 12);
     let s = '';
     const bossName = CH().finale.bossName;
+    const b = this.battle;
+    const camp = b.setup.jiao?.camps[u.key];
     if (!u.alive) s = '倒下';
+    else if (b.drag?.uid === u.uid) s = '被水繩拖向溪裡！';
+    else if ((u.sunk ?? 0) > 0) s = `落水・${Math.ceil(u.sunk!)}秒爬不上來`;
+    else if (camp && u.row === 'front' && u.moving <= 0 && !b.planted[camp]) s = `前排・插${CAMP_NAME[camp]}營旗 ${Math.min(FLAG_TIME, u.stand ?? 0).toFixed(1)}/${FLAG_TIME}`;
     else if (u.moving > 0) s = u.targetRow === 'front' ? '走上前排…' : '退回後排…';
-    else if (u.row === 'front') s = `前排${'①②③'[u.slot] ?? ''}${u.slot === 0 && this.battle.mode !== 'escort' ? `・${bossName}打這個` : ''}`;
+    else if (u.row === 'front') s = `前排${'①②③'[u.slot] ?? ''}${u.slot === 0 && this.battle.mode !== 'escort' && !b.taiziOut ? `・${bossName}打這個` : ''}`;
     else s = u.role === 'melee' ? (u.hp < u.maxHp ? '後排・回血中' : '後排・待命') : u.role === 'ranged' ? '後排・射擊中' : '後排・支援中';
     c.state.setText(s).setColor(!u.alive ? '#6a6070' : front ? '#ffb0a0' : '#a8c8ff');
     c.name.setAlpha(u.alive ? 1 : 0.4);
@@ -662,6 +1111,17 @@ export class BossHud extends Phaser.Scene {
     const ok = !!person || !!ev;
     this.ok[round - 1] = ok;
     this.battle.answer(round, ok);
+    if (this.battle.mode === 'jiao' && round === 3) {
+      // 第三章 10%：不出示證據，鏡頭停在太子身上 2 秒，字幕連播（updateCues），CUE_TIME 秒後太子全開
+      this.tweens.killTweensOf(this.toastTxt);
+      this.toastTxt.setAlpha(0);
+      this.boss.closeUp();
+      this.cueShown = -1;
+      const say = txt(this, 24, BAND_Y + 48, `${F.bossName}：${r.line}`, 23, 0xd9b0ff, { stroke: '#1d1726', strokeThickness: 6, wordWrap: { width: W - 48, useAdvancedWrap: true } }).setDepth(830);
+      this.tweens.add({ targets: say, alpha: 0, delay: CUE_TIME * 1000 * 0.5, duration: 500, onComplete: () => say.destroy() });
+      return;
+    }
+    if (person?.id === 'yamupo') this.boss.ducks(false);
     const E = CH().evidence;
     const used = person ? { tag: '上前', name: person.label.replace('請', '').replace('上前', ''), say: person.say } : ev ? { tag: E[ev].kind, name: E[ev].name, say: E[ev].text } : null;
     this.playTrial(round, `${F.bossName}：${r.line}`, used, ok ? `${r.ok}\n${r.effect}` : `手上沒有能說動牠的證據。\n${F.wrong}`, ok);
@@ -737,7 +1197,7 @@ export class BossHud extends Phaser.Scene {
       let yy = 380;
       const fills: Record<string, number> = { recall: 0x2f6f5a, return: 0x4a3a6a, slay: 0x8a1b14 };
       for (const o of F.ends) {
-        const why = o.needLast && !last ? '陣前審問最後一輪沒有說動牠' : '';
+        const why = o.needLast && !last ? '陣前審問最後一輪沒有說動牠' : o.needRound && !this.ok[o.needRound - 1] ? `陣前審問第 ${o.needRound} 輪沒有說動牠` : '';
         const b = button(this, x + 110, yy + 50, 170, 70, o.label, () => this.end(o.kind), { size: o.label.length > 3 ? 20 : 24, fill: fills[o.kind] });
         b.setEnabled(!why);
         m.add(b);
@@ -757,8 +1217,16 @@ export class BossHud extends Phaser.Scene {
   private end(kind: 'recall' | 'return' | 'slay'): void {
     run.shijuEnd = kind;
     run.shijuJoined = kind === 'recall';
-    if (kind === 'slay') run.liqi = Math.min(3, run.liqi + 1);
-    if (kind === 'recall') this.boss.leave('story', { id: CH().finale.recallStory, next: { key: 'end' } }, 800);
-    else this.boss.leave('end', undefined, 800);
+    // 斬魔王：第一、二章戾氣 +1；第三章（看斬的是誰）蛟是真惡，不加戾氣、威名 +1
+    if (kind === 'slay') {
+      if (CH().slayRule === 'renown') run.weiming = Math.min(5, run.weiming + 1);
+      else run.liqi = Math.min(3, run.liqi + 1);
+    }
+    // 結局劇情 →（第三章：收營）→ 信徒錄
+    const F = CH().finale;
+    const end = F.closeStory ? { key: 'story', data: { id: F.closeStory, next: { key: 'end' } } } : { key: 'end' };
+    const story = F.endStory?.[kind] ?? (kind === 'recall' ? F.recallStory : undefined);
+    if (story) this.boss.leave('story', { id: story, next: end }, 800);
+    else this.boss.leave(end.key, end.data, 800);
   }
 }

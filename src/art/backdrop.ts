@@ -3,6 +3,7 @@
  */
 import Phaser from 'phaser';
 import { FONT, SERIF, FIELD_H as H, FIELD_W as W, GROUND_Y, lerpColor } from '../theme';
+import { isPlainTheme, plainLayers, riverFlow, type PlainTheme } from './xinyingSpec';
 
 const SIGNS = ['香舖', '麵線', '青草茶', '金紙', '佛具', '冰果室', '布莊', '中藥', '雜貨', '肉圓', '米苔目', '刻印'];
 const WALLS = [0xd9c3a0, 0xc9a98a, 0xb8a07a, 0xd8b8a0, 0xa8a090, 0xc0b090];
@@ -297,7 +298,8 @@ export function skyColors(hour: number): [number, number] {
   return [last[1], last[2]];
 }
 
-export type StreetTheme = 'city' | 'mixed' | 'hill' | 'harbor' | 'shore';
+/** 第三章：village 庄頭街景、duckfarm 鴨母寮、ferry 溪邊渡口（美術在 art/xinyingScenery.ts，配置在 art/xinyingSpec.ts） */
+export type StreetTheme = 'city' | 'mixed' | 'hill' | 'harbor' | 'shore' | 'village' | 'duckfarm' | 'ferry';
 
 /**
  * 會往後捲動的街景：天空、遠景（城市或山）、街屋或田園、馬路。
@@ -310,6 +312,11 @@ export class Street {
   private near?: Phaser.GameObjects.TileSprite;
   private road: Phaser.GameObjects.TileSprite;
   private props: Phaser.GameObjects.Image[] = [];
+  /** 第三章：溪面（渡口）與流向（1 順流往左、負的是倒流往右） */
+  private water?: Phaser.GameObjects.TileSprite;
+  private flow = 1;
+  /** 第三章：沿路依序出現的房子、攤子（循環）；沒有就是前兩章的街屋／田園 */
+  private plain?: string[];
   private nextX = 0;
   private k = 0;
   private night: boolean;
@@ -319,12 +326,27 @@ export class Street {
   /** 0–1：從城市漸漸變成鄉間（第二天用） */
   ruralMix = 0;
 
-  constructor(scene: Phaser.Scene, opts: { night: boolean; theme: StreetTheme; hour?: number }) {
+  constructor(scene: Phaser.Scene, opts: { night: boolean; theme: StreetTheme; hour?: number; reverse?: boolean }) {
     this.scene = scene;
     this.night = opts.night;
     this.theme = opts.theme;
     this.sky = scene.add.graphics().setDepth(-100);
     this.setHour(opts.hour ?? (opts.night ? 21 : 9));
+    if (isPlainTheme(opts.theme)) {
+      // 第三章（新瀛）：照 xinyingSpec 的配置組出來；有正式背景圖就用圖
+      const L = plainLayers(opts.theme, opts.night, (k) => scene.textures.exists(k));
+      this.plain = L.props;
+      this.far = scene.add.tileSprite(0, GROUND_Y - L.farLift, W, scene.textures.get(L.far).getSourceImage().height, L.far).setOrigin(0, 1).setDepth(-90);
+      if (L.water) {
+        this.water = scene.add.tileSprite(0, GROUND_Y - L.waterLift, W, L.waterH!, L.water).setOrigin(0, 1).setDepth(-88).setAlpha(L.waterAlpha);
+        this.flow = riverFlow(!!opts.reverse);
+      }
+      if (L.near) this.near = scene.add.tileSprite(0, GROUND_Y - 88, W, scene.textures.get(L.near).getSourceImage().height, L.near).setOrigin(0, 1).setDepth(L.nearImage ? -75 : -85);
+      this.road = scene.add.tileSprite(0, GROUND_Y - 90, W, H - (GROUND_Y - 90), L.road).setOrigin(0, 0).setDepth(-60);
+      this.ruralMix = 0;
+      while (this.nextX < W + 300) this.addProp();
+      return;
+    }
     const sea = opts.theme === 'harbor' || opts.theme === 'shore';
     const farKey = sea ? (opts.night ? 'seaFarN' : 'seaFar') : opts.night ? (opts.theme === 'city' ? 'skylineN' : 'mtnFarN') : opts.theme === 'city' ? 'skyline' : 'mtnFar';
     this.far = scene.add.tileSprite(0, GROUND_Y - (sea ? 80 : 110), W, scene.textures.get(farKey).getSourceImage().height, farKey).setOrigin(0, 1).setDepth(-90);
@@ -334,7 +356,7 @@ export class Street {
     }
     const roadKey = opts.theme === 'shore' ? (opts.night ? 'sandN' : 'sandroad') : opts.night ? 'roadN' : 'road';
     this.road = scene.add.tileSprite(0, GROUND_Y - 90, W, H - (GROUND_Y - 90), roadKey).setOrigin(0, 0).setDepth(-60);
-    const MIX: Record<StreetTheme, number> = { city: 0, mixed: 0.3, hill: 0.8, harbor: 0.25, shore: 0.65 };
+    const MIX: Record<Exclude<StreetTheme, PlainTheme>, number> = { city: 0, mixed: 0.3, hill: 0.8, harbor: 0.25, shore: 0.65 };
     this.ruralMix = MIX[opts.theme];
     while (this.nextX < W + 300) this.addProp();
   }
@@ -348,6 +370,19 @@ export class Street {
 
   /** 在右邊接一棟新的街屋（或樹叢、田） */
   private addProp(): void {
+    if (this.plain) {
+      if (!this.plain.length) {
+        // 近景用了正式背景圖：圖裡已經有房子，不另外擺
+        this.nextX = W + 300;
+        return;
+      }
+      const key = this.plain[this.k % this.plain.length];
+      const img = this.scene.add.image(this.nextX, GROUND_Y - 88, key).setOrigin(0, 1).setDepth(-70);
+      this.props.push(img);
+      this.nextX += img.width + 6 + (this.k * 37) % 30;
+      this.k++;
+      return;
+    }
     const rural = Math.random() < this.ruralMix;
     const n = this.night ? 'N' : '';
     let key = rural ? `rural${n}${this.k % 4}` : `shop${n}${(this.k * 3) % 8}`;
@@ -369,12 +404,29 @@ export class Street {
     const dx = speed * dt;
     this.distance += dx;
     this.far.tilePositionX += dx * 0.15;
-    if (this.near) this.near.tilePositionX += dx * 0.35;
+    if (this.near) this.near.tilePositionX += dx * (this.plain ? 1 : 0.35);
+    if (this.water) this.water.tilePositionX += dx * 0.25 + 40 * dt * this.flow;
     this.road.tilePositionX += dx;
     for (const p of this.props) p.x -= dx;
     this.nextX -= dx;
     while (this.props.length && this.props[0].x + this.props[0].width < -40) this.props.shift()!.destroy();
     while (this.nextX < W + 300) this.addProp();
+  }
+
+  /** 只讓溪水流（隊伍停下來時也看得到溪在流；倒流時特別明顯） */
+  idle(dt: number): void {
+    if (this.water) this.water.tilePositionX += 40 * dt * this.flow;
+  }
+
+  /** 換街景前拆掉（岔路後換主題用） */
+  destroy(): void {
+    this.sky.destroy();
+    this.far.destroy();
+    this.near?.destroy();
+    this.water?.destroy();
+    this.road.destroy();
+    for (const p of this.props) p.destroy();
+    this.props = [];
   }
 
   setRuralMix(v: number): void {

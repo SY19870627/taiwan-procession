@@ -94,8 +94,36 @@ export class AlmanacScene extends Phaser.Scene {
       const plan = CH().days[day];
       txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
       button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: { key: 'day', data: { day } } }), { size: 32, fill: 0x8a1b14 });
+      const unlock = CH().unlocks?.[day];
+      if (unlock) this.time.delayedCall(700, () => this.unlockCard(unlock));
     }
     fullscreenButton(this);
+  }
+
+  /** 第三章：黃曆之後的成長解鎖卡（第一天各將一招、第二天合擊、第三天五營合陣） */
+  private unlockCard(u: { title: string; text: string }): void {
+    const objs: Phaser.GameObjects.GameObject[] = [];
+    const pw = W - 80;
+    const x = 40;
+    const body = txt(this, x + 32, 0, u.text, 22, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902);
+    const ph = body.height + 230;
+    const y = (H - ph) / 2;
+    body.setY(y + 110);
+    objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setDepth(900).setInteractive());
+    objs.push(panel(this, x, y, pw, ph).setDepth(901));
+    // 五色營旗條
+    const camps = CH().slotLabels ?? [];
+    camps.forEach((c, i) => objs.push(this.add.rectangle(x + 32 + i * 34, y + 30, 26, 14, c.color).setOrigin(0, 0.5).setStrokeStyle(1, 0xe9b949, 0.8).setDepth(902)));
+    objs.push(txt(this, x + 32 + camps.length * 34 + 8, y + 30, '成長', 20, 0xffd76a).setOrigin(0, 0.5).setDepth(902));
+    objs.push(txt(this, x + 32, y + 52, u.title, 32, C.gold, { serif: true }).setDepth(902));
+    objs.push(body);
+    const b = button(this, W / 2, y + ph - 56, 220, 64, '知道了', () => { for (const o of objs) o.destroy(); }, { size: 24, fill: 0x8a1b14 });
+    b.setDepth(903);
+    objs.push(b);
+    for (const o of objs) {
+      (o as Phaser.GameObjects.Components.AlphaSingle & Phaser.GameObjects.GameObject).setAlpha?.(0);
+      this.tweens.add({ targets: o, alpha: 1, duration: 300 });
+    }
   }
 
   /** 泛黃的紙：底色、斑點、雙紅框 */
@@ -208,14 +236,18 @@ export class AlmanacScene extends Phaser.Scene {
           if (results.every((x2) => x2 === 'holy')) lines.push(j.allHoly.text);
           lines.push(j.done);
           objs.push(txt(this, W / 2, y + ph - 130, lines.join('\n'), 19, C.paper, { bold: false, align: 'center', lineSpacing: 6, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setOrigin(0.5, 0).setDepth(903));
-          button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => go(this, 'almanac', { day: 1 }), { size: 26, fill: 0x8a1b14 }).setDepth(903);
+          // 第三章：擲筊之後先播「開營」（五將登場、營旗下押著三個鬼），再翻到第一天
+          const story = CH().prologueStory;
+          button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => (story
+            ? go(this, 'story', { id: story, next: { key: 'almanac', data: { day: 1 } } })
+            : go(this, 'almanac', { day: 1 })), { size: 26, fill: 0x8a1b14 }).setDepth(903);
         });
       }, { size: 28, fill: 0x8a1b14 });
       tb.setDepth(903);
       objs.push(tb);
     };
     txt(this, W / 2, H - 126, CH().prologueLine, 22, C.paper, { serif: true, align: 'center', wordWrap: { width: W - 40, useAdvancedWrap: true } }).setOrigin(0.5);
-    const ask = button(this, W / 2, H - 62, 280, 76, '請示王爺', () => { ask.setEnabled(false); open(); }, { size: 30, fill: 0x8a1b14 });
+    const ask = button(this, W / 2, H - 62, 280, 76, CH().look === 'plain' ? '請示太子' : '請示王爺', () => { ask.setEnabled(false); open(); }, { size: 30, fill: 0x8a1b14 });
   }
 }
 

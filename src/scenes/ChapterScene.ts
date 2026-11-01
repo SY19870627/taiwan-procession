@@ -1,60 +1,13 @@
 /**
  * 大地圖（出巡圖）：選章節。一章一個地方的祭典與魔王。
- * 目前可以玩「萬舺・青嶺王暗訪」與「東津・迎王」，其他章節先標在地圖上（尚未開放）。
+ * 目前可以玩「萬舺・青嶺王暗訪」「東津・迎王」「新瀛・太子出營」，其他章節先標在地圖上（尚未開放）。
  * 遊戲中一律用虛構名稱（見設計文件 14.5 命名原則）。
  */
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { startChapter } from '../content/chapter';
+import { MAP_CHAPTERS as CHAPTERS } from '../content/map';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
-
-interface Chapter {
-  id: string;
-  /** 地名 */
-  place: string;
-  /** 章名 */
-  title: string;
-  lon: number;
-  lat: number;
-  open: boolean;
-  /** 簡介 */
-  desc: string;
-  /** 規模 */
-  scale: string;
-}
-
-const CHAPTERS: Chapter[] = [
-  {
-    id: 'wanjia', place: '萬舺', title: '青嶺王暗訪', lon: 121.5, lat: 25.04, open: true,
-    desc: '正日遶境前，青嶺王夜巡暗訪，捉拿陰陽兩界作祟者。芝嶺巖的石駒醒了，一路往北，像在找什麼。',
-    scale: '三天晝夜・五位信徒・四個有冤情的鬼・魔王石駒',
-  },
-  {
-    id: 'baishadun', place: '白砂墩', title: '媽祖徒步進香', lon: 120.68, lat: 24.49, open: false,
-    desc: '往哪裡走，只有媽祖知道。轎子一動，跟上來的人一天比一天多，多到整條省道都是人。',
-    scale: '尚未開放',
-  },
-  {
-    id: 'lanze', place: '蘭澤潭', title: '潭底的聲音', lon: 120.47, lat: 23.46, open: false,
-    desc: '潭邊的人說，夜裡聽得到有人在水底唱歌。',
-    scale: '尚未開放',
-  },
-  {
-    id: 'xinying', place: '新瀛', title: '太子出營', lon: 120.32, lat: 23.31, open: false,
-    desc: '太子爺聖誕，五營兵將全員出營。疾水溪的水，這幾天開始倒著流。',
-    scale: '尚未開放',
-  },
-  {
-    id: 'dongjin', place: '東津', title: '迎王', lon: 120.45, lat: 22.46, open: true,
-    desc: '三年一科的迎王，代天巡狩的千歲爺駐駕代天府。雲王爺開路、千歲爺調閱案卷。王船出海那晚，送走的是瘟疫，還是別的什麼？',
-    scale: '三天＋送王・五位信徒・四個有冤情的鬼・魔王黑潮',
-  },
-  {
-    id: 'lishan', place: '鯉山', title: '鯉山之夜', lon: 121.14, lat: 22.76, open: false,
-    desc: '山形像一條鯉魚。老人說，牠每隔幾十年就會翻一次身。',
-    scale: '尚未開放',
-  },
-];
 
 /** 臺灣本島輪廓（經緯度，大致形狀） */
 const OUTLINE: [number, number][] = [

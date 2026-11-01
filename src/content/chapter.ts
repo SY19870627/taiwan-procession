@@ -19,18 +19,40 @@ import * as ch1Days from './days';
 import * as ch1Cases from './cases';
 import * as ch1Finale from './finale';
 import { SKILLS } from '../core/boss';
+import { approachHours, impsFlee, moodOf, type Mood } from '../core/renown';
 import { CHAPTER2 } from './ch2';
+import { CHAPTER3 } from './ch3';
 
 /** 小妖怎麼處理 */
 export type ImpRule =
   /** 驅散：花時辰，當場打散 */
   | { mode: 'scatter'; verb: string; hours: number; result: string; story: string }
   /** 押煞上船：用王令（每天有限），不花時辰 */
-  | { mode: 'decree'; verb: string; perDay: number; result: string; story: string };
+  | { mode: 'decree'; verb: string; perDay: number; result: string; story: string }
+  /** 乾坤圈（第三章）：不花時辰、不加戾氣；略過的小妖最後一戰變成蝦兵（skipAdds 波） */
+  | { mode: 'ring'; verb: string; result: string; story: string; skipAdds: number };
+
+/** 第三章點將問罪：堂上出手的將軍（北營夜審不上場） */
+export interface General {
+  /** east 東營（說謊・證詞）／west 西營（狡辯・物證文獻）／south 南營（純嗆聲） */
+  camp: 'east' | 'west' | 'south';
+  name: string;
+  /** 立繪稱呼（見 art/portraits.ts） */
+  portrait: string;
+  color: number;
+  /** 點這位將軍時按鈕上的說明 */
+  does: string;
+  /** 打臉時的口頭禪（每句狠話的 hit 之前） */
+  shout: string[];
+}
 
 export interface TrialStyle {
-  /** interrogate：審問供詞；dossier：調閱案卷 */
-  style: 'interrogate' | 'dossier';
+  /** interrogate：審問供詞；dossier：調閱案卷；dianjiang：點將問罪（第三章；core/dianjiang.ts、ui/dianjiang.ts） */
+  style: 'interrogate' | 'dossier' | 'dianjiang';
+  /** 每晚能審幾案（沒寫＝不限） */
+  perNight?: number;
+  /** 點將問罪的將軍 */
+  generals?: General[];
   plaque: string;
   officers: { tex: string; label: string; tint?: number }[];
   lobbyTitle: (n: number) => string;
@@ -72,12 +94,16 @@ export interface FinaleDef {
   members: Record<string, MemberStats & { tex: string[]; desc: string }>;
   /** 收編的鬼（畫成半透明藍色） */
   ghostMembers: string[];
-  /** 贏了之後的判決 */
-  ends: { kind: 'recall' | 'return' | 'slay'; label: string; desc: string; needLast?: boolean }[];
+  /** 贏了之後的判決（needLast：陣前審問最後一輪要說動；needRound：第幾輪要說動，第三章收蛟要第 2 輪） */
+  ends: { kind: 'recall' | 'return' | 'slay'; label: string; desc: string; needLast?: boolean; needRound?: number }[];
   winTitle: string;
   winText: string;
   /** 最好結局的劇情 */
   recallStory: string;
+  /** 三種結局各自的劇情（有寫就用這個，沒寫的 recall 用 recallStory；第三章） */
+  endStory?: Partial<Record<'recall' | 'return' | 'slay', string>>;
+  /** 結局劇情之後、信徒錄之前的收尾劇情（第三章：收營） */
+  closeStory?: string;
   loseText: string;
   dawnText: string;
 }
@@ -88,8 +114,8 @@ export interface ChapterDef {
   title: string;
   /** 主神（畫面上稱呼用） */
   god: string;
-  /** 畫面風格：山城或漁港 */
-  look: 'mountain' | 'harbor';
+  /** 畫面風格：山城、漁港、嘉南平原（第三章） */
+  look: 'mountain' | 'harbor' | 'plain';
   prologue: Almanac;
   jiao: { ask: string; times: number; holy: { text: string }; laugh: { text: string }; yin: { text: string }; allHoly: { text: string }; done: string };
   /** 序章黃曆下方那句話 */
@@ -122,6 +148,33 @@ export interface ChapterDef {
   temple: string;
   /** 結局頁的副標 */
   endSub: string;
+  // ----- 第三章起的設定（全部可選；沒寫就是第一、二章的規則） -----
+  /** 收容格數（預設 3） */
+  slots?: number;
+  /** 開局就押在收容格的鬼 */
+  startHeld?: string[];
+  /** 收容格的名稱與顏色（第三章：東青、南紅、西白、北黑、中黃） */
+  slotLabels?: { label: string; color: number }[];
+  /** 押著過夜：grudge 天亮怨氣 +1、到 3 掙脫（預設）；tame 太子壓下去教訓一晚 */
+  overnight?: 'grudge' | 'tame';
+  /** 斬的結算：liqi 一律戾氣 +1、斬錯再 +1（預設）；renown 看斬的是誰（十惡、真惡威名 +1；冤魂戾氣 +1） */
+  slayRule?: 'liqi' | 'renown';
+  /** 戾氣讓鬼躲起來時可以「風火輪追」（0 時辰、怨氣 +1） */
+  chase?: boolean;
+  /** 每天早上黃曆後顯示的成長解鎖（第三章：各將一招、合擊、五營合陣） */
+  unlocks?: Record<number, { title: string; text: string }>;
+  /** 互嗆台詞庫：場合（depart、ring、look、slay…）→ 幾組對話，每組一句一行輪流跳出來（第三章） */
+  banter?: Record<string, BanterLine[][]>;
+  /** 序章擲筊之後、第一天黃曆之前的劇情（第三章：開營） */
+  prologueStory?: string;
+  /** 第 n 天的黃曆之前（前一晚天亮前）播的劇情（第三章：第三天溪水倒流） */
+  dawnStory?: Record<number, string>;
+}
+
+/** 互嗆的一句（一行、不擋操作） */
+export interface BanterLine {
+  who: string;
+  text: string;
 }
 
 const CHAPTER1: ChapterDef = {
@@ -197,16 +250,17 @@ const CHAPTER1: ChapterDef = {
   endSub: '青嶺王暗訪・三日之後',
 };
 
-export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin: CHAPTER2 };
+export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin: CHAPTER2, xinying: CHAPTER3 };
 
 /** 目前這一章 */
 export function CH(): ChapterDef {
   return CHAPTERS[run.chapter] ?? CHAPTER1;
 }
 
-/** 開始一章：重設進度 */
+/** 開始一章：重設進度（收容格數、開局押著的鬼依章節設定） */
 export function startChapter(id: string): void {
-  resetRun(id, CHAPTERS[id].newBelievers());
+  const ch = CHAPTERS[id];
+  resetRun(id, ch.newBelievers(), { slots: ch.slots, startHeld: ch.startHeld });
 }
 
 /** 判決的名稱（這一章的叫法） */
@@ -215,14 +269,11 @@ export function verdictName(v: Verdict): string {
 }
 
 // ---------- 白天：路上的事 ----------
-export type GhostMood = 'normal' | 'hiding' | 'fled';
+export type GhostMood = Mood;
 
-/** 戾氣讓鬼躲起來或逃走 */
+/** 戾氣讓鬼躲起來或逃走；第三章威名 ≥2 鬼看到隊伍就跑（見 core/renown.ts） */
 export function ghostMood(r: RunState, caseId: string): GhostMood {
-  const t = CH().cases[caseId].timid;
-  if (r.liqi >= t + 1) return 'fled';
-  if (r.liqi >= t) return 'hiding';
-  return 'normal';
+  return moodOf(r, CH().cases[caseId].timid, CH());
 }
 
 /** 這件事今天還會不會出現 */
@@ -236,9 +287,12 @@ export function visible(r: RunState, e: Encounter): boolean {
   }
 }
 
-/** 收容一隻鬼要幾個時辰：平常不花時辰（只佔收容格）；躲起來要花 1 個時辰勸出來 */
+/**
+ * 收容一隻鬼要幾個時辰：平常不花時辰（只佔收容格）；躲起來要花 1 個時辰勸出來
+ *（第三章：風火輪追，不花時辰、怨氣 +1）；被威名嚇跑的要花 1 個時辰追回來。
+ */
 export function collectHours(r: RunState, caseId: string): number {
-  return ghostMood(r, caseId) === 'hiding' ? 1 : 0;
+  return approachHours(ghostMood(r, caseId), CH());
 }
 
 /** 戾氣 3：凡人也不太敢靠近，問話會沒人理 */
@@ -257,11 +311,16 @@ export function summary(r: RunState, e: Encounter): { icon: string; title: strin
     case 'ghost': {
       const k = CH().cases[e.caseId];
       const mood = ghostMood(r, e.caseId);
-      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost: mood === 'fled' ? '會逃走' : collectHours(r, e.caseId) ? `收容 ${collectHours(r, e.caseId)} 時辰＋1 格` : '收容佔 1 格', color: 0x9fd0ff };
+      const cost = mood === 'fled' ? '會逃走'
+        : mood === 'scared' ? `見隊伍就跑・追回 ${collectHours(r, e.caseId)} 時辰`
+          : mood === 'hiding' && CH().chase ? '躲著・風火輪追（怨氣 +1）'
+            : collectHours(r, e.caseId) ? `收容 ${collectHours(r, e.caseId)} 時辰＋1 格` : '收容佔 1 格';
+      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost, color: 0x9fd0ff };
     }
     case 'imp': {
       const rule = CH().imp;
-      const cost = rule.mode === 'scatter' ? `${rule.verb} ${rule.hours} 時辰` : `${rule.verb}・王令 1 道`;
+      const cost = rule.mode === 'scatter' ? `${rule.verb} ${rule.hours} 時辰` : rule.mode === 'decree' ? `${rule.verb}・王令 1 道`
+        : impsFlee(r, CH()) ? '見隊伍就逃' : `${rule.verb}・不花時辰`;
       return { icon: '妖', title: `${e.place}・小妖`, cost, color: 0xc9a0ff };
     }
     case 'clue': return { icon: '證', title: `${e.place}・線索`, cost: `${e.hours} 時辰`, color: 0x9fe8c0 };

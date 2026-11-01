@@ -23,6 +23,8 @@ export interface RouteDef {
   name: string;
   color: number;
   encounters: Encounter[];
+  /** 岔路後換街景（第三章：庄頭線進鴨母寮）；沒寫就沿用當天的 */
+  theme?: StreetTheme;
 }
 
 export interface DayPlan {
@@ -39,8 +41,10 @@ export interface DayPlan {
   routes: RouteDef[];
   /** 兩條路會合之後 */
   post: Encounter[];
-  /** 街景：城市、半城半鄉、山；第二章的漁港、海邊 */
+  /** 街景：城市、半城半鄉、山；第二章的漁港、海邊；第三章的庄頭、鴨母寮、渡口 */
   theme: StreetTheme;
+  /** 溪水倒流（第三章第三天的異象：渡口的水紋往上游流） */
+  reverseRiver?: boolean;
 }
 
 // ---------- 可以重複用的事 ----------

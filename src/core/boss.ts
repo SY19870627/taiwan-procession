@@ -4,6 +4,12 @@
  * subdue（第一章・喚回石駒）：把魔王的煞氣打到歸零。
  * escort（第二章・送王）：護送王船走到沙灘。魔王黑潮在海裡打不到；
  *   觸手從沙裡伸出來拖住王船（每一隻讓王船慢 40%），小妖從海那邊爬上岸。
+ * jiao（第三章・疾水溪的蛟）：把蛟的力氣打到歸零。蛟的頭伸上岸咬前排；
+ *   翻江（浪頭升起預告 2.5 秒 → 水牆掃過前排，北營廉將軍在前排減半）、蝦兵一波波上岸、
+ *   拖人（每 ~20 秒抓後排一人下水，西營柳將軍在後排會射斷）。
+ *   太子的兩個法術：乾坤圈（打爆全場蝦兵）、太子出轎（親自上前排 8 秒，不佔三格）。
+ *   五營合陣：四將各在前排連續站滿 5 秒插下自己營的旗，太子出轎站滿 5 秒插中營旗；
+ *   五面插齊 → 蝦兵全清、蛟受重傷，旗子倒下重來。陣前審問第 3 輪之後太子全開。
  *
  * 共通的陣形：神轎（或王船）在左，妖怪從右邊來。陣頭分前排（最多 3 個）和後排：
  *  - 前排：近戰會出手，也會挨打。魔王打前排第一個，小妖分散打前排。
@@ -17,7 +23,8 @@ import { ENEMIES, type EnemyId } from './units';
 
 export type Row = 'front' | 'back';
 export type Role = 'melee' | 'ranged' | 'support';
-export type BattleMode = 'subdue' | 'escort';
+/** jiao：第三章・疾水溪的蛟 */
+export type BattleMode = 'subdue' | 'escort' | 'jiao';
 
 export interface MemberStats {
   key: string;
@@ -33,22 +40,29 @@ export interface MemberStats {
   aoe: number;
   /** 受到傷害的倍率 */
   guard: number;
-  /** 特色 */
-  trait?: 'chain' | 'block' | 'quake' | 'slow' | 'haste' | 'heal' | 'frost';
+  /**
+   * 特色。第三章：cover 格擋＋替前排隊友擋蛟一口、combo 與出轎的太子同在前排合擊、
+   * snipe 專打頭目＋在後排射斷拖人、stun 定身蝦兵＋在前排翻江減半、
+   * ducks 鴨群讓蝦兵變慢、paper 紙人替身吸收一次拖人
+   */
+  trait?: 'chain' | 'block' | 'quake' | 'slow' | 'haste' | 'heal' | 'frost' | 'cover' | 'combo' | 'snipe' | 'stun' | 'ducks' | 'paper';
 }
 
 /** 主神的兩個法術（每一章的神明不同，法術也不同） */
-export type SpellId = 'smite' | 'bless' | 'wuhuo' | 'wangling';
+export type SpellId = 'smite' | 'bless' | 'wuhuo' | 'wangling' | 'qiankun' | 'chujiao';
 
 export const SPELLS: Record<SpellId, { name: string; cd: number; desc: string }> = {
   smite: { name: '天令', cd: 15, desc: '雷擊最前面的妖群' },
   bless: { name: '淨符', cd: 25, desc: '神轎與陣頭回血' },
   wuhuo: { name: '五王火', cd: 20, desc: '前排前方燒起火牆 5 秒' },
   wangling: { name: '王令', cd: 15, desc: '押走拖船的觸手（沒有就押最近的妖怪）' },
+  // 第三章
+  qiankun: { name: '乾坤圈', cd: 12, desc: '打爆全場蝦兵，對蛟小傷' },
+  chujiao: { name: '太子出轎', cd: 35, desc: '太子親自上前排 8 秒（不佔三格），站滿 5 秒插中營旗' },
 };
 
 /** 超渡亡魂後增加的技能（劇情上是王爺的神威增長） */
-export type SkillId = 'huichun' | 'hanshuang' | 'zhensha' | 'dingfeng' | 'shunfeng' | 'pingan';
+export type SkillId = 'huichun' | 'hanshuang' | 'zhensha' | 'dingfeng' | 'shunfeng' | 'pingan' | 'qunya' | 'baidu';
 
 export const SKILLS: Record<SkillId, { name: string; cd: number; desc: string }> = {
   huichun: { name: '回春符', cd: 30, desc: '全隊陣頭回 35% 血，神轎回 10%' },
@@ -57,9 +71,34 @@ export const SKILLS: Record<SkillId, { name: string; cd: number; desc: string }>
   dingfeng: { name: '定風旗', cd: 40, desc: '黑潮捲浪時插旗，浪頭直接散掉' },
   shunfeng: { name: '順風令', cd: 35, desc: '王船 6 秒內走兩倍快，觸手拖不住' },
   pingan: { name: '平安米', cd: 30, desc: '撒米：全隊陣頭回 35% 血，王船回 10%' },
+  // 第三章
+  qunya: { name: '群鴨陣', cd: 40, desc: '鴨群衝上去，替前排擋下蛟的下一擊（翻江也擋）' },
+  baidu: { name: '擺渡篙', cd: 40, desc: '蛟翻江時一篙打斷，直接喘息' },
 };
 
 export type Wave = [time: number, enemy: EnemyId, count: number, gap: number];
+
+/** 五營：東青、南紅、西白、北黑、中黃 */
+export type JiaoCamp = 'east' | 'south' | 'west' | 'north' | 'center';
+export const JIAO_CAMPS: JiaoCamp[] = ['east', 'south', 'west', 'north', 'center'];
+
+/** 第三章・蛟的設定 */
+export interface JiaoSetup {
+  /** 翻江的間隔（秒，從上一次喘息結束算） */
+  surgeEvery: number;
+  /** 拖人的間隔（秒） */
+  dragEvery: number;
+  /** 五營合陣打掉蛟最大力氣的多少 */
+  formationDmg: number;
+  /** 太子出轎的數值（不佔前排三格） */
+  taizi: MemberStats;
+  /** 太子出轎幾秒 */
+  chujiaoTime: number;
+  /** 太子全開幾秒（阿玲的孩子或阿凱的陣頭的聲音傳過來會更久） */
+  fullTime: number;
+  /** 誰插哪一營的旗（陣頭的 key → 營；中營是太子） */
+  camps: Record<string, JiaoCamp>;
+}
 
 export interface BossSetup {
   mode?: BattleMode;
@@ -81,6 +120,8 @@ export interface BossSetup {
   extraKinds?: [EnemyId, EnemyId];
   /** 送王：王船走完全程要幾秒、觸手多久冒一隻 */
   escort?: { travel: number; tentacleEvery: number; tentacleHp: number; maxTentacles: number };
+  /** 第三章・蛟 */
+  jiao?: JiaoSetup;
   duration: number;
   seed?: number;
 }
@@ -109,6 +150,12 @@ export interface Unit {
   hits: number;
   alive: boolean;
   flash: number;
+  /** 第三章：出轎的太子（不佔前排三格、不能點卡片換位） */
+  taizi?: boolean;
+  /** 第三章：被蛟拖下水，還要幾秒才爬得上來（不能出手、不能換位） */
+  sunk?: number;
+  /** 第三章：連續站在前排幾秒（插營旗用） */
+  stand?: number;
 }
 
 export interface Enemy {
@@ -153,6 +200,20 @@ export type BossEvent =
   | { type: 'palanquin'; dmg: number }
   | { type: 'trial'; round: number }
   | { type: 'skill'; id: SkillId }
+  // 第三章・蛟
+  | { type: 'drag'; x: number; name: string }
+  | { type: 'cut'; x: number }
+  | { type: 'paper'; x: number }
+  | { type: 'sunk'; x: number; name: string }
+  | { type: 'flag'; camp: JiaoCamp }
+  | { type: 'formation' }
+  | { type: 'qiankun' }
+  | { type: 'chujiao' }
+  | { type: 'taiziBack' }
+  | { type: 'cover'; x: number }
+  | { type: 'combo'; x: number }
+  | { type: 'duck' }
+  | { type: 'fullpower'; sec: number }
   | { type: 'end'; result: 'subdued' | 'lose' | 'dawn' };
 
 export const SMITE_CD = SPELLS.smite.cd;
@@ -171,6 +232,18 @@ export const TIDE_X = 1190;
 export const FIRE_X: [number, number] = [660, 960];
 const FIRE_DPS = 34;
 const TRIAL_AT = [0.7, 0.4, 0.1];
+/** 蛟：身子在溪裡的位置（翻江前退回這裡） */
+export const JIAO_HOME = 1060;
+/** 拖人：拖幾秒就下水；柳將軍要幾秒射斷；紙人替身幾秒頂上；下水後幾秒爬不上來 */
+export const DRAG_TIME = 3;
+const CUT_TIME = 0.8;
+const PAPER_TIME = 1;
+export const SUNK_TIME = 10;
+/** 插一面營旗要在前排連續站幾秒 */
+export const FLAG_TIME = 5;
+/** 陣前審問第 3 輪（10%）：太子沉默 2 秒 → 章將軍 → 五將齊喊 →（凡人的聲音）→ 太子那句話，之後才全開 */
+export const SILENCE_TIME = 2;
+export const CUE_TIME = 6;
 const TRIAL_PROG = [0.33, 0.66, 0.92];
 
 const CH1_WAVES: Wave[] = [
@@ -206,6 +279,25 @@ export class BossBattle {
   fireT = 0;
   /** 順風令剩幾秒 */
   windT = 0;
+  // ----- 第三章・蛟 -----
+  /** 正在被拖下水的人 */
+  drag: { uid: number; t: number } | null = null;
+  /** 五面營旗插了哪幾面 */
+  planted: Record<JiaoCamp, boolean> = { east: false, south: false, west: false, north: false, center: false };
+  /** 五營合陣了幾次 */
+  formations = 0;
+  /** 太子出轎還剩幾秒（0＝在轎裡） */
+  taiziT = 0;
+  /** 太子全開還剩幾秒 */
+  fullT = 0;
+  /** 陣前審問第 3 輪之後過了幾秒（-1＝還沒到；到 CUE_TIME 太子全開） */
+  cueT = -1;
+  /** 群鴨陣：下一擊有鴨群擋 */
+  duckShield = false;
+  /** 紙人替身還能吸收幾次拖人 */
+  paperLeft = 0;
+  private dragTimer = 0;
+  private coverCd = 0;
   private chuTimer = 8;
   private uidSeq = 1;
   private spawnQueue: { t: number; enemy: EnemyId }[] = [];
@@ -233,12 +325,16 @@ export class BossBattle {
     }
     this.layout();
     // 魔王
-    const bid: EnemyId = this.mode === 'escort' ? 'tide' : 'boss';
+    const bid: EnemyId = this.mode === 'escort' ? 'tide' : this.mode === 'jiao' ? 'jiao' : 'boss';
     const bd = ENEMIES[bid];
     this.boss = this.makeEnemy(bid);
     this.boss.hp = this.boss.maxHp = Math.round(bd.hp * setup.boss.hpMul);
     this.boss.atk = bd.atk * setup.boss.atkMul;
-    this.boss.x = this.mode === 'escort' ? TIDE_X : 1340;
+    this.boss.x = this.mode === 'escort' ? TIDE_X : this.mode === 'jiao' ? JIAO_HOME : 1340;
+    if (this.mode === 'jiao') {
+      this.dragTimer = setup.jiao!.dragEvery;
+      this.paperLeft = this.units.filter((u) => u.trait === 'paper').length;
+    }
     this.mods.skip = setup.boss.skipCharges;
     this.enemies.push(this.boss);
     // 小妖：固定波次＋多出來的波次
@@ -275,12 +371,12 @@ export class BossBattle {
 
   /** 前排的人數（含正在走上去的） */
   frontCount(): number {
-    return this.units.filter((u) => u.alive && (u.moving > 0 ? u.targetRow === 'front' : u.row === 'front')).length;
+    return this.units.filter((u) => u.alive && !u.taizi && (u.moving > 0 ? u.targetRow === 'front' : u.row === 'front')).length;
   }
 
   /** 依前後排重新站位 */
   private layout(): void {
-    const fr = this.units.filter((u) => u.alive && u.row === 'front').sort((a, b) => a.slot - b.slot);
+    const fr = this.units.filter((u) => u.alive && u.row === 'front' && !u.taizi).sort((a, b) => a.slot - b.slot);
     fr.forEach((u, i) => { u.slot = i; if (u.moving <= 0) u.x = FRONT_X[i] ?? FRONT_X[FRONT_X.length - 1]; });
     const bk = this.units.filter((u) => u.alive && u.row === 'back');
     bk.forEach((u, i) => { u.slot = 99; if (u.moving <= 0) u.x = BACK_X[i % BACK_X.length]; });
@@ -290,6 +386,7 @@ export class BossBattle {
   canSwap(uid: number): boolean {
     const u = this.units.find((x) => x.uid === uid);
     if (!u || !u.alive || u.moving > 0 || this.result || this.paused) return false;
+    if (u.taizi || (u.sunk ?? 0) > 0 || this.drag?.uid === uid) return false;
     if (u.row === 'back') return this.frontCount() < FRONT_MAX;
     return true;
   }
@@ -307,17 +404,20 @@ export class BossBattle {
   step(dt: number): void {
     if (this.result || this.paused) return;
     this.t += dt;
-    this.spellCd = [Math.max(0, this.spellCd[0] - dt), Math.max(0, this.spellCd[1] - dt)];
+    // 太子全開：法術冷卻快 2.5 倍（＝冷卻 ×0.4）
+    const sdt = this.fullT > 0 ? dt * 2.5 : dt;
+    this.spellCd = [Math.max(0, this.spellCd[0] - sdt), Math.max(0, this.spellCd[1] - sdt)];
     for (const k of Object.keys(this.skillCd) as SkillId[]) this.skillCd[k] = Math.max(0, (this.skillCd[k] ?? 0) - dt);
     while (this.spawnQueue.length && this.spawnQueue[0].t <= this.t) {
       this.enemies.push(this.makeEnemy(this.spawnQueue.shift()!.enemy));
     }
     if (this.mode === 'escort') this.stepEscort(dt);
+    if (this.mode === 'jiao') this.stepJiaoField(dt);
     // 換位走路
     for (const u of this.units) {
       u.flash = Math.max(0, u.flash - dt * 4);
       if (!u.alive || u.moving <= 0) continue;
-      const goal = u.targetRow === 'front' ? FRONT_X[Math.min(FRONT_MAX - 1, this.front.length)] : BACK_X[0];
+      const goal = u.targetRow === 'front' ? FRONT_X[Math.min(FRONT_MAX - 1, this.front.filter((x) => !x.taizi).length)] : BACK_X[0];
       u.x += (goal - u.x) * Math.min(1, dt * 2.5);
       u.moving -= dt;
       if (u.moving <= 0) {
@@ -327,12 +427,21 @@ export class BossBattle {
         this.layout();
       }
     }
-    for (const u of this.units) if (u.alive && u.moving <= 0) this.stepUnit(u, dt);
+    for (const u of this.units) {
+      if (!u.alive || u.moving > 0) continue;
+      if ((u.sunk ?? 0) > 0) {
+        // 被拖下水：爬上岸之前不能出手
+        u.sunk = Math.max(0, u.sunk! - dt);
+        continue;
+      }
+      this.stepUnit(u, dt);
+    }
     for (const e of this.enemies) {
       e.flash = Math.max(0, e.flash - dt * 4);
       if (!e.alive) continue;
       if (e === this.boss) {
         if (this.mode === 'escort') this.stepTide(e, dt);
+        else if (this.mode === 'jiao') this.stepJiao(e, dt);
         else this.stepBoss(e, dt);
       } else this.stepEnemy(e, dt);
     }
@@ -466,6 +575,8 @@ export class BossBattle {
     if (ok) {
       if (round === 1) this.mods.armor = this.mode === 'escort' ? 1.2 : 1.15;
       if (round === 2) { this.mods.skip++; this.mods.atk *= 0.85; }
+      // 第三章：太子沉默、五將齊喊之後全開（戰鬥不停，CUE_TIME 秒後開始）
+      if (round === 3 && this.mode === 'jiao') this.cueT = 0;
     } else {
       this.mods.atk *= 1.1;
     }
@@ -509,31 +620,41 @@ export class BossBattle {
     }
     u.timer -= dt;
     if (u.timer > 0) return;
+    // 第三章：太子全開時全員攻擊 ×1.5；霄將軍與出轎的太子同在前排合擊
+    const atk = u.atk * this.atkMul(u);
     if (u.trait === 'heal') {
       // 護嬰娘、煮飯婆：照顧血最少的陣頭
       const hurt = this.units.filter((x) => x.alive && x.hp < x.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
       u.timer = u.cd;
       if (hurt) {
-        const amt = Math.min(hurt.maxHp - hurt.hp, u.atk);
+        const amt = Math.min(hurt.maxHp - hurt.hp, atk);
         hurt.hp += amt;
         this.events.push({ type: 'heal', x: hurt.x, amount: Math.round(amt) });
       }
       return;
     }
     const reach = u.x + u.range;
-    const target = this.nearestEnemy(u.x, reach);
+    // 西營柳將軍：專打頭目（打得到蛟就打蛟）
+    const target = u.trait === 'snipe' && this.boss.alive && this.boss.hp > 0 && this.boss.x <= reach ? this.boss : this.nearestEnemy(u.x, reach);
     if (!target) return;
     u.timer = u.cd;
     u.hits++;
+    if (this.mode === 'jiao' && u.trait === 'combo' && atk > u.atk * (this.fullT > 0 ? 1.5 : 1)) this.events.push({ type: 'combo', x: u.x });
+    if (u.trait === 'stun') {
+      // 北營廉將軍：黑令旗一指，蝦兵定住
+      this.events.push({ type: 'shot', fromX: u.x, toX: target.x, kind: 'flag' });
+      for (const e of this.area(target.x, u.aoe, atk)) if (e !== this.boss) e.stun = Math.max(e.stun, 1.2);
+      return;
+    }
     if (u.role === 'ranged' || u.trait === 'frost') {
       this.events.push({ type: 'shot', fromX: u.x, toX: target.x, kind: u.trait === 'haste' ? 'flag' : 'firecracker' });
-      const hit = this.area(target.x, u.aoe, u.atk);
+      const hit = this.area(target.x, u.aoe, atk);
       if (u.trait === 'slow' || u.trait === 'frost') for (const e of hit) if (e !== this.boss) e.slow = u.trait === 'frost' ? 4 : 2;
       return;
     }
     if (u.trait === 'quake') {
       this.events.push({ type: 'quake', x: target.x, r: u.aoe });
-      for (const e of this.area(target.x, u.aoe, u.atk, 'quake')) {
+      for (const e of this.area(target.x, u.aoe, atk, 'quake')) {
         if (e === this.boss || !e.alive || e.speed === 0) continue;
         e.x += 30;
         e.stun = Math.max(e.stun, 0.4);
@@ -547,15 +668,33 @@ export class BossBattle {
         this.events.push({ type: 'chain', fromX: u.x, toX: far.x });
         far.x = u.x + 40;
         far.stun = 1.5;
-        this.damage(far, u.atk);
+        this.damage(far, atk);
         return;
       }
     }
-    if (u.trait === 'block') {
-      this.area(target.x, 45, u.atk);
+    if (u.trait === 'block' || u.trait === 'cover') {
+      this.area(target.x, 45, atk);
       return;
     }
-    this.damage(target, u.atk);
+    if (u.taizi) {
+      // 太子：火尖槍橫掃一片
+      this.area(target.x, u.aoe, atk);
+      return;
+    }
+    this.damage(target, atk);
+  }
+
+  /** 攻擊倍率：第一、二章永遠是 1 */
+  private atkMul(u: Unit): number {
+    if (this.mode !== 'jiao') return 1;
+    let m = this.fullT > 0 ? 1.5 : 1;
+    const inFront = (x: Unit) => x.alive && x.row === 'front' && x.moving <= 0 && !(x.sunk ?? 0);
+    const taizi = this.units.find((x) => x.taizi && inFront(x));
+    if (taizi && inFront(u)) {
+      if (u.trait === 'combo') m *= 2;
+      else if (u.taizi && this.units.some((x) => x.trait === 'combo' && inFront(x))) m *= 1.3;
+    }
+    return m;
   }
 
   private nearestEnemy(x: number, reach: number): Enemy | undefined {
@@ -640,11 +779,13 @@ export class BossBattle {
     }
     if (e.speed === 0) return;
     e.state = 'walk';
-    e.x -= e.speed * (e.slow > 0 ? 0.55 : 1) * dt;
+    // 第三章：鴨母婆的鴨群在，蝦兵走得慢
+    const ducks = e.id === 'xia' && this.units.some((u) => u.alive && u.trait === 'ducks') ? 0.7 : 1;
+    e.x -= e.speed * (e.slow > 0 ? 0.55 : 1) * ducks * dt;
   }
 
   private hurt(u: Unit, raw: number): void {
-    if (u.trait === 'block' && this.rng() < 0.25) {
+    if ((u.trait === 'block' || u.trait === 'cover') && this.rng() < 0.25) {
       this.events.push({ type: 'block', x: u.x });
       return;
     }
@@ -652,6 +793,11 @@ export class BossBattle {
     u.hp -= dmg;
     u.flash = 1;
     this.events.push({ type: 'hit', x: u.x, dmg: Math.round(dmg), ally: true });
+    if (u.taizi) {
+      // 出轎的太子不會倒下：撐不住就提早回轎
+      if (u.hp <= 0) { u.hp = 1; this.taiziT = Math.min(this.taiziT, 0.01); }
+      return;
+    }
     if (u.hp <= 0) {
       u.hp = 0;
       u.alive = false;
@@ -757,13 +903,15 @@ export class BossBattle {
     if (this.result || this.paused || this.spellCd[i] > 0) return false;
     const id = this.spells[i];
     if (id === 'smite' || id === 'wangling') return this.enemies.some((e) => this.targetable(e));
+    if (id === 'chujiao') return this.taiziT <= 0;
     return true;
   }
 
   cast(i: 0 | 1): boolean {
     if (!this.canSpell(i)) return false;
     const id = this.spells[i];
-    const ok = id === 'smite' ? this.doSmite() : id === 'bless' ? this.doBless() : id === 'wuhuo' ? this.doFire() : this.doDecree();
+    const ok = id === 'smite' ? this.doSmite() : id === 'bless' ? this.doBless() : id === 'wuhuo' ? this.doFire()
+      : id === 'qiankun' ? this.doQiankun() : id === 'chujiao' ? this.doChujiao() : this.doDecree();
     if (ok) this.spellCd[i] = SPELLS[id].cd;
     return ok;
   }
@@ -845,6 +993,8 @@ export class BossBattle {
     if (this.result || this.paused || !this.setup.skills.includes(id) || (this.skillCd[id] ?? 0) > 0) return false;
     if (id === 'zhensha') return ['paw', 'charge', 'back'].includes(this.boss.state);
     if (id === 'dingfeng') return ['paw', 'charge'].includes(this.boss.state);
+    if (id === 'baidu') return ['back', 'paw', 'charge'].includes(this.boss.state);
+    if (id === 'qunya') return !this.duckShield;
     return true;
   }
 
@@ -873,7 +1023,272 @@ export class BossBattle {
       b.stateTime = 0;
     }
     if (id === 'shunfeng') this.windT = 6;
+    if (id === 'baidu') {
+      // 擺渡篙一撐，浪頭散了，蛟的頭重重摔在岸上喘氣
+      this.wave = null;
+      this.toBreath(b);
+    }
+    if (id === 'qunya') this.duckShield = true;
     this.events.push({ type: 'skill', id });
+    return true;
+  }
+
+  // ---------- 第三章・蛟 ----------
+  /** 太子現在在不在前排 */
+  get taiziOut(): Unit | undefined {
+    return this.units.find((u) => u.taizi && u.alive);
+  }
+
+  /** 每一營的插旗進度（0–1；1＝插好了） */
+  get flagProgress(): Record<JiaoCamp, number> {
+    const out = { east: 0, south: 0, west: 0, north: 0, center: 0 } as Record<JiaoCamp, number>;
+    const camps = this.setup.jiao?.camps ?? {};
+    for (const c of JIAO_CAMPS) {
+      if (this.planted[c]) { out[c] = 1; continue; }
+      const u = this.units.find((x) => camps[x.key] === c && x.alive);
+      out[c] = u ? Math.min(1, (u.stand ?? 0) / FLAG_TIME) : 0;
+    }
+    return out;
+  }
+
+  /** 北營廉將軍在前排：翻江傷害減半 */
+  private northFront(): boolean {
+    return this.front.some((u) => u.trait === 'stun' && !(u.sunk ?? 0));
+  }
+
+  /** 蛟以外：拖人、營旗、太子出轎、太子全開的計時 */
+  private stepJiaoField(dt: number): void {
+    const js = this.setup.jiao!;
+    this.coverCd = Math.max(0, this.coverCd - dt);
+    // 太子全開
+    if (this.cueT >= 0) {
+      this.cueT += dt;
+      if (this.cueT >= CUE_TIME) {
+        this.cueT = -1;
+        this.fullT = js.fullTime;
+        // 太子出轎可以再用
+        const i = this.slotOf('chujiao');
+        if (i !== -1) this.spellCd[i] = 0;
+        this.events.push({ type: 'fullpower', sec: js.fullTime });
+      }
+    }
+    this.fullT = Math.max(0, this.fullT - dt);
+    // 太子出轎：時間到回轎
+    const tz = this.taiziOut;
+    if (tz) {
+      this.taiziT -= dt;
+      if (this.taiziT <= 0) {
+        this.taiziT = 0;
+        this.units = this.units.filter((u) => u !== tz);
+        this.events.push({ type: 'taiziBack' });
+      }
+    }
+    // 拖人：抓後排一個人往水裡拖
+    this.dragTimer -= dt;
+    if (this.dragTimer <= 0 && !this.drag) {
+      this.dragTimer = js.dragEvery;
+      const pool = this.back.filter((u) => !u.taizi && !(u.sunk ?? 0));
+      if (pool.length) {
+        const u = pool[Math.floor(this.rng() * pool.length)];
+        this.drag = { uid: u.uid, t: 0 };
+        this.events.push({ type: 'drag', x: u.x, name: u.name });
+      }
+    }
+    if (this.drag) {
+      const d = this.drag;
+      const u = this.units.find((x) => x.uid === d.uid);
+      d.t += dt;
+      const cutter = this.units.find((x) => x.trait === 'snipe' && x.alive && x.row === 'back' && x.moving <= 0 && !(x.sunk ?? 0) && x.uid !== d.uid);
+      if (!u || !u.alive) this.drag = null;
+      else if (cutter && d.t >= CUT_TIME) {
+        // 西營柳將軍一箭射斷
+        this.drag = null;
+        this.events.push({ type: 'cut', x: u.x });
+      } else if (!cutter && this.paperLeft > 0 && this.units.some((x) => x.trait === 'paper' && x.alive) && d.t >= PAPER_TIME) {
+        // 紙紮童的紙人替身被拖下去
+        this.paperLeft--;
+        this.drag = null;
+        this.events.push({ type: 'paper', x: u.x });
+      } else if (d.t >= DRAG_TIME) {
+        this.drag = null;
+        u.hp -= u.maxHp * 0.4;
+        u.flash = 1;
+        u.sunk = SUNK_TIME;
+        this.events.push({ type: 'sunk', x: u.x, name: u.name });
+        if (u.hp <= 0) {
+          u.hp = 0;
+          u.alive = false;
+          this.events.push({ type: 'die', x: u.x, ally: true, name: u.name });
+          this.layout();
+        }
+      }
+    }
+    // 營旗：在前排連續站滿 FLAG_TIME 秒插下
+    for (const u of this.units) {
+      const camp = js.camps[u.key];
+      if (!camp) continue;
+      const standing = u.alive && u.row === 'front' && u.moving <= 0 && !(u.sunk ?? 0);
+      u.stand = standing ? (u.stand ?? 0) + dt : 0;
+      if (standing && !this.planted[camp] && u.stand >= FLAG_TIME) {
+        this.planted[camp] = true;
+        this.events.push({ type: 'flag', camp });
+      }
+    }
+    if (JIAO_CAMPS.every((c) => this.planted[c])) this.formation();
+  }
+
+  /** 五營合陣：蝦兵全清、蛟受重傷；旗子倒下重來 */
+  private formation(): void {
+    this.formations++;
+    for (const c of JIAO_CAMPS) this.planted[c] = false;
+    for (const u of this.units) u.stand = 0;
+    for (const e of this.enemies) {
+      if (e === this.boss || !e.alive) continue;
+      e.alive = false;
+      e.hp = 0;
+      e.flash = 1;
+      this.events.push({ type: 'die', x: e.x, ally: false });
+    }
+    const b = this.boss;
+    b.hp -= b.maxHp * this.setup.jiao!.formationDmg;
+    b.flash = 1;
+    this.events.push({ type: 'formation' });
+    this.events.push({ type: 'hit', x: b.x, dmg: Math.round(b.maxHp * this.setup.jiao!.formationDmg) });
+  }
+
+  /** 蛟打前排一下：章將軍會替別人擋，鴨群會擋一次 */
+  private jiaoBite(raw: number): void {
+    const t = this.front[0];
+    if (!t) return this.hurtPalanquin(raw);
+    if (this.duckShield) {
+      this.duckShield = false;
+      this.events.push({ type: 'duck' });
+      return;
+    }
+    const zhang = this.front.find((u) => u.trait === 'cover' && u !== t && !(u.sunk ?? 0));
+    if (zhang && this.coverCd <= 0 && !t.taizi) {
+      this.coverCd = 5;
+      this.events.push({ type: 'cover', x: zhang.x });
+      return this.hurt(zhang, raw);
+    }
+    this.hurt(t, raw);
+  }
+
+  private toBreath(b: Enemy): void {
+    b.state = 'breath';
+    b.stateTime = 0;
+    b.x = (this.front[0]?.x ?? this.palanquin.x) + 55;
+    this.events.push({ type: 'breath' });
+  }
+
+  /** 蛟：頭伸上岸咬前排 → 退回溪裡、浪頭升起（預告）→ 翻江掃過前排 → 頭摔在岸上喘息 */
+  private stepJiao(b: Enemy, dt: number): void {
+    b.stateTime += dt;
+    const lineX = (this.front[0]?.x ?? this.palanquin.x) + 55;
+    switch (b.state) {
+      case 'walk':
+      case 'fight':
+        if (b.x > lineX + 2) {
+          b.state = 'walk';
+          b.x = Math.max(lineX, b.x - b.speed * 3 * dt);
+        } else {
+          b.state = 'fight';
+          b.x = lineX;
+          b.timer -= dt;
+          if (b.timer <= 0) {
+            b.timer = b.cd * this.frostAura();
+            this.jiaoBite(this.bossAtk());
+          }
+        }
+        if (b.stateTime >= this.setup.jiao!.surgeEvery) {
+          b.state = 'back';
+          b.stateTime = 0;
+        }
+        return;
+      case 'back':
+        b.x += 320 * dt;
+        if (b.x >= JIAO_HOME) {
+          b.x = JIAO_HOME;
+          b.state = 'paw';
+          b.stateTime = 0;
+          this.events.push({ type: 'paw' });
+        }
+        return;
+      case 'paw':
+        if (b.stateTime >= 2.5) {
+          b.state = 'charge';
+          b.stateTime = 0;
+          this.wave = { x: JIAO_HOME - 60, hit: new Set() };
+          this.events.push({ type: 'charge' });
+        }
+        return;
+      case 'charge': {
+        const w = this.wave!;
+        w.x -= 520 * dt;
+        if (this.mods.skip > 0 && w.x < 900) {
+          // 陣前審問說動了牠：浪頭半路散掉
+          this.mods.skip--;
+          this.wave = null;
+          this.events.push({ type: 'callout' });
+          this.toBreath(b);
+          return;
+        }
+        const half = this.northFront() ? 0.5 : 1;
+        for (const u of this.front) {
+          if (!w.hit.has(u.uid) && w.x - u.x < 40) {
+            if (!w.hit.size && this.duckShield) {
+              // 群鴨陣：鴨群擋下整道浪
+              this.duckShield = false;
+              this.events.push({ type: 'duck' });
+              this.wave = null;
+              this.toBreath(b);
+              return;
+            }
+            w.hit.add(u.uid);
+            this.hurt(u, this.bossAtk() * 2.2 * half);
+          }
+        }
+        const stopX = (this.front[this.front.length - 1]?.x ?? this.palanquin.x + 60) - 10;
+        if (w.x <= stopX) {
+          if (!this.front.length) this.hurtPalanquin(this.bossAtk() * 2);
+          this.wave = null;
+          this.toBreath(b);
+        }
+        return;
+      }
+      case 'breath':
+        if (b.stateTime >= 4) {
+          b.state = 'fight';
+          b.stateTime = 0;
+        }
+        return;
+    }
+  }
+
+  /** 乾坤圈：飛過全場，蝦兵一碰就炸；對蛟小傷 */
+  private doQiankun(): boolean {
+    this.events.push({ type: 'qiankun' });
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      if (e === this.boss) this.damage(e, 50);
+      else this.damage(e, 140);
+    }
+    return true;
+  }
+
+  /** 太子出轎：親自站到前排最前面（不佔三格） */
+  private doChujiao(): boolean {
+    const js = this.setup.jiao;
+    if (!js || this.taiziOut) return false;
+    const st = js.taizi;
+    this.units.push({
+      uid: this.uidSeq++, key: st.key, name: st.name, role: st.role, trait: st.trait, taizi: true,
+      row: 'front', targetRow: 'front', moving: 0, slot: -1, x: FRONT_X[0] + 50,
+      hp: st.hp, maxHp: st.hp, atk: st.atk, cd: st.cd, range: st.range, aoe: st.aoe, guard: st.guard,
+      timer: 0, hits: 0, alive: true, flash: 0, stand: 0,
+    });
+    this.taiziT = js.chujiaoTime;
+    this.events.push({ type: 'chujiao' });
     return true;
   }
 

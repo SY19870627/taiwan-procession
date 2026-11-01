@@ -1,0 +1,61 @@
+# 測試區：把開發分支的建置結果放到 gh-pages 的 test/ 底下
+# 網址 https://sy19870627.github.io/taiwan-procession/test/ ，正式版（gh-pages 根目錄）完全不動
+# 手動部署別的分支：Actions → 部署測試區 → Run workflow，選分支（該分支也要有這個檔）
+name: 部署測試區
+
+on:
+  push:
+    branches: [feat/ch3-xinying]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 版本號要用 git 短碼
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: 只替換 gh-pages 的 test/
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages
+          git worktree add pages origin/gh-pages
+          cd pages
+          rm -rf test
+          mkdir test
+          cp -r ../dist/. test/
+          touch .nojekyll
+          git add test .nojekyll
+          if git diff --cached --quiet; then
+            echo "測試區內容沒變，不用部署"
+            exit 0
+          fi
+          git commit -q -m "測試區部署 ${GITHUB_REF_NAME} ${GITHUB_SHA::7}"
+          # 別的部署同時推上來被拒時，接到最新的 gh-pages 後面再推（只改 test/，不會衝突）
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:gh-pages; then exit 0; fi
+            echo "推送被拒，第 $i 次重試"
+            sleep $((i * 5))
+            git fetch origin gh-pages
+            git rebase origin/gh-pages
+          done
+          echo "推送失敗"
+          exit 1

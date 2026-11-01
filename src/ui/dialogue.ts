@@ -112,7 +112,9 @@ export class Dialogue {
         c.setDepth(401);
         this.scene.tweens.add({ targets: c, y: H - BOX_H - 36, duration: 120, yoyo: true });
       } else if (c.alpha > 0) {
-        this.scene.tweens.add({ targets: c, alpha: 0.35, duration: 200 });
+        // 同一邊換了別人說話：前一位退下（不然兩張立繪疊在一起）；另一邊的人變暗
+        const sameSide = active && Math.abs(c.x - active.x) < 1;
+        this.scene.tweens.add({ targets: c, alpha: sameSide ? 0 : 0.35, duration: 200 });
         c.setDepth(400);
       }
     }
