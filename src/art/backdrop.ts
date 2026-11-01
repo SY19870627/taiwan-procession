@@ -338,7 +338,7 @@ export class Street {
       this.plain = L.props;
       this.far = scene.add.tileSprite(0, GROUND_Y - L.farLift, W, scene.textures.get(L.far).getSourceImage().height, L.far).setOrigin(0, 1).setDepth(-90);
       if (L.water) {
-        this.water = scene.add.tileSprite(0, GROUND_Y - 88, W, scene.textures.get(L.water).getSourceImage().height, L.water).setOrigin(0, 1).setDepth(-88);
+        this.water = scene.add.tileSprite(0, GROUND_Y - L.waterLift, W, L.waterH!, L.water).setOrigin(0, 1).setDepth(-88).setAlpha(L.waterAlpha);
         this.flow = riverFlow(!!opts.reverse);
       }
       if (L.near) this.near = scene.add.tileSprite(0, GROUND_Y - 88, W, scene.textures.get(L.near).getSourceImage().height, L.near).setOrigin(0, 1).setDepth(L.nearImage ? -75 : -85);

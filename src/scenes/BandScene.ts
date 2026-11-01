@@ -41,6 +41,7 @@ export class BandScene extends Phaser.Scene {
   private arrive?: () => void;
   private t = 0;
   private reverse = false;
+  private hour?: number;
 
   constructor() {
     super('band');
@@ -58,7 +59,17 @@ export class BandScene extends Phaser.Scene {
     this.cameras.main.setViewport(0, data.y, W, BandScene.height()).setZoom(ZOOM).centerOn(FW / 2, CROP + (FH - CROP) / 2);
     this.cameras.main.fadeIn(400, 10, 8, 18);
     this.reverse = !!data.reverse;
+    this.hour = data.hour;
     this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour, reverse: this.reverse });
+    // 第三章的正式背景圖如果比這個畫面晚載到（例如直接用網址跳進來），載到時換上
+    const onArt = (k: string) => {
+      const theme = this.street.themeName;
+      if (!k.startsWith(`bg_${theme}_`)) return;
+      this.street.destroy();
+      this.street = new Street(this, { night: false, theme, hour: this.hour, reverse: this.reverse });
+    };
+    this.game.events.on('artloaded', onArt);
+    this.events.once('shutdown', () => this.game.events.off('artloaded', onArt));
     // 隊伍（每一章不同，見 content/chapter.ts 的 band）
     for (const [key, x, sc] of data.line) {
       const img = this.add.image(x, GROUND_Y + 10, key).setOrigin(0.5, 1).setScale(sc * BIG).setDepth(20 + x / 100);
@@ -67,6 +78,7 @@ export class BandScene extends Phaser.Scene {
   }
 
   setHour(hour: number): void {
+    this.hour = hour;
     this.street.setHour(hour);
   }
 
@@ -77,6 +89,7 @@ export class BandScene extends Phaser.Scene {
     cam.fadeOut(220, 10, 8, 18);
     cam.once('camerafadeoutcomplete', () => {
       this.street.destroy();
+      this.hour = hour;
       this.street = new Street(this, { night: false, theme, hour, reverse: this.reverse });
       cam.fadeIn(320, 10, 8, 18);
       done?.();

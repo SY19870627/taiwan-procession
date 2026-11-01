@@ -72,6 +72,8 @@ const ALIAS: Record<string, string> = {
   紙紮童: 'zhizha', zhizha: 'zhizha',
   水鬼: 'shuigui', 抓交替的水鬼: 'shuigui',
   火煞: 'huosha', 鼠妖: 'shuyao',
+  哨仔伯: 'shaozaibo', '哨仔伯【待定】': 'shaozaibo', shaozaibo: 'shaozaibo',
+  阿旺: 'awang', '阿旺【待定】': 'awang', awang: 'awang',
   蛟: 'jiao', 蝦兵: 'xiabing',
 };
 

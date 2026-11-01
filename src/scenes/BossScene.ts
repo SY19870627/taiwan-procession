@@ -12,7 +12,8 @@ import { C, H, W, FIELD_W as FW, FIELD_H as FH, GROUND_Y, TIME_SCALE } from '../
 import { BossBattle, CUE_TIME, FLAG_TIME, FRONT_MAX, JIAO_CAMPS, JIAO_HOME, SKILLS, SPELLS, TIDE_X, type BossEvent, type JiaoCamp, type SkillId, type Unit } from '../core/boss';
 import { CH } from '../content/chapter';
 import { FULLPOWER_CUES3 } from '../content/ch3/finale';
-import { CAMP_COLORS } from '../art/xinyingSpec';
+import { BOSS_NIGHT_BG, CAMP_COLORS } from '../art/xinyingSpec';
+import { fitBattleArt } from '../art/xinyingBattle';
 import { run } from '../state';
 import { banter } from '../ui/banter';
 import { BanterPicker } from '../core/banterPick';
@@ -126,8 +127,16 @@ export class BossScene extends Phaser.Scene {
   /**
    * 第三章：疾水溪舊渡口的夜（【暫代美術】程式畫）。遠方對岸與鐵橋、倒流的溪面、近岸護岸與蘆葦、
    * 岸邊插著五營旗竿與何伯的茶攤；太子殿在隊伍後面。jiao 模式用這個背景。
+   * 正式的整張夜景（BOSS_NIGHT_BG）載到了就蓋在上面；還在載的話載完再蓋上。
    */
   private drawRiver(): void {
+    const cover = () => this.riverNight();
+    if (this.textures.exists(BOSS_NIGHT_BG)) cover();
+    else {
+      const on = (k: string) => { if (k === BOSS_NIGHT_BG) cover(); };
+      this.game.events.on('artloaded', on);
+      this.events.once('shutdown', () => this.game.events.off('artloaded', on));
+    }
     const sky = this.add.graphics().setDepth(-100);
     sky.fillGradientStyle(0x050a16, 0x050a16, 0x1a2440, 0x1a2440, 1);
     sky.fillRect(0, 0, FW, GROUND_Y);
@@ -148,6 +157,18 @@ export class BossScene extends Phaser.Scene {
     this.add.tileSprite(0, GROUND_Y - 90, FW, FH - GROUND_Y + 90, 'x3_levroadN').setOrigin(0, 0).setDepth(-70);
     const props: [string, number][] = [['x3_reedsN', 20], ['x3_teastallN', 160], ['x3_flagpoleN', 430], ['x3_reedsN', 620], ['x3_stepsN', 820], ['x3_reedsN', 1060]];
     for (const [k, x] of props) this.add.image(x, GROUND_Y - 88, k).setOrigin(0, 1).setDepth(-65);
+  }
+
+  /** 正式夜景：整張蓋住程式畫的天空、對岸、溪面、護岸與路（太子殿與岸邊擺設圖裡已經有茶攤，不另外擺） */
+  private riverNight(): void {
+    // 放大 1.15 倍、往下推 60：圖裡的岸邊延伸到前排站的位置（x 500～670），蛟那邊才是溪面；月亮不會被切掉
+    this.add.image(0, FH + 60, BOSS_NIGHT_BG).setOrigin(0, 1).setDisplaySize(FW * 1.15, FH * 1.15).setDepth(-64);
+    // 右邊（蛟那邊）越來越暗
+    const dark = this.add.graphics().setDepth(-63);
+    for (let i = 0; i < 24; i++) {
+      dark.fillStyle(0x020610, 0.015 * i);
+      dark.fillRect(FW * 0.6 + i * 22, 0, 22, FH);
+    }
   }
 
   /** 第二章：大鵬澳的夜。遠方是海和漁火，腳下是沙灘；王船往右走，沙灘往左捲 */
@@ -210,9 +231,11 @@ export class BossScene extends Phaser.Scene {
       const big = k === 'heichao';
       // 蛟的圖本來就面向左（隊伍那邊），不翻
       const jiao = k === 'jiao';
-      img.setScale(big ? 1.25 : jiao ? 0.8 : (enemy ? (boss ? 0.95 : 0.9) : 0.72) * BIG);
-      // 蛟：頭在圖的左邊，身子在溪裡往右拖
-      if (jiao) img.setOrigin(0.12, 0.92);
+      // 第三章的正式戰鬥圖（太子、四將、蛟）縮到和暫代圖一樣大，sync 每幀依目前的貼圖再算一次
+      const base = big ? 1.25 : jiao ? 0.8 : (enemy ? (boss ? 0.95 : 0.9) : 0.72) * BIG;
+      img.setData('bs', base);
+      // 蛟：頭在圖的左邊（錨點），身子在溪裡往右拖
+      fitBattleArt(img, base);
       img.setFlipX(enemy && !big && !jiao && k !== 'chu');
       if (ghost) img.setTint(0x9ad0ff).setAlpha(0.8);
       img.setData('bx', img.x);
@@ -246,6 +269,7 @@ export class BossScene extends Phaser.Scene {
       }
       if ((u.sunk ?? 0) > 0) y += 40 + Math.sin(this.t * 3 + v.phase) * 4;
       v.c.y = y;
+      for (const img of v.imgs) fitBattleArt(img, img.getData('bs'));
       v.c.setAlpha(u.alive ? ((u.sunk ?? 0) > 0 ? 0.5 : u.row === 'back' && u.moving <= 0 ? 0.85 : 1) : 0);
       for (const img of v.imgs) {
         if (u.flash > 0.5) img.setTintFill(0xffffff);
@@ -276,6 +300,7 @@ export class BossScene extends Phaser.Scene {
         // 蛟：退回溪裡、浪頭升起時整條拱起來（jiao_rise）；喘息時頭摔在岸上
         const rise = e.state === 'paw' || e.state === 'back' || e.state === 'charge';
         v.imgs[0].setTexture(rise ? 'jiao_rise' : 'jiao');
+        fitBattleArt(v.imgs[0], v.imgs[0].getData('bs'));
         v.c.y = GROUND_Y + 40 + (e.state === 'breath' ? 24 : 0) + Math.sin(this.t * 1.6) * 6 - (e.state === 'paw' ? Math.min(1, e.stateTime / 2.5) * 30 : 0);
         for (const img of v.imgs) {
           if (e.flash > 0.5) img.setTintFill(0xffffff);

@@ -2,8 +2,8 @@
  * 第三章「新瀛」街景與隊伍的配置：純資料與純函式（不碰 Phaser，可以單元測試）。
  * 真正的繪製在 art/xinying.ts；Street（art/backdrop.ts）照這裡的配置組出捲動街景。
  *
- * 【暫代美術】三張背景都是程式畫的。之後作者產了正式背景圖（docs/第三章_開發計畫.md §5.2），
- * 把圖放進 public/bg/、把檔名加進 BG_FILES，Street 就會優先用圖。
+ * 程式畫的是【暫代美術】；正式背景圖（docs/第三章_開發計畫.md §10.4）放在 public/bg/、列在 BG_FILES，
+ * Street 會優先用圖，圖沒載到就退回程式畫的。戰鬥圖同理（BATTLE_ART）。
  */
 
 /** 五營的顏色：東青、南紅、西白、北黑、中黃 */
@@ -62,6 +62,11 @@ interface ThemeSpec {
   farLift: number;
   /** 溪面（渡口才有） */
   water?: PlainArtKey;
+  /**
+   * 遠景用正式圖時，程式畫的溪面改成半透明疊在圖裡的溪面上（只露出水紋往哪邊流）：
+   * 下緣離地面線多高、多高、透明度。正式近景的堤防會蓋住原本溪面的位置。
+   */
+  imageWater?: { lift: number; h: number; alpha: number };
   /** 近景長條（渡口的堤防） */
   near?: PlainArtKey;
   road: PlainArtKey;
@@ -83,6 +88,7 @@ export const PLAIN_SPEC: Record<PlainTheme, ThemeSpec> = {
   // 溪邊渡口：對岸、溪面、堤防、石階、竹筏、茶攤、蘆葦
   ferry: {
     far: 'x3_riverFar', farLift: 170, water: 'x3_water', near: 'x3_levee', road: 'x3_levroad',
+    imageWater: { lift: 213, h: 54, alpha: 0.4 },
     props: ['x3_reeds', 'x3_steps', 'x3_reeds', 'x3_raft', 'x3_teastall', 'x3_reeds', 'x3_flagpole'],
   },
 };
@@ -90,17 +96,71 @@ export const PLAIN_SPEC: Record<PlainTheme, ThemeSpec> = {
 /** 正式背景圖的貼圖名稱（檔案是 public/bg/<名稱>.webp） */
 export const bgImageKey = (theme: PlainTheme, layer: 'far' | 'near'): string => `bg_${theme}_${layer}`;
 
+/** 最後一戰（BossScene）的整張夜景（1280×720，剛好是戰場大小） */
+export const BOSS_NIGHT_BG = 'bg_ferry_night';
+
 /**
- * 已經放進 public/bg/ 的正式背景圖（不含副檔名，例如 'bg_village_far'）。
- * 目前沒有：全部用程式畫的暫代美術。放了圖就把名字加進來（AssetScene 會載入）。
+ * 已經放進 public/bg/ 的正式背景圖（不含副檔名）。AssetScene 會載入；
+ * 某張沒載到（檔案不在）就退回程式畫的暫代美術。
  */
-export const BG_FILES: string[] = [];
+export const BG_FILES: string[] = [
+  'bg_village_far', 'bg_village_near',
+  'bg_duckfarm_far', 'bg_duckfarm_near',
+  'bg_ferry_far', 'bg_ferry_near',
+  BOSS_NIGHT_BG,
+];
+
+/**
+ * 正式戰鬥圖（public/battle/<名稱>.webp）與它們要佔的位置（= 程式畫的暫代圖尺寸，寬×高）。
+ * 正式圖用同樣的貼圖名稱載入、蓋掉程式畫的；顯示時縮放到和暫代圖一樣高（battleArtFit），
+ * 所以場景裡原本的 setScale 不用改。
+ */
+export const BATTLE_ART = {
+  jiao: [520, 420],
+  jiao_rise: [520, 420],
+  b3_taizi: [150, 200],
+  b3_zhang: [120, 160],
+  b3_xiao: [120, 160],
+  b3_liu: [120, 160],
+  b3_lian: [120, 160],
+} as const satisfies Record<string, readonly [number, number]>;
+
+export type BattleArtKey = keyof typeof BATTLE_ART;
+export const BATTLE_FILES = Object.keys(BATTLE_ART) as BattleArtKey[];
+
+export function isBattleArt(k: string): k is BattleArtKey {
+  return k in BATTLE_ART;
+}
+
+/**
+ * 貼圖實際是 texH 高時，要再乘多少倍才會和暫代圖一樣高（寬度照比例，不變形）。
+ * 程式畫的暫代圖本身就是那個尺寸，所以回傳 1；不是戰鬥圖也回傳 1。
+ */
+export function battleArtFit(key: string, texH: number): number {
+  if (!isBattleArt(key) || texH <= 0) return 1;
+  return BATTLE_ART[key][1] / texH;
+}
+
+/**
+ * 蛟的錨點（相對圖寬、高）：錨點 = 蛟的頭往岸上咬的位置、腳下是水面。
+ * 程式畫的蛟頭在圖的最左邊；正式圖左邊留白、頭在大約四成的地方，水面在圖的下緣附近。
+ * 浪頭升起（退回溪裡、不咬人）的那張錨點放右一點，整道浪才不會超出戰場右邊。
+ */
+export function jiaoOrigin(key: string, texW: number): [number, number] {
+  const official = isBattleArt(key) && texW !== BATTLE_ART[key][0];
+  if (!official) return [0.12, 0.92];
+  return key === 'jiao_rise' ? [0.65, 0.9] : [0.42, 0.9];
+}
 
 export interface PlainLayers {
   far: string;
   farImage: boolean;
   farLift: number;
   water?: string;
+  /** 溪面下緣離地面線多高、多高、透明度（程式畫的遠景：88、貼圖高、1） */
+  waterLift: number;
+  waterH?: number;
+  waterAlpha: number;
   near?: string;
   /** 近景用了正式圖：圖裡已經有房子，不再另外擺程式畫的房子 */
   nearImage: boolean;
@@ -119,6 +179,9 @@ export function plainLayers(theme: PlainTheme, night: boolean, has: (key: string
     farImage: farImg,
     farLift: s.farLift,
     water: s.water && s.water + n,
+    waterLift: farImg && s.imageWater ? s.imageWater.lift : 88,
+    waterH: farImg && s.imageWater ? s.imageWater.h : s.water && PLAIN_ART[s.water][1],
+    waterAlpha: farImg && s.imageWater ? s.imageWater.alpha : 1,
     near: nearImg ? bgImageKey(theme, 'near') : s.near && s.near + n,
     nearImage: nearImg,
     road: s.road + n,

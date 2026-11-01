@@ -1,14 +1,26 @@
 /**
- * 第三章戰鬥圖（最後一戰・疾水溪的 jiao 模式使用）。【暫代美術】全部程式繪製。
+ * 第三章戰鬥圖（最後一戰・疾水溪的 jiao 模式使用）。這裡畫的是【暫代美術】；
+ * 太子、四將、蛟有正式圖（public/battle/，AssetScene 載完會用同樣的名字蓋掉），沒載到就用這裡畫的。
  *  - b3_taizi：太子出轎（雙髻、紅肚兜、混天綾、火尖槍、手上乾坤圈、腳踩風火輪）
  *  - b3_zhang／b3_xiao／b3_liu／b3_lian：四將戰鬥姿勢（背後插營色靠旗；章持盾、霄持大刀、柳持弓、廉持黑令旗與鎖鏈）
  *  - jiao／jiao_rise：蛟（平常、浪頭升起＝預告翻江）
  *  - xia：蝦兵（持叉）；x3_ring 乾坤圈、x3_wheel 風火輪、x3_firetrail 風火輪火痕、x3_wave 翻江的水牆
- * 若之後有正式的蛟戰鬥圖（docs/第三章_開發計畫.md §5.2「其他美術」），用同樣的貼圖名稱載入即可蓋掉。
+ * 正式圖顯示時要縮到和暫代圖一樣高：用 fitBattleArt（尺寸表在 art/xinyingSpec.ts 的 BATTLE_ART）。
  */
 import Phaser from 'phaser';
 import { DARK, make, person, type G } from './figures';
-import { CAMP_COLORS } from './xinyingSpec';
+import { CAMP_COLORS, battleArtFit, jiaoOrigin } from './xinyingSpec';
+
+/**
+ * 把戰鬥圖縮放成 base 倍「暫代圖大小」：正式圖會先縮到暫代圖的高度再乘 base；不是戰鬥圖就是 setScale(base)。
+ * anchor：蛟另外依是不是正式圖調錨點（戰鬥用；過場只要縮放）。貼圖換過（setTexture、正式圖載完）之後再呼叫一次即可。
+ */
+export function fitBattleArt(img: Phaser.GameObjects.Image, base: number, anchor = true): void {
+  const k = img.texture.key;
+  const src = img.texture.getSourceImage() as { width: number; height: number };
+  img.setScale(base * battleArtFit(k, src.height));
+  if (anchor && (k === 'jiao' || k === 'jiao_rise')) img.setOrigin(...jiaoOrigin(k, src.width));
+}
 
 /** 一面三角小旗 */
 export function pennant(g: G, x: number, y: number, len: number, color: number): void {

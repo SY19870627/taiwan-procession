@@ -11,6 +11,7 @@ import Phaser from 'phaser';
 import { C, H, W, lerpColor } from '../theme';
 import { txt } from '../ui/widgets';
 import { CH } from '../content/chapter';
+import { fitBattleArt } from '../art/xinyingBattle';
 
 export type CutKind = 'depart' | 'dusk' | 'dawn' | 'boss';
 
@@ -168,7 +169,8 @@ export class CutScene extends Phaser.Scene {
       bank.fillRect(0, G + 40, W, H - G - 40);
       this.add.image(0, G + 44, 'x3_reedsN').setOrigin(0, 1).setDepth(6);
       this.add.image(W - 150, G + 44, 'x3_reedsN').setOrigin(0, 1).setDepth(6);
-      const jiao = this.add.image(W * 0.62, G + 220, 'jiao_rise').setOrigin(0.5, 1).setScale(1.1).setAlpha(0).setDepth(4);
+      const jiao = this.add.image(W * 0.62, G + 220, 'jiao_rise').setOrigin(0.5, 1).setAlpha(0).setDepth(4);
+      fitBattleArt(jiao, 1.1, false);
       this.tweens.add({ targets: jiao, alpha: 1, y: G + 60, duration: 2000, delay: 400, ease: 'Cubic.out' });
       this.time.delayedCall(300, () => { this.cameras.main.shake(1600, 0.005); });
       this.time.delayedCall(2200, () => { this.cameras.main.flash(200, 80, 200, 180); });

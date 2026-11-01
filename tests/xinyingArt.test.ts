@@ -1,14 +1,16 @@
 /**
- * 第三章暫代美術（第 2 階段）：街景配置、正式圖的替換開關、溪水流向、白天隊伍、貼圖名稱都有畫。
- * 繪製本身要 Phaser（瀏覽器），這裡測的是 art/xinyingSpec.ts 的純資料與純函式，
+ * 第三章美術：街景配置、正式圖的替換開關、溪水流向、白天隊伍、貼圖名稱都有畫（第 2 階段）；
+ * 正式背景、戰鬥圖、哨仔伯／阿旺立繪接上（第 8 階段）。
+ * 繪製本身要 Phaser（瀏覽器），這裡測的是 art/xinyingSpec.ts 的純資料與純函式、public/ 裡的檔案，
  * 再用原始碼比對確認場景引用到的第三章貼圖名稱都有畫。
  */
 import { describe, it, expect } from 'vitest';
 import {
-  BG_FILES, PLAIN_ART, PLAIN_SPEC, PLAIN_THEMES, SOLDIER_MAX, SOLDIER_MIN,
-  bandLine3, bgImageKey, isPlainTheme, plainLayers, riverFlow, type PlainArtKey,
+  BATTLE_ART, BATTLE_FILES, BG_FILES, BOSS_NIGHT_BG, PLAIN_ART, PLAIN_SPEC, PLAIN_THEMES, SOLDIER_MAX, SOLDIER_MIN,
+  bandLine3, battleArtFit, bgImageKey, isPlainTheme, jiaoOrigin, plainLayers, riverFlow, type PlainArtKey,
 } from '../src/art/xinyingSpec';
-import { FIELD_H, GROUND_Y } from '../src/theme';
+import { SETS, THUMB } from '../src/art/portraits.data';
+import { FIELD_H, FIELD_W, GROUND_Y } from '../src/theme';
 import { CHAPTER3 } from '../src/content/ch3';
 import { DAY_PLANS3 } from '../src/content/ch3/days';
 import { CHAPTERS, startChapter } from '../src/content/chapter';
@@ -68,7 +70,6 @@ describe('第三章街景配置', () => {
   });
 
   it('正式背景圖的開關：有圖就用圖；近景用圖時不再擺程式畫的房子', () => {
-    expect(BG_FILES).toEqual([]); // 目前還沒有正式圖（§7 Q10）
     const none = plainLayers('duckfarm', false, () => false);
     expect(none.farImage).toBe(false);
     expect(none.props.length).toBeGreaterThan(0);
@@ -81,6 +82,21 @@ describe('第三章街景配置', () => {
     expect(both.near).toBe('bg_village_near');
     expect(both.nearImage).toBe(true);
     expect(both.props).toEqual([]);
+  });
+
+  it('渡口：遠景用正式圖時，程式畫的溪面改成半透明疊在圖裡的溪面上（倒流還看得到水紋）', () => {
+    const drawn = plainLayers('ferry', false, () => false);
+    expect(drawn.waterLift).toBe(88);
+    expect(drawn.waterH).toBe(PLAIN_ART.x3_water[1]);
+    expect(drawn.waterAlpha).toBe(1);
+    const img = plainLayers('ferry', false, () => true);
+    expect(img.water).toBe('x3_water');
+    expect(img.waterLift).toBeGreaterThan(88);
+    expect(img.waterAlpha).toBeGreaterThan(0);
+    expect(img.waterAlpha).toBeLessThan(1);
+    // 疊的那條溪面在遠景圖的範圍裡（遠景圖 260 高，下緣在 GROUND_Y - farLift）
+    expect(img.waterLift).toBeGreaterThanOrEqual(img.farLift);
+    expect(img.waterLift + img.waterH!).toBeLessThanOrEqual(img.farLift + 260);
   });
 
   it('溪水流向：平常往左（順流），倒流往右而且更急', () => {
@@ -182,5 +198,102 @@ describe('第三章貼圖都有畫', () => {
       expect(key, f).toBeTruthy();
       expect(art[key!], f).toContain('暫代');
     }
+  });
+});
+
+/** public/ 裡的圖（data URL）：放進來的檔案都會列在這裡，沒有的就是 undefined */
+const files = import.meta.glob('../public/{bg,battle,portraits}/*.webp', { query: '?inline', import: 'default', eager: true }) as Record<string, string>;
+const pub = (p: string): string | undefined => files[`../public/${p}`];
+const existsSync = (f: string | undefined) => !!f;
+
+/** 讀 webp 的寬高（VP8X／VP8L／VP8 三種格式） */
+function webpSize(file: string | undefined): [number, number] {
+  expect(file).toBeTruthy();
+  const bin = atob(file!.slice(file!.indexOf(',') + 1, file!.indexOf(',') + 1 + 64));
+  const u8 = (i: number) => bin.charCodeAt(i);
+  const le = (i: number, n: number) => { let v = 0; for (let k = n - 1; k >= 0; k--) v = v * 256 + u8(i + k); return v; };
+  expect(bin.slice(0, 4)).toBe('RIFF');
+  expect(bin.slice(8, 12)).toBe('WEBP');
+  const kind = bin.slice(12, 16);
+  if (kind === 'VP8X') return [1 + le(24, 3), 1 + le(27, 3)];
+  if (kind === 'VP8L') {
+    const bits = le(21, 4);
+    return [1 + (bits & 0x3fff), 1 + ((bits >>> 14) & 0x3fff)];
+  }
+  return [le(26, 2) & 0x3fff, le(28, 2) & 0x3fff];
+}
+
+describe('第三章正式美術（第 8 階段接上）', () => {
+  it('六張街景背景＋最後一戰的夜景都列在 BG_FILES，檔案在、尺寸對（遠景 2048×260、近景 2048×400、夜景 1280×720）', () => {
+    for (const t of PLAIN_THEMES) {
+      expect(BG_FILES).toContain(bgImageKey(t, 'far'));
+      expect(BG_FILES).toContain(bgImageKey(t, 'near'));
+      expect(webpSize(pub(`bg/${bgImageKey(t, 'far')}.webp`))).toEqual([2048, 260]);
+      expect(webpSize(pub(`bg/${bgImageKey(t, 'near')}.webp`))).toEqual([2048, 400]);
+    }
+    expect(BG_FILES).toContain(BOSS_NIGHT_BG);
+    expect(webpSize(pub(`bg/${BOSS_NIGHT_BG}.webp`))).toEqual([FIELD_W, FIELD_H]);
+    expect(new Set(BG_FILES).size).toBe(BG_FILES.length);
+  });
+
+  it('戰鬥圖：太子、四將、蛟兩種姿勢都有檔案、尺寸照美術師給的', () => {
+    expect([...BATTLE_FILES].sort()).toEqual(['b3_lian', 'b3_liu', 'b3_taizi', 'b3_xiao', 'b3_zhang', 'jiao', 'jiao_rise']);
+    const want: Record<string, [number, number]> = {
+      jiao: [1024, 720], jiao_rise: [1024, 720], b3_taizi: [600, 800], b3_zhang: [480, 640], b3_xiao: [480, 640], b3_liu: [480, 640], b3_lian: [480, 640],
+    };
+    for (const k of BATTLE_FILES) {
+      const f = pub(`battle/${k}.webp`);
+      expect(existsSync(f), k).toBe(true);
+      expect(webpSize(f), k).toEqual(want[k]);
+    }
+  });
+
+  it('戰鬥圖縮放：正式圖縮到和暫代圖一樣高（太子、四將剛好同尺寸）；暫代圖本身、其他貼圖都是 1 倍', () => {
+    expect(battleArtFit('b3_taizi', 800) * 800).toBeCloseTo(BATTLE_ART.b3_taizi[1]);
+    expect(battleArtFit('b3_taizi', 800) * 600).toBeCloseTo(BATTLE_ART.b3_taizi[0]);
+    expect(battleArtFit('b3_zhang', 640) * 640).toBeCloseTo(160);
+    expect(battleArtFit('b3_zhang', 640) * 480).toBeCloseTo(120);
+    expect(battleArtFit('jiao', 720) * 720).toBeCloseTo(420);
+    for (const k of BATTLE_FILES) expect(battleArtFit(k, BATTLE_ART[k][1]), k).toBe(1);
+    expect(battleArtFit('shiju', 300)).toBe(1);
+    expect(battleArtFit('xia', 500)).toBe(1);
+  });
+
+  it('蛟的錨點：暫代圖照舊（頭在最左邊）；正式圖頭在圖中間偏左，浪頭升起那張更靠右', () => {
+    expect(jiaoOrigin('jiao', 520)).toEqual([0.12, 0.92]);
+    expect(jiaoOrigin('jiao_rise', 520)).toEqual([0.12, 0.92]);
+    const [x, y] = jiaoOrigin('jiao', 1024);
+    expect(x).toBeGreaterThan(0.3);
+    expect(x).toBeLessThan(0.6);
+    expect(y).toBeGreaterThan(0.8);
+    expect(jiaoOrigin('jiao_rise', 1024)[0]).toBeGreaterThan(x);
+  });
+
+  it('場景都經過 fitBattleArt 顯示戰鬥圖；正式圖先用暫時的名字載，載完才蓋掉程式畫的（檔案不在就留著暫代圖）', () => {
+    const scenes = import.meta.glob('../src/scenes/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+    const src = (f: string) => scenes[Object.keys(scenes).find((p) => p.endsWith(`/${f}`))!];
+    expect(src('BossScene.ts')).toContain('fitBattleArt');
+    expect(src('BossScene.ts')).toContain('BOSS_NIGHT_BG');
+    expect(src('CutScene.ts')).toContain('fitBattleArt');
+    expect(src('StoryScene.ts')).toContain('fitBattleArt');
+    const asset = src('AssetScene.ts');
+    expect(asset).toContain('BATTLE_FILES');
+    expect(asset).toContain('renameTexture');
+    expect(asset).toContain('filecomplete-image-');
+  });
+
+  it('立繪：哨仔伯、阿旺各有 normal／relieved／sad，檔案在、420×560；小頭像裁切位置照美術師給的', () => {
+    expect(SETS.shaozaibo).toEqual(['normal', 'relieved', 'sad']);
+    expect(SETS.awang).toEqual(['normal', 'relieved', 'sad']);
+    expect(THUMB.awang).toEqual([0.105, 0.007]);
+    expect(THUMB.shaozaibo).toEqual([0.14, 0.005]);
+    for (const id of ['shaozaibo', 'awang']) {
+      for (const e of SETS[id]) expect(webpSize(pub(`portraits/${id}_${e}.webp`)), `${id}_${e}`).toEqual([420, 560]);
+    }
+  });
+
+  it('SETS 列的每一張立繪都有檔案，每個角色都有小頭像裁切位置', () => {
+    for (const [id, es] of Object.entries(SETS)) for (const e of es) expect(existsSync(pub(`portraits/${id}_${e}.webp`)), `${id}_${e}`).toBe(true);
+    expect(Object.keys(THUMB).sort()).toEqual(Object.keys(SETS).sort());
   });
 });

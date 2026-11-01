@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { CUTSCENES } from '../content/story';
+import { fitBattleArt } from '../art/xinyingBattle';
 import { Dialogue } from '../ui/dialogue';
 import { button, go, txt } from '../ui/widgets';
 
@@ -57,7 +58,7 @@ export class StoryScene extends Phaser.Scene {
       const n = cs.mood === 'dawn' ? '' : 'N';
       this.add.tileSprite(0, H * 0.5, W, 200, `x3_riverFar${n}`).setOrigin(0, 1).setAlpha(0.9);
       const river = this.add.tileSprite(0, H * 0.5, W, H * 0.5, `x3_water${n}`).setOrigin(0, 0).setAlpha(0.9);
-      if (cs.mood === 'demon') this.add.image(W * 0.72, H * 0.62, 'jiao').setOrigin(0.5, 1).setScale(0.9).setAlpha(0.55).setTint(0x8a7aa0);
+      if (cs.mood === 'demon') fitBattleArt(this.add.image(W * 0.72, H * 0.62, 'jiao').setOrigin(0.5, 1).setAlpha(0.55).setTint(0x8a7aa0), 0.9, false);
       const flow = cs.mood === 'demon' ? -0.06 : 0.03;
       const tick = (_t: number, dms: number) => { river.tilePositionX += dms * flow; };
       this.events.on('update', tick);
