@@ -62,6 +62,32 @@ export function actorScale(tex: string, scale: number, k: number, texHeight: num
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** 舞台左右多畫的寬度（地面、遠景、近景、前景都從 -100 畫到 W + 100） */
+export const STAGE_BLEED = 100;
+/** 鏡頭最遠拉到幾倍（小於 1 時看得到舞台左右多畫的部分；修正第 5 輪：手機直式演員放大後放不下時用） */
+export const CAM_MIN_ZOOM = 0.85;
+
+/**
+ * 鏡頭：看向 (x, 地面 + y)、放大 z 倍時，舞台容器要擺在哪裡（不讓舞台邊緣露出來）。
+ * 舞台座標 (sx, sy) 在畫面上是 (x + sx × z, y + sy × z)。y 是已經乘過 k 的。
+ * z < 1（拉遠）：看得到左右多畫的 STAGE_BLEED；上下以鏡頭看的那條線為準縮（地平線幾乎不動，演員不會掉進字幕區）。
+ */
+export function camOffset(cam: { x: number; y: number; zoom: number }, L: StageLayout, h: number): { x: number; y: number; z: number } {
+  const z = cam.zoom;
+  const [xl, xh] = camRangeX(z);
+  const fy = L.G + cam.y;
+  return {
+    x: clamp(W / 2 - cam.x * z, xl, xh),
+    y: z >= 1 ? clamp(fy * (1 - z), h - h * z, 0) : fy * (1 - z),
+    z,
+  };
+}
+
+/** 放大 z 倍時，舞台容器的 x 可以擺的範圍（不露出舞台邊緣） */
+export function camRangeX(z: number): [number, number] {
+  return z >= 1 ? [W - W * z, 0] : [W - (W + STAGE_BLEED) * z, STAGE_BLEED * z];
+}
+
 /** 泡泡要讓開的地方（畫面座標，例如廟的匾額） */
 export interface Box {
   x: number;

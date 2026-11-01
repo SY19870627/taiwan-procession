@@ -14,6 +14,7 @@ import { ART, CUTSCENES, SPEAKERS, type SpeakerId } from '../content/story';
 import type { StageActor, StageBeat, StageFore, StageMove, StageScript } from '../content/stage';
 import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
 import { actorScale, bubbleBox, farBandHeight, nearBand, pickFar, stageLayout, stageSize, type StageLayout } from '../core/stageLayout';
+import { fittedCams } from '../core/stageEdges';
 import { wrapWidth } from '../core/layout';
 import { txt } from './widgets';
 
@@ -80,7 +81,9 @@ export class StagePlayer {
   /** 落地影與描邊（每一幀跟著演員走） */
   private shadows = new Map<string, { e: Phaser.GameObjects.Ellipse; w: number }>();
   private outlines = new Map<string, Phaser.GameObjects.Image[]>();
-  private cam = { x: W / 2, y: 0, zoom: 1 };
+  /** 鏡頭現在（停好之後）的位置；每一拍的鏡頭照 fittedCams（腳本的鏡頭，裁到人就自動讓開，core/stageEdges.ts） */
+  private camT = { x: 0, y: 0, z: 1 };
+  private fits: { x: number; y: number; z: number }[];
   private i = -1;
   private ui: Phaser.GameObjects.GameObject[] = [];
   private beatAt = 0;
@@ -92,6 +95,7 @@ export class StagePlayer {
     this.opts = opts;
     this.H = opts.height ?? scene.scale.height;
     this.L = stageLayout(this.H);
+    this.fits = fittedCams(sc, this.H);
     const { G, k } = this.L;
     const H = this.H;
 
@@ -323,7 +327,7 @@ export class StagePlayer {
 
   /** 一拍的鏡頭與走位 */
   private stageBeat(beat: StageBeat, instant: boolean): void {
-    if (beat.cam) this.moveCam(beat.cam, instant);
+    this.moveCam(this.sc.beats.indexOf(beat), beat.cam?.ms, instant);
     for (const m of beat.moves ?? []) this.move(m, instant);
   }
 
@@ -333,22 +337,17 @@ export class StagePlayer {
     this.opts.onDone();
   }
 
-  /** 鏡頭看向 (x, 地面 + y)，放大 zoom 倍；不讓舞台邊緣露出來 */
-  private moveCam(c: NonNullable<StageBeat['cam']>, instant: boolean): void {
-    this.cam = { x: c.x, y: c.y * this.L.k, zoom: c.zoom };
-    const t = this.camTransform();
-    if (instant) this.world.setPosition(t.x, t.y).setScale(c.zoom);
-    else this.scene.tweens.add({ targets: this.world, x: t.x, y: t.y, scale: c.zoom, duration: c.ms ?? 1000, ease: 'Sine.inOut' });
+  /** 鏡頭看向第 n 拍的位置（腳本的鏡頭：看向 (x, 地面 + y)、放大 zoom 倍，不露出舞台邊緣；裁到人就自動讓開） */
+  private moveCam(n: number, ms: number | undefined, instant: boolean): void {
+    const t = this.fits[n];
+    if (!t || (t.x === this.camT.x && t.y === this.camT.y && t.z === this.camT.z)) return;
+    this.camT = t;
+    if (instant) this.world.setPosition(t.x, t.y).setScale(t.z);
+    else this.scene.tweens.add({ targets: this.world, x: t.x, y: t.y, scale: t.z, duration: ms ?? 800, ease: 'Sine.inOut' });
   }
 
   private camTransform(): { x: number; y: number; z: number } {
-    const { x, y, zoom: z } = this.cam;
-    const fy = this.L.G + y;
-    return {
-      x: Phaser.Math.Clamp(W / 2 - x * z, W - W * z, 0),
-      y: Phaser.Math.Clamp(fy * (1 - z), this.H - this.H * z, 0),
-      z,
-    };
+    return this.camT;
   }
 
   /** 舞台座標 → 鏡頭停下來之後的畫面座標 */

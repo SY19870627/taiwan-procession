@@ -69,3 +69,17 @@ export const STAGE_EXTRA = {
 
 /** 所有演出用貼圖的設計尺寸（B 組＋只給演出用的暫代） */
 export const STAGE_SIZES: Record<string, readonly [number, number]> = { ...STAGE_ART, ...STAGE_EXTRA };
+
+/**
+ * 修正第 5 輪：畫師圖的不透明範圍（左、右各在圖寬的幾成），檢查角色有沒有被畫面邊緣裁到用（core/stageEdges.ts）。
+ * 由 `node tools/shots.mjs --bodies` 量出來（2026-11-01）；換圖後重量一次。沒列的（程式暫代）當成整張寬。
+ */
+export const STAGE_BODY: Record<string, readonly [number, number]> = {
+  st_baoma: [0.017, 0.979], st_baye: [0.013, 0.988], st_heichao_figures: [0.005, 0.995], st_jiao_qingling: [0.007, 0.993],
+  st_jiaoban: [0.013, 0.988], st_qiye: [0.183, 0.813], st_shiju: [0.006, 0.994], st_shiju_kneel: [0.058, 0.94],
+  st_shiju_look: [0.073, 0.927], st_taizijiao: [0.07, 0.93], st_taizijiao_carried: [0.005, 0.995], st_wangchuan: [0.039, 0.96],
+  st_wangchuan_fire: [0.039, 0.96], st_wangjiao: [0.007, 0.993], st_wangjiao_carried: [0.005, 0.995], st_wenpan: [0.129, 0.871],
+  st_wupan: [0.083, 0.917], st_xunbu: [0.075, 0.925], st_zhongjun: [0.133, 0.867],
+  b3_lian: [0.021, 0.979], b3_liu: [0.04, 0.963], b3_taizi: [0.007, 0.993], b3_xiao: [0.056, 0.942], b3_zhang: [0.037, 0.96],
+  jiao: [0.344, 0.996], jiao_rise: [0.062, 0.996],
+};

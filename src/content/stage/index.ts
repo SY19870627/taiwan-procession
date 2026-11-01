@@ -129,7 +129,8 @@ export const STAGES: Record<string, StageScript> = {
       { id: 'wenpan', tex: 'st_wenpan', x: 200, y: 30, scale: 0.44 },
       { id: 'wupan', tex: 'st_wupan', x: 445, y: 30, scale: 0.44 },
       { id: 'qiye', tex: 'st_qiye', x: 610, y: 70, scale: 0.44 },
-      { id: 'baye', tex: 'st_baye', x: 680, y: 95, scale: 0.49 },
+      // 修正第 5 輪：八爺往左一點，電腦版開場全景右緣不再裁到
+      { id: 'baye', tex: 'st_baye', x: 660, y: 95, scale: 0.49 },
       { id: 'baoma', tex: 'st_baoma', x: -120, y: 90, scale: 0.48 },
     ],
     beats: [

@@ -70,8 +70,9 @@ export const STAGES3: Record<string, StageScript> = {
       { id: 'zhang', tex: 'b3_zhang', x: -100, y: 50, scale: 1.2 },
       { id: 'xiao', tex: 'b3_xiao', x: -180, y: 70, scale: 1.2 },
       { id: 'g0', tex: 'g3_yamupo', x: 570, y: 95, scale: 1.5, alpha: 0, tint: 0x9a8ab0 },
-      { id: 'g1', tex: 'g3_shuigui', x: 640, y: 100, scale: 1.45, alpha: 0, tint: 0x9a8ab0 },
-      { id: 'g2', tex: 'g3_huosha', x: 705, y: 95, scale: 1.5, alpha: 0, tint: 0x9a8ab0 },
+      { id: 'g1', tex: 'g3_shuigui', x: 600, y: 100, scale: 1.45, alpha: 0, tint: 0x9a8ab0 },
+      // 修正第 5 輪：火煞往左，最右邊的鬼整個留在畫面裡
+      { id: 'g2', tex: 'g3_huosha', x: 650, y: 95, scale: 1.5, alpha: 0, tint: 0x9a8ab0 },
     ],
     beats: [
       {
@@ -315,7 +316,8 @@ export const STAGES3: Record<string, StageScript> = {
     actors: [
       { id: 'ducks', tex: 'x3_ducks', x: -160, y: -30, scale: 1, behind: true },
       { id: 'jiao', tex: 'jiao', x: 520, y: 60, scale: 0.85, tint: 0xb8a8c8, behind: true },
-      { id: 'liu', tex: 'b3_liu', x: 40, y: 40, scale: 1.15 },
+      // 修正第 5 輪：劉將軍往右一點，左緣不再裁到
+      { id: 'liu', tex: 'b3_liu', x: 66, y: 40, scale: 1.15 },
       { id: 'zhang', tex: 'b3_zhang', x: 130, y: 55, scale: 1.2 },
       { id: 'taizi', tex: 'b3_taizi', x: 300, y: 50, scale: 1.1 },
       { id: 'xiao', tex: 'b3_xiao', x: 210, y: 70, scale: 1.2 },
@@ -468,7 +470,8 @@ export const STAGES3: Record<string, StageScript> = {
       { id: 's3', tex: 'w3_soldier3', x: 1000, y: 35, scale: 1.1 },
       { id: 's4', tex: 'w3_soldier4', x: 1060, y: 30, scale: 1.1 },
       { id: 's5', tex: 'w3_soldier0', x: 1120, y: 35, scale: 1.1 },
-      { id: 'zhang', tex: 'b3_zhang', x: 60, y: 55, scale: 1.2 },
+      // 修正第 5 輪：張將軍、營兵各往內一點，全景左右緣不再裁到
+      { id: 'zhang', tex: 'b3_zhang', x: 72, y: 55, scale: 1.2 },
       { id: 'xiao', tex: 'b3_xiao', x: 150, y: 70, scale: 1.2 },
       { id: 'lian', tex: 'b3_lian', x: 500, y: 45, scale: 1.15 },
       { id: 'bingbo', tex: 'n3_bingbo', x: -80, y: 80, scale: 1.8 },
@@ -479,7 +482,7 @@ export const STAGES3: Record<string, StageScript> = {
         cam: { x: 360, y: -120, zoom: 1, ms: 1200 },
         moves: [
           { id: 's0', x: 560, hop: true, ms: 1800 }, { id: 's1', x: 600, hop: true, ms: 1900 },
-          { id: 's2', x: 640, hop: true, ms: 2000 }, { id: 's3', x: 680, hop: true, ms: 2100 },
+          { id: 's2', x: 640, hop: true, ms: 2000 }, { id: 's3', x: 672, hop: true, ms: 2100 },
           { id: 's4', x: 620, y: 70, hop: true, ms: 2200 }, { id: 's5', x: 670, y: 75, hop: true, ms: 2300 },
         ],
       },

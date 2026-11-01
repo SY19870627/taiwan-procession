@@ -99,6 +99,29 @@ const FIX4_BEATS = [
   ['wanjia', 'dusk3', [0, 3]],
 ];
 
+/**
+ * 修正第 5 輪（--fix5 --beats JSON）：22 段過場每一拍都截（--dev phone 只截手機、--dev pc 只截電腦）。
+ * --bodies：量畫師圖的不透明範圍（左右各佔圖寬幾成），印成 JSON，貼進 art/stageSpec.ts 的 STAGE_BODY。
+ */
+const BODY_FILES = ['stage/st_baoma', 'stage/st_baye', 'stage/st_heichao_figures', 'stage/st_jiao_qingling', 'stage/st_jiaoban', 'stage/st_qiye', 'stage/st_shiju', 'stage/st_shiju_kneel', 'stage/st_shiju_look', 'stage/st_taizijiao', 'stage/st_taizijiao_carried', 'stage/st_wangchuan', 'stage/st_wangchuan_fire', 'stage/st_wangjiao', 'stage/st_wangjiao_carried', 'stage/st_wenpan', 'stage/st_wupan', 'stage/st_xunbu', 'stage/st_zhongjun', 'battle/b3_lian', 'battle/b3_liu', 'battle/b3_taizi', 'battle/b3_xiao', 'battle/b3_zhang', 'battle/jiao', 'battle/jiao_rise'];
+const BODY_JS = (base) => `(async () => {
+  const out = {};
+  for (const f of ${JSON.stringify(BODY_FILES)}) {
+    const img = new Image();
+    img.src = '${base}' + f + '.webp';
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    let l = c.width, r = -1;
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 40) { if (x < l) l = x; if (x > r) r = x; }
+    out[f.split('/')[1]] = [+(l / c.width).toFixed(3), +((r + 1) / c.width).toFixed(3)];
+  }
+  return JSON.stringify(out);
+})()`;
+
 /** urls.txt：每一段有演出的過場（三章共 22 段）＋互嗆網址 */
 const URLS = [
   ['wanjia', 'anfang1', '第一章開場：入夜，報馬仔敲鑼、七爺八爺出廟、判官點燈磨刀'],
@@ -190,6 +213,25 @@ async function main() {
       console.log('ok', file);
     };
 
+    if (process.argv.includes('--bodies')) {
+      const { targetId } = await send('Target.createTarget', { url: BASE });
+      const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
+      await sleep(1500);
+      const r = await send('Runtime.evaluate', { expression: BODY_JS(BASE), awaitPromise: true, returnByValue: true }, sessionId);
+      console.log(r.result.value ?? JSON.stringify(r));
+      await send('Browser.close').catch(() => {});
+      return;
+    }
+    if (process.argv.includes('--fix5')) {
+      const devs = arg('--dev', 'pc,phone').split(',');
+      const beats = JSON.parse(arg('--beats', '{}'));
+      // --beats '{"anfang1":9}' 是前 9 拍；'{"anfang1":[1,3]}' 是指定的拍子
+      const list = (v) => (Array.isArray(v) ? v : Array.from({ length: v ?? 0 }, (_, i) => i));
+      for (const [ch, id] of URLS)
+        for (const b of list(beats[id])) for (const dev of devs) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, `${id}_b${b}_${dev}.png`, dev, undefined, 0, 3500);
+      await send('Browser.close').catch(() => {});
+      return;
+    }
     if (process.argv.includes('--fix4')) {
       for (const [ch, id, beats] of FIX4_BEATS)
         for (const b of beats) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, `${id}_b${b}_${dev}.png`, dev, undefined, 0, 3500);

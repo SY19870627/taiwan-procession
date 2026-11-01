@@ -27,7 +27,8 @@ export const STAGES2: Record<string, StageScript> = {
       // 修正第 4 輪：扛轎版（轎班約和中軍府一樣高）；巡捕站到轎子右邊、不擋王轎，最左邊的轎班留在畫面裡
       { id: 'jiao', tex: 'st_wangjiao_carried', x: 390, y: 15, scale: 0.78 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 110, y: 40, scale: 0.44 },
-      { id: 'xunbu', tex: 'st_xunbu', x: 690, y: 60, scale: 0.44 },
+      // 修正第 5 輪：巡捕往左一點，全景右緣不再裁到
+      { id: 'xunbu', tex: 'st_xunbu', x: 672, y: 60, scale: 0.44 },
     ],
     beats: [
       { who: 'narrator', text: '九月十四，東盛宮的匾換成了「代天府」。\n七境頭的轎班，天沒亮就到齊了。', src: 0, cam: { x: 360, y: -120, zoom: 1, ms: 1200 } },
