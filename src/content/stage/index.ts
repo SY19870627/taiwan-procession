@@ -8,7 +8,8 @@
  * 第 4 階段：第三章 8 段在 ./ch3.ts（kaiying3、zhizha3、river3、jiao3、jiaoRecall、jiaoSlay3、jiaoReturn3、shouying3）。
  * 補寫的拍子標 draft（【待定】，見計畫 §9）。
  *
- * 石駒站姿：畫師只畫了跪、回頭（計畫 Q17），站著的石駒先用「回頭」那張（煞氣時加紫色調）；跪、回頭兩張都臉朝左；
+ * 石駒（Q17）：站姿 st_shiju（修正第 4 輪補交，煞氣、蹄下有紫煙）、跪、回頭三張都臉朝左；站著的石駒（recall 開頭、dusk3）用站姿，
+ * 往左走不翻面；送回山中仍用「回頭」那張。
  * 七爺八爺（Q18）：修正第 3 輪換成畫師的 st_qiye、st_baye（和判官同樣 0.44 高）；八爺的圖只有七爺的 0.67 高，
  * scale 放大到 0.49，並排時約 0.75 高（矮一點但不會太小）。圖沒載到時用陣頭小人放大的暫代。
  */
@@ -35,7 +36,8 @@ export const STAGES: Record<string, StageScript> = {
       { id: 'qiye', tex: 'st_qiye', x: 80, y: 70, scale: 0.44 },
       { id: 'baye', tex: 'st_baye', x: 360, y: 95, scale: 0.49 },
       { id: 'decree', tex: 'decree', x: 230, y: -330, scale: 0.8, alpha: 0, center: true },
-      { id: 'shiju', tex: 'st_shiju_look', x: 610, y: 80, scale: 0.42, tint: 0xb89ad0 },
+      // 修正第 4 輪：站著的煞氣石駒換回畫師補交的站姿 st_shiju（臉朝左、朝著廟埕，不翻面）
+      { id: 'shiju', tex: 'st_shiju', x: 610, y: 80, scale: 0.42, tint: 0xd8c8e4 },
     ],
     beats: [
       // 【待定】旁白與隨從插話（原型補寫）
@@ -74,7 +76,8 @@ export const STAGES: Record<string, StageScript> = {
     fore: 'mountain',
     actors: [
       { id: 'fog', tex: 'smoke', x: 470, y: -120, scale: 5, tint: 0x9b3cff, alpha: 0, center: true },
-      { id: 'shiju', tex: 'st_shiju_look', x: 860, y: 80, scale: 0.5, tint: 0xb89ad0 },
+      // 修正第 4 輪：站姿 st_shiju 臉朝左，往左走向山下的燈籠，不翻面
+      { id: 'shiju', tex: 'st_shiju', x: 860, y: 80, scale: 0.5, tint: 0xd8c8e4 },
       { id: 'flag', tex: 'flag1', x: 60, y: -10, scale: 0.35, alpha: 0 },
       { id: 'lan0', tex: 'lantern', x: 100, y: -60, scale: 0.3, alpha: 0, center: true },
       { id: 'lan1', tex: 'lantern', x: 140, y: -50, scale: 0.3, alpha: 0, center: true },
@@ -121,9 +124,10 @@ export const STAGES: Record<string, StageScript> = {
     fore: 'temple',
     actors: [
       { id: 'decree', tex: 'decree', x: 360, y: -360, scale: 0.8, alpha: 0, center: true },
-      { id: 'jiao', tex: 'st_jiao_qingling', x: 360, y: 10, scale: 0.48 },
+      // 修正第 4 輪：神轎、武判官往左一點，空出七爺讓八爺的位置
+      { id: 'jiao', tex: 'st_jiao_qingling', x: 340, y: 10, scale: 0.48 },
       { id: 'wenpan', tex: 'st_wenpan', x: 200, y: 30, scale: 0.44 },
-      { id: 'wupan', tex: 'st_wupan', x: 525, y: 30, scale: 0.44 },
+      { id: 'wupan', tex: 'st_wupan', x: 445, y: 30, scale: 0.44 },
       { id: 'qiye', tex: 'st_qiye', x: 610, y: 70, scale: 0.44 },
       { id: 'baye', tex: 'st_baye', x: 680, y: 95, scale: 0.49 },
       { id: 'baoma', tex: 'st_baoma', x: -120, y: 90, scale: 0.48 },
@@ -139,12 +143,13 @@ export const STAGES: Record<string, StageScript> = {
       { at: 'qiye', who: 'qiye', text: '扇子帶了，鎖鏈也帶了。八弟，走吧。', src: 2, cam: { x: 600, y: -80, zoom: 1.15, ms: 900 } },
       {
         at: 'baye', who: 'baye', text: '我走前面。七哥你腿長，別踩到我。', src: 3,
-        moves: [{ id: 'baye', x: 560, hop: true, ms: 500 }],
+        // 修正第 4 輪：八爺往前（右）跳一步走到七爺前頭，七爺往左讓一步，八爺不再擋到七爺的腳（右緣 720 以內，手機也看得到）
+        moves: [{ id: 'baye', x: 645, hop: true, ms: 500 }, { id: 'qiye', x: 550, ms: 500 }],
       },
       { at: 'wenpan', who: 'judge', text: '燈點好了。今晚帶回來的，我一個一個問。', src: 4, cam: { x: 220, y: -80, zoom: 1.15, ms: 900 } },
       {
         at: 'wupan', who: 'wupan', text: '刀也磨好了。問不出來的，交給我。', src: 5,
-        cam: { x: 500, y: -80, zoom: 1.15, ms: 900 },
+        cam: { x: 440, y: -80, zoom: 1.15, ms: 900 },
         sfx: { text: '唰——', at: 'wupan', color: 0xe9ecf4 },
       },
       { at: 'wenpan', who: 'judge', text: '不急。先問。', src: 6, cam: { x: 300, y: -80, zoom: 1.1, ms: 700 } },

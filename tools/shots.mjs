@@ -89,6 +89,16 @@ const FIX3_BEATS = [
   ['xinying', 'shouying3', [1]],
 ];
 
+/** 修正第 4 輪（--fix4）：扛轎版王轎、太子轎，石駒站姿，八爺讓開七爺。輸出到 --out（shotsix4） */
+const FIX4_BEATS = [
+  ['dongjin', 'qingwang2', [0, 2, 5, 7]],
+  ['dongjin', 'songwang2', [1]],
+  ['xinying', 'jiao3', [0, 3]],
+  ['wanjia', 'anfang1', [1, 3, 5]],
+  ['wanjia', 'recall', [0, 4]],
+  ['wanjia', 'dusk3', [0, 3]],
+];
+
 /** urls.txt：每一段有演出的過場（三章共 22 段）＋互嗆網址 */
 const URLS = [
   ['wanjia', 'anfang1', '第一章開場：入夜，報馬仔敲鑼、七爺八爺出廟、判官點燈磨刀'],
@@ -180,6 +190,12 @@ async function main() {
       console.log('ok', file);
     };
 
+    if (process.argv.includes('--fix4')) {
+      for (const [ch, id, beats] of FIX4_BEATS)
+        for (const b of beats) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, `${id}_b${b}_${dev}.png`, dev, undefined, 0, 3500);
+      await send('Browser.close').catch(() => {});
+      return;
+    }
     if (process.argv.includes('--fix3')) {
       for (const [ch, id, beats] of FIX3_BEATS)
         for (const b of beats) for (const dev of ['pc', 'phone']) await shoot(`${BASE}?scene=story&id=${id}&ch=${ch}&beat=${b}`, `${id}_b${b}_${dev}.png`, dev, undefined, 0, 3500);

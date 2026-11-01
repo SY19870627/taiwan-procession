@@ -23,12 +23,14 @@ const BUBBLE_W = 400;
  * 站在地上、要畫落地影的演員（視覺修正：原本像浮在地上）。第一、二章的陣頭小人與神轎；海上的船、黑潮、飄著的東西不畫。
  * 神轎（畫師圖底下有一圈淡白的影子）的影子疊在轎子前面，把那圈淡白壓暗；其他人的影子在腳後面。
  */
-const SHADOW: Record<string, { w: number; front?: boolean }> = {
+const SHADOW: Record<string, { w: number; front?: boolean; a?: number }> = {
   st_wenpan: { w: 0.7 }, st_wupan: { w: 0.7 }, st_baoma: { w: 0.6 }, st_zhongjun: { w: 0.7 }, st_xunbu: { w: 0.7 },
-  st_shiju: { w: 0.75 }, st_shiju_calm: { w: 0.75 }, st_shiju_look: { w: 0.75 }, st_shiju_kneel: { w: 0.8 },
+  // 修正第 4 輪：畫師的站姿蹄下已有淡淡的陰影與煞氣，程式的影子窄一點、淡一點，疊起來只看得到一層
+  st_shiju: { w: 0.55, a: 0.22 }, st_shiju_calm: { w: 0.75 }, st_shiju_look: { w: 0.75 }, st_shiju_kneel: { w: 0.8 },
   // 修正第 3 輪：青嶺王神轎新圖去掉了底部白邊與地面陰影，影子改回轎子後面（程式補）
   st_jiao_qingling: { w: 0.95 }, jb_blue: { w: 1.05 },
   st_qiye: { w: 0.7 }, st_baye: { w: 0.8 }, st_jiaoban: { w: 0.7 }, st_wangjiao: { w: 0.75 }, st_taizijiao: { w: 0.7 },
+  st_wangjiao_carried: { w: 0.85 }, st_taizijiao_carried: { w: 0.85 },
   qiye: { w: 0.9 }, baye: { w: 0.9 }, jiaoban: { w: 0.9 },
 };
 
@@ -37,6 +39,7 @@ const SHADOW: Record<string, { w: number; front?: boolean }> = {
  * 值是 saturate 的量（負的是降）。
  */
 const MUTE: Record<string, number> = { st_qiye: -0.15, st_baye: -0.15, st_jiaoban: -0.25, st_wangjiao: -0.25, st_taizijiao: -0.5 };
+// 修正第 4 輪的扛轎版畫師已經降過兩成彩度，這裡不再降（st_wangjiao_carried、st_taizijiao_carried 不在表上）
 
 /** 程式畫的暫代小人（還沒有畫師的 B 組圖）：加一圈深色描邊，和畫師圖並排時不那麼突兀 */
 const OUTLINE = new Set(['qiye', 'baye', 'jiaoban']);
@@ -254,8 +257,10 @@ export class StagePlayer {
     for (const [id, { e, w }] of this.shadows) {
       const img = this.actors.get(id);
       if (!img) continue;
-      const dw = img.displayWidth * w;
-      e.setPosition(img.x, img.y - 3).setScale(dw / 100, Math.max(0.5, (dw * 0.14) / 18)).setAlpha(0.5 * img.alpha);
+      // 換圖後照新圖的寬度與濃淡（例如石駒站姿 → 跪）
+      const cur = SHADOW[img.texture.key];
+      const dw = img.displayWidth * (cur?.w ?? w);
+      e.setPosition(img.x, img.y - 3).setScale(dw / 100, Math.max(0.5, (dw * 0.14) / 18)).setAlpha((cur?.a ?? 0.5) * img.alpha);
     }
     for (const [id, outs] of this.outlines) {
       const img = this.actors.get(id);

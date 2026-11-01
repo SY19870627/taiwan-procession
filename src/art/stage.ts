@@ -68,7 +68,15 @@ export function makeStageArt(scene: Phaser.Scene): void {
   stage(scene, 'st_zhongjun', (g, w, h) => big(g, w, h, 3.4, { robe: 0xf0ece0, trim: 0x2a3a6a, paint: [0xd8c8a8, 0xd8c8a8], hat: 'flat', hatColor: 0x111111, item: 'token', tall: 1.1, wide: 1.15 }));
   stage(scene, 'st_xunbu', (g, w, h) => big(g, w, h, 3.4, XUNBU));
 
-  for (const calm of [false, true]) stage(scene, calm ? 'st_shiju_calm' : 'st_shiju', (g, w, h) => shiju(g, w, h, 'stand', calm));
+  // 修正第 4 輪：畫師的站姿 st_shiju 臉朝左，暫代也左右翻過來（和「回頭」「跪」同方向）
+  for (const calm of [false, true])
+    stage(scene, calm ? 'st_shiju_calm' : 'st_shiju', (g, w, h) => {
+      g.save();
+      g.translateCanvas(w, 0);
+      g.scaleCanvas(-1, 1);
+      shiju(g, w, h, 'stand', calm);
+      g.restore();
+    });
   stage(scene, 'st_shiju_kneel', (g, w, h) => shiju(g, w, h, 'kneel', true));
   // 畫師的「回頭」臉朝左（2026-11-01 改版），暫代也左右翻過來，腳本的翻面才一致
   stage(scene, 'st_shiju_look', (g, w, h) => {
@@ -122,6 +130,9 @@ export function makeStageArt(scene: Phaser.Scene): void {
   enlarge(scene, 'st_jiaoban', 'jiaoban');
   enlarge(scene, 'st_wangjiao', 'jb_blue', 0.9);
   enlarge(scene, 'st_taizijiao', 'w3_palanquin', 0.9);
+  // 修正第 4 輪：扛轎版的暫代也用有轎班扛的程式神轎
+  enlarge(scene, 'st_wangjiao_carried', 'jb_blue', 0.9);
+  enlarge(scene, 'st_taizijiao_carried', 'w3_palanquin', 0.9);
 }
 
 /** 把已經畫好的貼圖 src 等比放大進 key 的設計尺寸（底部置中、最高佔 fill 成高） */

@@ -23,7 +23,7 @@ export const STAGE_PORTRAITS: Record<string, Expr[]> = {
 export const STAGE_PORTRAIT_FILES: string[] = Object.entries(STAGE_PORTRAITS).flatMap(([id, ex]) => ex.map((e) => `${id}_${e}.webp`));
 
 /**
- * B 組：演出用全身小人與神轎（16 張，去背、腳底對齊下緣，畫 2 倍大）。
+ * B 組：演出用全身小人與神轎（19 張，去背、腳底對齊下緣，畫 2 倍大）。
  * [寬, 高] 是畫師交圖的尺寸，也是程式畫暫代的尺寸；演出腳本的 scale 以這個尺寸為準
  * （畫師的圖尺寸不同也會縮成同樣的顯示高度）。
  */
@@ -45,6 +45,10 @@ export const STAGE_ART = {
   st_jiaoban: [240, 480],
   st_wangjiao: [400, 400],
   st_taizijiao: [400, 400],
+  // 修正第 4 輪補交：轎班扛著的王轎、太子轎（朝右、往右走；轎子在動的拍子用這兩張），石駒站姿（煞氣，臉朝左，Q17）
+  st_wangjiao_carried: [560, 400],
+  st_taizijiao_carried: [560, 400],
+  st_shiju: [520, 440],
 } as const satisfies Record<string, readonly [number, number]>;
 
 export type StageArtKey = keyof typeof STAGE_ART;
@@ -56,11 +60,10 @@ export const STAGE_FILES = Object.keys(STAGE_ART) as StageArtKey[];
 export const STAGE_DIR = 'stage';
 
 /**
- * 只給演出用、沒有畫師圖的暫代（不在 B 組清單）：石駒站姿（煞氣、喚回）。
+ * 只給演出用、沒有畫師圖的暫代（不在 B 組清單）：石駒站姿（喚回）。
  * 最後一戰仍用原本的 shiju 貼圖，戰鬥畫面不變。
  */
 export const STAGE_EXTRA = {
-  st_shiju: [520, 440],
   st_shiju_calm: [520, 440],
 } as const satisfies Record<string, readonly [number, number]>;
 

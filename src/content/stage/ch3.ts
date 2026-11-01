@@ -240,23 +240,24 @@ export const STAGES3: Record<string, StageScript> = {
       { id: 's2', tex: 'w3_soldier2', x: 220, y: -10, scale: 1.1, alpha: 0 },
       { id: 's3', tex: 'w3_soldier3', x: 310, y: -10, scale: 1.1, alpha: 0 },
       { id: 's4', tex: 'w3_soldier4', x: 400, y: -10, scale: 1.1, alpha: 0 },
-      { id: 'palanquin', tex: 'st_taizijiao', x: 110, y: 10, scale: 0.68 },
-      { id: 'taizi', tex: 'b3_taizi', x: 230, y: 50, scale: 1.1, alpha: 0 },
+      // 修正第 4 輪：太子轎換扛轎版（朝右、往右走），四將走到轎子右邊（前頭），不擋轎班
+      { id: 'palanquin', tex: 'st_taizijiao_carried', x: -60, y: 10, scale: 0.56 },
+      { id: 'taizi', tex: 'b3_taizi', x: 180, y: 50, scale: 1.1, alpha: 0 },
       { id: 'liu', tex: 'b3_liu', x: -100, y: 40, scale: 1.15 },
       { id: 'zhang', tex: 'b3_zhang', x: -40, y: 55, scale: 1.2 },
-      { id: 'xiao', tex: 'b3_xiao', x: 220, y: 65, scale: 1.2 },
-      { id: 'lian', tex: 'b3_lian', x: 300, y: 45, scale: 1.15 },
+      { id: 'xiao', tex: 'b3_xiao', x: 120, y: 65, scale: 1.2 },
+      { id: 'lian', tex: 'b3_lian', x: 200, y: 45, scale: 1.15 },
     ],
     beats: [
       {
         who: 'narrator', text: '收營夜。五營兵將把太子轎抬到疾水溪舊渡口。溪水倒流了一整天，這時整個鼓了起來。', src: 0,
         cam: { x: 360, y: -100, zoom: 1, ms: 1600 },
         moves: [
-          { id: 'palanquin', x: 220, hop: true, ms: 1600 },
-          { id: 'liu', x: 30, hop: true, ms: 1600 },
-          { id: 'zhang', x: 110, hop: true, ms: 1600 },
-          { id: 'xiao', x: 340, hop: true, ms: 1600 },
-          { id: 'lian', x: 430, hop: true, ms: 1600 },
+          { id: 'palanquin', x: 210, hop: true, ms: 1600 },
+          { id: 'liu', x: 400, hop: true, ms: 1600 },
+          { id: 'zhang', x: 470, hop: true, ms: 1600 },
+          { id: 'xiao', x: 540, hop: true, ms: 1600 },
+          { id: 'lian', x: 610, hop: true, ms: 1600 },
         ],
       },
       {
@@ -271,8 +272,9 @@ export const STAGES3: Record<string, StageScript> = {
       },
       {
         at: 'xiao', who: 'xiaojiang', text: '你說誰小鬼！', src: 3,
-        cam: { x: 400, y: -90, zoom: 1.12, ms: 600 },
-        moves: [{ id: 'xiao', x: 380, hop: true, ms: 300 }],
+        // 修正第 4 輪：鏡頭偏左一點，最左邊扛轎的轎班留在畫面裡
+        cam: { x: 380, y: -90, zoom: 1.12, ms: 600 },
+        moves: [{ id: 'xiao', x: 560, hop: true, ms: 300 }],
       },
       { at: 'jiao', who: 'jiao', text: '鴨子、渡船、小孩……這條溪的東西，都是我的。', src: 4, cam: { x: 540, y: -150, zoom: 1.06, ms: 800 } },
       {
@@ -283,12 +285,12 @@ export const STAGES3: Record<string, StageScript> = {
       {
         at: 'zhang', who: 'zhangjiang', text: '太子，別理牠——', src: 6,
         cam: { x: 200, y: -90, zoom: 1.1, ms: 700 },
-        moves: [{ id: 'zhang', x: 140, ms: 400 }],
+        moves: [{ id: 'zhang', x: 420, ms: 400 }],
       },
       {
         at: 'taizi', who: 'taizi', text: '站好，別說我偷襲。', src: 7,
         cam: { x: 280, y: -110, zoom: 1.15, ms: 700 },
-        moves: [{ id: 'taizi', alpha: 1, x: 260, ms: 600 }],
+        moves: [{ id: 'taizi', alpha: 1, x: 340, ms: 600 }],
       },
       {
         who: 'narrator', text: '五面營旗同時豎了起來。', src: 8, fx: 'flash',

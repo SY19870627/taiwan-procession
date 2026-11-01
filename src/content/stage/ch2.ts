@@ -3,7 +3,9 @@
  * tide3、sendoff（原有台詞）＋新的 qingwang2、qianchuan2、heichaoReturn2、heichaoSlay2、songwang2（台詞【待定】，在 content/story.ts）。
  *
  * 海邊用 seaFar／seaFarN 遠景＋近海＋浪花前景（fore: 'sea'）；王船用 st_wangchuan／st_wangchuan_fire。
- * 轎班、王轎用畫師的 st_jiaoban、st_wangjiao（修正第 3 輪，Q21）；第二個轎班用淡色調區分（送王時翻面和第一個面對面）。圖沒載到時用程式小人放大的暫代。
+ * 轎班用畫師的 st_jiaoban（修正第 3 輪，Q21）；第二個轎班用淡色調區分（送王時翻面和第一個面對面）。圖沒載到時用程式小人放大的暫代。
+ * 請王的王轎用扛轎版 st_wangjiao_carried（修正第 4 輪：四個轎班扛著、朝右；轎子才不會自己跳）。
+ * 扛轎版的轎班比 st_jiaoban 小，同一段不放 st_jiaoban，免得兩種轎班並排。
  * 補寫的拍子標 draft（【待定】，見計畫 §9）。
  */
 import type { StageScript } from './types';
@@ -22,11 +24,10 @@ export const STAGES2: Record<string, StageScript> = {
     actors: [
       { id: 'decree', tex: 'decree', x: 380, y: -360, scale: 0.8, alpha: 0, center: true },
       { id: 'flag', tex: 'wlflag', x: 600, y: 20, scale: 1.1 },
-      { id: 'jiao', tex: 'st_wangjiao', x: 370, y: 15, scale: 0.75 },
-      { id: 'zhongjun', tex: 'st_zhongjun', x: 170, y: 40, scale: 0.44 },
-      { id: 'xunbu', tex: 'st_xunbu', x: 540, y: 60, scale: 0.44 },
-      { id: 'jiaoban', tex: 'st_jiaoban', x: 660, y: 90, scale: 0.44 },
-      { id: 'jiaoban2', tex: 'st_jiaoban', x: 60, y: 85, scale: 0.43, tint: 0xd8c8b0 },
+      // 修正第 4 輪：扛轎版（轎班約和中軍府一樣高）；巡捕站到轎子右邊、不擋王轎，最左邊的轎班留在畫面裡
+      { id: 'jiao', tex: 'st_wangjiao_carried', x: 390, y: 15, scale: 0.78 },
+      { id: 'zhongjun', tex: 'st_zhongjun', x: 110, y: 40, scale: 0.44 },
+      { id: 'xunbu', tex: 'st_xunbu', x: 690, y: 60, scale: 0.44 },
     ],
     beats: [
       { who: 'narrator', text: '九月十四，東盛宮的匾換成了「代天府」。\n七境頭的轎班，天沒亮就到齊了。', src: 0, cam: { x: 360, y: -120, zoom: 1, ms: 1200 } },
@@ -36,20 +37,20 @@ export const STAGES2: Record<string, StageScript> = {
       },
       {
         at: 'xunbu', who: 'xunbu', text: '到！都到了！王令也清點好了，一張、兩張……一張不少！', src: 2,
-        cam: { x: 500, y: -80, zoom: 1.15, ms: 800 },
-        moves: [{ id: 'xunbu', x: 470, hop: true, ms: 500 }],
+        cam: { x: 540, y: -80, zoom: 1.15, ms: 800 },
+        moves: [{ id: 'xunbu', x: 640, hop: true, ms: 500 }],
       },
       { at: 'zhongjun', who: 'zhongjun', text: '你手上那張，是香油錢的收據。', src: 3, cam: { x: 300, y: -80, zoom: 1.12, ms: 700 } },
       {
         at: 'xunbu', who: 'xunbu', text: '……我再數一次。', src: 4,
-        moves: [{ id: 'xunbu', x: 500, ms: 400 }],
+        moves: [{ id: 'xunbu', x: 670, ms: 400 }],
       },
       {
-        // 修正第 3 輪：畫師的王轎沒有轎班，泡泡改指旁邊的轎班
-        at: 'jiaoban', who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！', src: 5, fx: 'firecracker',
-        cam: { x: 480, y: -100, zoom: 1.1, ms: 800 },
-        moves: [{ id: 'jiao', y: 0, hop: true, ms: 600 }, { id: 'jiaoban', x: 640, hop: true, ms: 400 }],
-        sfx: { text: '嘿——！', at: 'jiaoban', color: 0xffd76a },
+        // 修正第 4 輪：扛轎版有轎班，泡泡改回指著王轎（轎班扛著一起跳）
+        at: 'jiao', who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！', src: 5, fx: 'firecracker',
+        cam: { x: 400, y: -100, zoom: 1.1, ms: 800 },
+        moves: [{ id: 'jiao', y: 0, hop: true, ms: 600 }],
+        sfx: { text: '嘿——！', at: 'jiao', color: 0xffd76a },
       },
       {
         at: 'decree', who: 'yun', text: '開路吧。這三年東津的案卷，千歲爺要一頁一頁看。', src: 6, fx: 'flash',
@@ -64,7 +65,7 @@ export const STAGES2: Record<string, StageScript> = {
           { id: 'decree', alpha: 0, ms: 600 },
           { id: 'flag', x: 900, hop: true, ms: 1800 },
           { id: 'jiao', x: 760, hop: true, ms: 2000 },
-          { id: 'jiaoban', x: 900, hop: true, ms: 1600 },
+          { id: 'xunbu', x: 980, hop: true, ms: 1600 },
         ],
         sfx: { text: '劈哩啪啦！', at: 'jiao' },
       },
