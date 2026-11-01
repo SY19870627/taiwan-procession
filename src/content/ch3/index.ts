@@ -4,7 +4,7 @@
  * 白天乾坤圈打爆小妖、營旗下五格收容；晚上點將問罪（每晚 2 案）；最後一夜疾水溪・斬蛟或收蛟。
  *
  * 進度見 docs/第三章_開發計畫.md。第 1 階段只有資料；規則與畫面在之後的階段接上：
- *  - 乾坤圈動畫、威名、看相、快判（第 3 階段）
+ *  - 乾坤圈動畫、威名、看相、快判、風火輪追（第 3 階段：core/renown.ts、DayScene）
  *  - 點將問罪畫面、每晚 2 案、壓一晚（第 4 階段；在那之前夜審沿用「審問供詞」畫面）
  *  - 蛟的 jiao 模式（第 5 階段；在那之前借用第一章的模式）
  */
@@ -15,6 +15,7 @@ import { SKILLS } from '../../core/boss';
 import { CASES3, EVIDENCE3 } from './cases';
 import { CARDS3, PROLOGUE3, PROLOGUE_JIAO3, bossEffects3, epitaphs3, ghostEpitaphs3, jiaoEpitaph, ledger3, newBelievers3 } from './believers';
 import { DAY_PLANS3, UNLOCKS3, dawn3, endOfDay3_3, verdictEffects3 } from './days';
+import { BANTER3 } from './banter';
 import { FINALE_ROUNDS3, FINALE_WRONG3, GHOST_MEMBERS3, MEMBER_STATS3, RELEASE_SKILL3, finaleSetup3 } from './finale';
 
 /** 營旗下五格：東青、南紅、西白、北黑、中黃 */
@@ -53,7 +54,7 @@ export const CHAPTER3: ChapterDef = {
     return k ? SKILLS[k] : null;
   },
   held: {
-    label: '營旗下', sub: '今晚點將問罪', icon: 'w3_flags',
+    label: '營旗下', sub: '今晚點將', icon: 'w3_flags',
     collect: (n) => `五營兵將一擁而上，\n${n}被押回了營旗下。\n今晚點將問罪。`,
   },
   imp: {
@@ -115,4 +116,5 @@ export const CHAPTER3: ChapterDef = {
   slayRule: 'renown',
   chase: true,
   unlocks: UNLOCKS3,
+  banter: BANTER3,
 };

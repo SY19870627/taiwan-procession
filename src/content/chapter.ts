@@ -19,6 +19,7 @@ import * as ch1Days from './days';
 import * as ch1Cases from './cases';
 import * as ch1Finale from './finale';
 import { SKILLS } from '../core/boss';
+import { approachHours, impsFlee, moodOf, type Mood } from '../core/renown';
 import { CHAPTER2 } from './ch2';
 import { CHAPTER3 } from './ch3';
 
@@ -158,6 +159,14 @@ export interface ChapterDef {
   chase?: boolean;
   /** 每天早上黃曆後顯示的成長解鎖（第三章：各將一招、合擊、五營合陣） */
   unlocks?: Record<number, { title: string; text: string }>;
+  /** 互嗆台詞庫：場合（depart、ring、look、slay…）→ 幾組對話，每組一句一行輪流跳出來（第三章） */
+  banter?: Record<string, BanterLine[][]>;
+}
+
+/** 互嗆的一句（一行、不擋操作） */
+export interface BanterLine {
+  who: string;
+  text: string;
 }
 
 const CHAPTER1: ChapterDef = {
@@ -252,14 +261,11 @@ export function verdictName(v: Verdict): string {
 }
 
 // ---------- 白天：路上的事 ----------
-export type GhostMood = 'normal' | 'hiding' | 'fled';
+export type GhostMood = Mood;
 
-/** 戾氣讓鬼躲起來或逃走 */
+/** 戾氣讓鬼躲起來或逃走；第三章威名 ≥2 鬼看到隊伍就跑（見 core/renown.ts） */
 export function ghostMood(r: RunState, caseId: string): GhostMood {
-  const t = CH().cases[caseId].timid;
-  if (r.liqi >= t + 1) return 'fled';
-  if (r.liqi >= t) return 'hiding';
-  return 'normal';
+  return moodOf(r, CH().cases[caseId].timid, CH());
 }
 
 /** 這件事今天還會不會出現 */
@@ -273,9 +279,12 @@ export function visible(r: RunState, e: Encounter): boolean {
   }
 }
 
-/** 收容一隻鬼要幾個時辰：平常不花時辰（只佔收容格）；躲起來要花 1 個時辰勸出來 */
+/**
+ * 收容一隻鬼要幾個時辰：平常不花時辰（只佔收容格）；躲起來要花 1 個時辰勸出來
+ *（第三章：風火輪追，不花時辰、怨氣 +1）；被威名嚇跑的要花 1 個時辰追回來。
+ */
 export function collectHours(r: RunState, caseId: string): number {
-  return ghostMood(r, caseId) === 'hiding' ? 1 : 0;
+  return approachHours(ghostMood(r, caseId), CH());
 }
 
 /** 戾氣 3：凡人也不太敢靠近，問話會沒人理 */
@@ -294,11 +303,16 @@ export function summary(r: RunState, e: Encounter): { icon: string; title: strin
     case 'ghost': {
       const k = CH().cases[e.caseId];
       const mood = ghostMood(r, e.caseId);
-      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost: mood === 'fled' ? '會逃走' : collectHours(r, e.caseId) ? `收容 ${collectHours(r, e.caseId)} 時辰＋1 格` : '收容佔 1 格', color: 0x9fd0ff };
+      const cost = mood === 'fled' ? '會逃走'
+        : mood === 'scared' ? `見隊伍就跑・追回 ${collectHours(r, e.caseId)} 時辰`
+          : mood === 'hiding' && CH().chase ? '躲著・風火輪追（怨氣 +1）'
+            : collectHours(r, e.caseId) ? `收容 ${collectHours(r, e.caseId)} 時辰＋1 格` : '收容佔 1 格';
+      return { icon: '鬼', title: `${e.place}・${k.dayName}`, cost, color: 0x9fd0ff };
     }
     case 'imp': {
       const rule = CH().imp;
-      const cost = rule.mode === 'scatter' ? `${rule.verb} ${rule.hours} 時辰` : rule.mode === 'decree' ? `${rule.verb}・王令 1 道` : `${rule.verb}・不花時辰`;
+      const cost = rule.mode === 'scatter' ? `${rule.verb} ${rule.hours} 時辰` : rule.mode === 'decree' ? `${rule.verb}・王令 1 道`
+        : impsFlee(r, CH()) ? '見隊伍就逃' : `${rule.verb}・不花時辰`;
       return { icon: '妖', title: `${e.place}・小妖`, cost, color: 0xc9a0ff };
     }
     case 'clue': return { icon: '證', title: `${e.place}・線索`, cost: `${e.hours} 時辰`, color: 0x9fe8c0 };

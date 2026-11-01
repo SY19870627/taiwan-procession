@@ -179,6 +179,95 @@ export class BandScene extends Phaser.Scene {
     this.time.delayedCall(1500, () => { v.destroy(); done(); });
   }
 
+  /** 隊伍裡太子神轎的位置（第三章；其他章取中間） */
+  private palanquin(): { x: number; y: number } {
+    const m = this.members.find((x) => x.img.texture.key === 'w3_palanquin') ?? this.members[Math.floor(this.members.length / 2)];
+    return m ? { x: m.img.x, y: m.img.y - m.img.displayHeight * 0.75 } : { x: 600, y: GROUND_Y - 200 };
+  }
+
+  /**
+   * 乾坤圈（第三章）：圈從太子轎裡轉著飛出去，一隻一隻打爆小妖（水花＋火花），畫面震一下，圈再飛回來。
+   */
+  ring(done: () => void): void {
+    const v = this.visitor;
+    if (!v) return done();
+    this.visitor = undefined;
+    const from = this.palanquin();
+    const r = this.add.image(from.x, from.y, 'x3_ring').setDepth(46).setScale(1.6);
+    this.tweens.add({ targets: r, angle: 720 * 3, duration: 1500 });
+    const imps = v.list.filter((o): o is Phaser.GameObjects.Image => o instanceof Phaser.GameObjects.Image);
+    const hit = (i: number) => {
+      if (i >= imps.length) {
+        // 圈飛回轎上
+        v.destroy();
+        this.tweens.add({ targets: r, x: from.x, y: from.y, scale: 1.2, duration: 420, ease: 'Cubic.in', onComplete: () => { r.destroy(); done(); } });
+        return;
+      }
+      const img = imps[i];
+      img.setData('float', false);
+      const tx = v.x + img.x;
+      const ty = v.y + img.y - img.displayHeight / 2;
+      this.tweens.add({
+        targets: r, x: tx, y: ty, duration: i ? 160 : 300, ease: 'Sine.out',
+        onComplete: () => {
+          this.burst(tx, ty);
+          img.destroy();
+          this.cameras.main.shake(120, 0.006);
+          hit(i + 1);
+        },
+      });
+    };
+    hit(0);
+  }
+
+  /** 小妖炸開：水花＋金色火花 */
+  private burst(x: number, y: number): void {
+    const flash = this.add.circle(x, y, 26, 0xfff1b0, 0.9).setDepth(47);
+    this.tweens.add({ targets: flash, scale: 3, alpha: 0, duration: 320, onComplete: () => flash.destroy() });
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      const d = this.add.circle(x, y, k % 2 ? 7 : 5, k % 2 ? 0x9fd8ff : 0xffb347, 0.95).setDepth(47);
+      this.tweens.add({ targets: d, x: x + Math.cos(a) * 110, y: y + Math.sin(a) * 90 + 40, alpha: 0, duration: 520, ease: 'Cubic.out', onComplete: () => d.destroy() });
+    }
+  }
+
+  /** 風火輪追（或追回被威名嚇跑的鬼）：一道火痕從隊伍衝到牠身後，把牠揪回隊伍前面 */
+  chase(done: () => void): void {
+    const v = this.visitor;
+    if (!v) return done();
+    const from = this.palanquin();
+    const trail = this.add.image(from.x, GROUND_Y - 10, 'x3_firetrail').setOrigin(0, 0.5).setDepth(44).setScale(0.3, 1.2);
+    const wheel = this.add.image(from.x, GROUND_Y - 20, 'x3_wheel').setDepth(45).setScale(1.6);
+    this.tweens.add({ targets: wheel, angle: 1080, duration: 900 });
+    // 牠先往右逃一段
+    this.tweens.add({ targets: v, x: v.x + 220, duration: 300, ease: 'Cubic.out' });
+    this.tweens.add({
+      targets: wheel, x: v.x + 300, duration: 420, delay: 120, ease: 'Cubic.in',
+      onUpdate: () => trail.setScale(Math.max(0.3, (wheel.x - from.x) / 160), 1.2),
+      onComplete: () => {
+        this.cameras.main.shake(150, 0.005);
+        this.tweens.add({ targets: [v], x: this.target, duration: 380, ease: 'Back.out' });
+        this.tweens.add({ targets: wheel, x: from.x, alpha: 0, duration: 420, delay: 100, onComplete: () => wheel.destroy() });
+        this.tweens.add({ targets: trail, alpha: 0, duration: 500, onComplete: () => { trail.destroy(); done(); } });
+      },
+    });
+  }
+
+  /** 太子親斬：火尖槍一道紅光劈下，鬼散成黑煙 */
+  smite(done: () => void): void {
+    const v = this.visitor;
+    if (!v) return done();
+    this.visitor = undefined;
+    const slash = this.add.rectangle(v.x, v.y - 140, 18, 360, 0xff6a3a, 0.9).setDepth(46).setAngle(18).setScale(1, 0);
+    this.tweens.add({ targets: slash, scaleY: 1, duration: 140, yoyo: true, hold: 120, onComplete: () => slash.destroy() });
+    this.cameras.main.shake(260, 0.01);
+    for (let k = 0; k < 8; k++) {
+      const s = this.add.circle(v.x + Phaser.Math.Between(-50, 50), v.y - Phaser.Math.Between(40, 200), Phaser.Math.Between(18, 34), 0x1a1420, 0.7).setDepth(45);
+      this.tweens.add({ targets: s, y: s.y - 120, scale: 2, alpha: 0, duration: 900, delay: 120 + k * 30, onComplete: () => s.destroy() });
+    }
+    this.tweens.add({ targets: v, alpha: 0, duration: 500, delay: 150, onComplete: () => { v.destroy(); done(); } });
+  }
+
   /** 線索、問話拿到了：光點收起來 */
   take(done: () => void): void {
     const v = this.visitor;

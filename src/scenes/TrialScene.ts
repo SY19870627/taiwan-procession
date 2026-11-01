@@ -13,6 +13,7 @@ import { CH, evidenceOf, verdictName } from '../content/chapter';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { flashback } from '../ui/talk';
+import { slayGhost, slayPreview } from '../core/renown';
 import { portraitKey, portraitThumb, type Expr } from '../art/portraits';
 
 const WATCHES = 3;
@@ -277,7 +278,8 @@ export class TrialScene extends Phaser.Scene {
       const why = this.why(k, v);
       let result = v.result;
       if (v.verdict === 'ship') result += '。不加戾氣；王船重一些（最後一戰走得慢一點）';
-      if (v.verdict === 'slay' && k.innocent && unsolved) result += '（若牠有冤：戾氣再 +1，記遺憾）';
+      if (v.verdict === 'slay' && CH().slayRule === 'renown') result += `（${slayPreview(run, k, CH())}）`;
+      else if (v.verdict === 'slay' && k.innocent && unsolved) result += '（若牠有冤：戾氣再 +1，記遺憾）';
       else if (v.verdict === 'slay' && k.innocent) result += '（牠有冤：戾氣再 +1，記遺憾）';
       const g = this.add2(this.add.graphics());
       g.fillStyle(v.verdict === 'slay' ? 0x4a1a1a : v.verdict === 'ship' ? 0x1e3a4a : 0x2f3a4a, why ? 0.35 : 0.85);
@@ -333,9 +335,17 @@ export class TrialScene extends Phaser.Scene {
         lines.push(T.shipLine(name), '不加戾氣・王船重了一些（最後一戰走得慢一點）');
         break;
       case 'slay': {
-        run.liqi = Math.min(3, run.liqi + 1);
         this.cameras.main.flash(300, 255, 255, 255);
         this.cameras.main.shake(300, 0.01);
+        if (CH().slayRule === 'renown') {
+          // 第三章：看斬的是誰（core/renown.ts；與白天快判同一套）
+          const res = slayGhost(run, k, CH());
+          lines.push(T.slayLine(name), res.weiming ? `威名 +${res.weiming}` : res.wronged ? '' : '不加戾氣');
+          if (res.lost.length) lines.push(`沒審清楚就斬：拿不到「${res.lost.map((id) => CH().evidence[id].name).join('、')}」了`);
+          if (res.wronged) lines.push(T.wrongedLine, `牠是有冤的：戾氣 +${res.liqi}・記遺憾`);
+          break;
+        }
+        run.liqi = Math.min(3, run.liqi + 1);
         lines.push(T.slayLine(name), '戾氣 +1');
         if (k.innocent) {
           run.liqi = Math.min(3, run.liqi + 1);

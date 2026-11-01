@@ -6,6 +6,7 @@
 import type { RunState } from '../../state';
 import { gainEvidence } from '../../state';
 import type { Almanac, Card, Epitaph, LedgerLine } from '../believers';
+import { CASES3 } from './cases';
 
 // ---------- 信徒的狀態 ----------
 export interface Believers3 {
@@ -213,7 +214,11 @@ export function ledger3(r: RunState): LedgerLine[] {
     unmet: { who: '何伯', state: '還沒聽他說渡口的舊事（第三天舊渡口線）', tone: 'warn' },
     told: { who: '何伯', state: '說了渡口與溪底的舊事', tone: 'good' },
   };
-  return [bingbo[b.bingbo], akai[b.akai], yashen[b.yashen], aling[b.aling], hebo[b.hebo]];
+  // 斬錯的冤魂：因果簿記下遺憾（白天快判、夜審都算）
+  const regrets: LedgerLine[] = Object.values(CASES3)
+    .filter((k) => r.flags[`wronged_${k.id}`])
+    .map((k) => ({ who: '遺憾', state: `斬了有冤的${k.name}：${k.truths[0]?.summary ?? ''}`, tone: 'bad' }));
+  return [bingbo[b.bingbo], akai[b.akai], yashen[b.yashen], aling[b.aling], hebo[b.hebo], ...regrets];
 }
 
 /** 最後一戰的狀況（白天累積的結果） */
