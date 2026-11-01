@@ -13,13 +13,13 @@ export const WEIMING_MAX = 5;
 export const IMP_FLEE_AT = 1;
 /** 威名 ≥2：路上的鬼（不分善惡）看到隊伍就逃，追回要 1 時辰 */
 export const SCARE_AT = 2;
-/** 威名 ≥2／≥4：惡鬼夜審開場氣焰 -1／-2（第 4 階段用） */
+/** 威名 ≥2／≥4：惡鬼夜審開場氣焰 -1／-2（core/dianjiang.ts 的 startFlare） */
 export const FLARE_CUT_AT = [2, 4] as const;
 /** 威名讓鬼逃走時，追回要幾個時辰 */
 export const CATCH_HOURS = 1;
 /** 北營看相要幾個時辰 */
 export const LOOK_HOURS = 1;
-/** 路邊點將要幾個時辰（第 4 階段接上畫面） */
+/** 路邊點將要幾個時辰（DayScene.roadside） */
 export const ROADSIDE_HOURS = 1;
 
 /** 章節規則（只取這裡需要的，測試時不用整個 ChapterDef） */
@@ -62,7 +62,7 @@ export function impsFlee(r: Pick<RunState, 'weiming'>, rules: Rules = {}): boole
   return rules.slayRule === 'renown' && r.weiming >= IMP_FLEE_AT;
 }
 
-/** 威名讓惡鬼夜審開場氣焰少幾格（第 4 階段點將問罪用） */
+/** 威名讓惡鬼夜審開場氣焰少幾格（點將問罪的開場氣焰） */
 export function flareCut(weiming: number): number {
   return FLARE_CUT_AT.filter((t) => weiming >= t).length;
 }
@@ -136,12 +136,12 @@ export function escortGhost(r: RunState, k: GhostCase): void {
   r.held = r.held.filter((h) => h.id !== k.id);
 }
 
-/** 斬之前，卡上寫明的後果（看過相就寫確定的，沒看過就兩種都寫） */
-export function slayPreview(r: RunState, k: GhostCase, rules: Rules = {}): string {
+/** 斬之前，卡上寫明的後果（看過相、或真相全查明（known）就寫確定的，否則三種都寫） */
+export function slayPreview(r: RunState, k: GhostCase, rules: Rules = {}, known = false): string {
   if (rules.slayRule !== 'renown') return k.innocent ? '戾氣 +2（有冤）' : '戾氣 +1';
   const lostNames = (k.dropsOnTrial ?? []).filter((id) => !r.evidence.includes(id));
   const villain = `真惡：${exposed(r, k) ? '威名 +1' : '還沒揭穿，威名不加'}${lostNames.length ? '；沒審就斬，拿不到牠身上的線索' : ''}`;
-  if (!isLooked(r, k.id)) return '十惡威名 +1；冤魂戾氣 +1、記遺憾；真惡要揭穿過才加威名（先請北營看相才知道是哪種）';
+  if (!isLooked(r, k.id) && !known) return '十惡威名 +1；冤魂戾氣 +1、記遺憾；真惡要揭穿過才加威名（先請北營看相才知道是哪種）';
   const n = natureOf(k);
   if (n === 'wicked') return '十惡：威名 +1，不加戾氣';
   if (n === 'villain') return villain;

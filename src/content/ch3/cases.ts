@@ -14,8 +14,9 @@
  * 十惡小咖：抓交替的水鬼、火煞、偷香火的鼠妖。
  * 小咖冤魂（大綱只說「兩個」，名字與人設是自行決定的，見計畫 D1、Q1）：哨仔伯、阿旺【待定】。
  *
- * 為了在點將問罪畫面完成前（第 4 階段）也能用舊的「審問供詞」畫面審，
- * 每一案的 statements／press／truths 由 taunts 自動產生：每句狠話就是一句供詞，點對的證據就是出示的證據。
+ * 點將問罪的規則在 core/dianjiang.ts、畫面在 ui/dianjiang.ts（第 4 階段）。
+ * 每一案的 statements／press／truths 仍由 taunts 自動產生（每句狠話＝一句供詞、點對的證據＝出示的證據），
+ * 讓共用的部分（營旗格的「查明幾層」、因果簿、信徒錄、真相回憶）照舊能用。
  * 遊戲中一律用虛構名稱。
  */
 import type { Camp, Evidence, GhostCase, Nature, Taunt, Truth, VerdictDef } from '../cases';

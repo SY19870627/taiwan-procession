@@ -51,7 +51,7 @@ export interface RunState {
   /** 戾氣 0–3：斬鬼會上升，鬼魂會躲起來或逃走 */
   liqi: number;
   /** 每個案子的結果 */
-  cases: Record<string, { verdict?: import('./content/cases').Verdict; escaped?: boolean; truths: number[] }>;
+  cases: Record<string, { verdict?: import('./content/cases').Verdict; escaped?: boolean; truths: number[]; dj?: import('./core/dianjiang').DjProgress }>;
   /** 最後一戰多出來的小妖波數（神蹟、沒驅散的小妖） */
   bossAdds: number;
   /** 戰鬥失敗重來的次數 */

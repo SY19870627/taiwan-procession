@@ -5,7 +5,7 @@
  *
  * 進度見 docs/第三章_開發計畫.md。第 1 階段只有資料；規則與畫面在之後的階段接上：
  *  - 乾坤圈動畫、威名、看相、快判、風火輪追（第 3 階段：core/renown.ts、DayScene）
- *  - 點將問罪畫面、每晚 2 案、壓一晚（第 4 階段；在那之前夜審沿用「審問供詞」畫面）
+ *  - 點將問罪畫面、每晚 2 案、壓一晚、路邊點將（第 4 階段：core/dianjiang.ts、ui/dianjiang.ts、TrialScene）
  *  - 蛟的 jiao 模式（第 5 階段；在那之前借用第一章的模式）
  */
 import type { ChapterDef } from '../chapter';
@@ -78,7 +78,7 @@ export const CHAPTER3: ChapterDef = {
     ask: '逼問', show: '點將',
     record: '章將軍記下',
     wrongTail: '點錯了。牠嗆了回來，太子的火氣上來了。',
-    rule: '點錯了牠會嗆回來；（第 4 階段：怒氣滿 3，太子直接斬）',
+    rule: '點錯了牠會嗆回來，太子怒氣 +1；怒氣滿 3，太子直接斬',
     again: '章將軍：「太子，別急，再問一輪。」',
     recruitSay: '「願入五營，聽太子差遣。」',
     slayLine: (n) => `太子：「不必多言。」\n火尖槍一落，${n}散成一縷黑煙。`,

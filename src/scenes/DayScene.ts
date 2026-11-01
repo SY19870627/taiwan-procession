@@ -13,6 +13,8 @@ import { button, floatText, fullscreenButton, go, panel, txt, type Button } from
 import { BandScene, type Visitor } from './BandScene';
 import { splitStory, talk } from '../ui/talk';
 import { portraitKey, portraitThumb } from '../art/portraits';
+import { muted } from '../core/dianjiang';
+import { openDianjiang } from '../ui/dianjiang';
 import { CATCH_HOURS, LOOK_HOURS, LOOK_TAG, ROADSIDE_HOURS, WEIMING_MAX, collectGrudge, escortGhost, impsFlee, isLooked, lookAt, natureOf, slayGhost, slayPreview, truthReel, weimingText } from '../core/renown';
 import { flashback } from '../ui/talk';
 import { banter } from '../ui/banter';
@@ -334,10 +336,27 @@ export class DayScene extends Phaser.Scene {
       },
       {
         label: '路邊點將', sub: `${ROADSIDE_HOURS} 時辰・審一輪狠話`,
-        why: '第 4 階段開放',
-        onPick: () => undefined,
+        why: muted(run, k) ? '牠縮起來不肯開口' : this.hoursWhy(ROADSIDE_HOURS),
+        fill: 0x8a5a14,
+        onPick: () => { close(); this.roadside(k); },
       },
     ];
+  }
+
+  /**
+   * 路邊點將：花 1 時辰，在白天畫面上開點將問罪（與夜審同一個畫面，ui/dianjiang.ts）。
+   * 只審一輪狠話；不佔今晚的 2 案名額。進度（氣焰、查明的真相）留著，晚上接著審；跪了可以當場判決。
+   */
+  private roadside(k: GhostCase): void {
+    if (this.busy || !this.spend(ROADSIDE_HOURS)) return;
+    this.busy = true;
+    openDianjiang(this, {
+      k, mode: 'roadside', day: this.plan.day,
+      onClose: () => {
+        this.busy = false;
+        this.afterQuick();
+      },
+    });
   }
 
   /** 營旗格做完快判或看相：格子、上方資訊重畫，面板上的卡片也重畫（格子可能空出來了） */

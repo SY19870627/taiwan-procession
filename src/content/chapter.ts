@@ -47,7 +47,7 @@ export interface General {
 }
 
 export interface TrialStyle {
-  /** interrogate：審問供詞；dossier：調閱案卷；dianjiang：點將問罪（第三章，第 4 階段實作畫面，之前沿用審問供詞） */
+  /** interrogate：審問供詞；dossier：調閱案卷；dianjiang：點將問罪（第三章；core/dianjiang.ts、ui/dianjiang.ts） */
   style: 'interrogate' | 'dossier' | 'dianjiang';
   /** 每晚能審幾案（沒寫＝不限） */
   perNight?: number;
