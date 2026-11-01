@@ -60,13 +60,14 @@ export class BossScene extends Phaser.Scene {
     this.cameras.main.setViewport(0, BAND_Y, W, BAND_H).setZoom(ZOOM).centerOn(FW / 2, FH / 2);
     this.cameras.main.fadeIn(500, 10, 8, 18);
     if (this.escort) this.drawBeach();
+    else if (CH().look === 'plain') this.drawRiver();
     else this.drawBackground();
     const glow = this.add.circle(this.battle.palanquin.x, GROUND_Y - 80, 110, 0xffd76a, 0.12).setDepth(5);
     this.tweens.add({ targets: glow, scale: 1.15, alpha: 0.22, duration: 1300, yoyo: true, repeat: -1 });
     if (this.escort) {
       this.palImg = this.add.image(this.battle.palanquin.x + 10, GROUND_Y + 14, 'wangchuan').setOrigin(0.5, 1).setScale(0.95).setDepth(18);
     } else {
-      this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 10, 'palanquin').setOrigin(0.5, 1).setScale(0.78 * BIG).setDepth(20);
+      this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 10, CH().look === 'plain' ? 'w3_palanquin' : 'palanquin').setOrigin(0.5, 1).setScale(0.78 * BIG).setDepth(20);
     }
     this.palHp = this.add.graphics().setDepth(210);
     this.ropes = this.add.graphics().setDepth(19);
@@ -96,6 +97,33 @@ export class BossScene extends Phaser.Scene {
       const l = this.add.image(30 + i * 120, 150 + Math.abs(Math.sin(i * 0.9)) * 18, 'lantern').setScale(0.7).setDepth(-60);
       this.tweens.add({ targets: l, angle: { from: -3, to: 3 }, duration: 1500 + i * 70, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
+  }
+
+  /**
+   * 第三章：疾水溪舊渡口的夜（【暫代美術】程式畫）。遠方對岸與鐵橋、倒流的溪面、近岸護岸與蘆葦、
+   * 岸邊插著五營旗竿與何伯的茶攤；太子殿在隊伍後面。第 5 階段的 jiao 模式沿用這個背景。
+   */
+  private drawRiver(): void {
+    const sky = this.add.graphics().setDepth(-100);
+    sky.fillGradientStyle(0x050a16, 0x050a16, 0x1a2440, 0x1a2440, 1);
+    sky.fillRect(0, 0, FW, GROUND_Y);
+    this.add.circle(FW * 0.14, 100, 38, 0xfff3c4, 0.85).setDepth(-99);
+    for (let i = 0; i < 30; i++) this.add.circle(Phaser.Math.Between(0, FW), Phaser.Math.Between(10, 220), 1.5, 0xffffff, Phaser.Math.FloatBetween(0.3, 0.8)).setDepth(-99);
+    this.add.tileSprite(0, GROUND_Y - 170, FW, 200, 'x3_riverFarN').setOrigin(0, 1).setDepth(-95);
+    const water = this.add.tileSprite(0, GROUND_Y - 88, FW, 90, 'x3_waterN').setOrigin(0, 1).setDepth(-94);
+    // 溪水倒流（往右）
+    this.tweens.add({ targets: water, tilePositionX: -4000, duration: 60000, repeat: -1 });
+    this.add.tileSprite(0, GROUND_Y - 88, FW, 24, 'x3_leveeN').setOrigin(0, 1).setDepth(-93);
+    // 右邊（蛟那邊）越來越暗
+    const dark = this.add.graphics().setDepth(-90);
+    for (let i = 0; i < 24; i++) {
+      dark.fillStyle(0x020610, 0.025 * i);
+      dark.fillRect(FW * 0.6 + i * 22, 0, 22, GROUND_Y - 60);
+    }
+    this.add.image(this.battle.palanquin.x - 40, GROUND_Y - 84, 'temple_taizi').setOrigin(0.5, 1).setScale(0.5).setDepth(-92).setTint(0x8a8ab0);
+    this.add.tileSprite(0, GROUND_Y - 90, FW, FH - GROUND_Y + 90, 'x3_levroadN').setOrigin(0, 0).setDepth(-70);
+    const props: [string, number][] = [['x3_reedsN', 20], ['x3_teastallN', 160], ['x3_flagpoleN', 430], ['x3_reedsN', 620], ['x3_stepsN', 820], ['x3_reedsN', 1060]];
+    for (const [k, x] of props) this.add.image(x, GROUND_Y - 88, k).setOrigin(0, 1).setDepth(-65);
   }
 
   /** 第二章：大鵬澳的夜。遠方是海和漁火，腳下是沙灘；王船往右走，沙灘往左捲 */
@@ -156,8 +184,10 @@ export class BossScene extends Phaser.Scene {
       const img = this.add.image((i - (keys.length - 1) / 2) * 34 * BIG, (i % 2) * 6, k).setOrigin(0.5, 1);
       const boss = k === 'shiju';
       const big = k === 'heichao';
-      img.setScale(big ? 1.25 : (enemy ? (boss ? 0.95 : 0.9) : 0.72) * BIG);
-      img.setFlipX(enemy && !big && k !== 'chu');
+      // 蛟的圖本來就面向左（隊伍那邊），不翻
+      const jiao = k === 'jiao';
+      img.setScale(big ? 1.25 : jiao ? 0.8 : (enemy ? (boss ? 0.95 : 0.9) : 0.72) * BIG);
+      img.setFlipX(enemy && !big && !jiao && k !== 'chu');
       if (ghost) img.setTint(0x9ad0ff).setAlpha(0.8);
       img.setData('bx', img.x);
       return img;
@@ -194,7 +224,7 @@ export class BossScene extends Phaser.Scene {
     this.ropes.clear();
     for (const e of b.enemies) {
       const boss = e === b.boss;
-      const tex = boss ? (this.escort ? 'heichao' : 'shiju') : e.id;
+      const tex = boss ? (this.escort ? 'heichao' : CH().look === 'plain' ? 'jiao' : 'shiju') : e.id;
       const v = this.viewFor(e.uid, [tex], true);
       seen.add(e.uid);
       v.c.x = e.x;

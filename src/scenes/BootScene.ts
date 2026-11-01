@@ -28,7 +28,9 @@ export class BootScene extends Phaser.Scene {
       // ?ch=dongjin 指定章節
       const ch = q.get('ch');
       if (ch) startChapter(ch);
-      this.scene.start(jump, { day: n, night: n, id: q.get('id') ?? 'dusk3', prologue: q.get('prologue') === '1' });
+      // ?scene=cut&kind=boss 看過場（depart／dusk／dawn／boss），看完回標題
+      const kind = q.get('kind') ?? 'depart';
+      this.scene.start(jump, { day: n, night: n, id: q.get('id') ?? 'dusk3', prologue: q.get('prologue') === '1', kind, title: kind, next: { key: 'title' } });
       return;
     }
     this.scene.start('title');

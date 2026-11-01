@@ -29,6 +29,8 @@ export class DayScene extends Phaser.Scene {
   private side!: Phaser.GameObjects.Container;
   private queue: (Encounter | 'fork')[] = [];
   private idx = 0;
+  /** 岔路換了街景時：會合後（queue 的這一格起）換回當天的街景 */
+  private rejoinAt = -1;
   private busy = false;
 
   constructor() {
@@ -49,6 +51,7 @@ export class DayScene extends Phaser.Scene {
     this.busy = false;
     this.queue = [...this.plan.pre, 'fork'];
     this.idx = 0;
+    this.rejoinAt = -1;
     this.cameras.main.fadeIn(400, 10, 8, 18);
 
     const bg = this.add.graphics();
@@ -60,7 +63,7 @@ export class DayScene extends Phaser.Scene {
     this.side = this.add.container(0, 0);
 
     // 上方隊伍畫面
-    this.scene.launch('band', { y: BAND_Y, theme: this.plan.theme, hour: this.hourNow(), line: CH().band(day) });
+    this.scene.launch('band', { y: BAND_Y, theme: this.plan.theme, hour: this.hourNow(), line: CH().band(day), reverse: this.plan.reverseRiver });
     this.band = this.scene.get('band') as BandScene;
     this.events.once('shutdown', () => this.scene.stop('band'));
     const fr = this.add.graphics().setDepth(5);
@@ -258,6 +261,11 @@ export class DayScene extends Phaser.Scene {
       this.idx++;
     }
     if (this.idx >= this.queue.length) return this.endRoute();
+    if (this.rejoinAt >= 0 && this.idx >= this.rejoinAt) {
+      // 兩條路會合：街景換回當天的
+      this.rejoinAt = -1;
+      return this.band.setTheme(this.plan.theme, this.hourNow(), () => this.next());
+    }
     const e = this.queue[this.idx++];
     if (e === 'fork') return this.showFork();
     this.band.approach(this.visitorOf(e), () => this.show(e));
@@ -589,7 +597,12 @@ export class DayScene extends Phaser.Scene {
     this.idx = 0;
     this.panelMsg(`走${route.id}線・${route.name}`, '隊伍轉進巷子。');
     this.busy = true;
-    this.band.walk(700, () => { this.busy = false; this.next(); });
+    const walk = () => this.band.walk(700, () => { this.busy = false; this.next(); });
+    // 第三章：岔路後換街景（例如庄頭線進鴨母寮），會合後換回來
+    if (route.theme && route.theme !== this.plan.theme) {
+      this.rejoinAt = this.plan.post.length ? route.encounters.length : -1;
+      this.band.setTheme(route.theme, this.hourNow(), walk);
+    } else walk();
   }
 
   // ---------- 一天結束 ----------

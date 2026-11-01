@@ -9,6 +9,8 @@
  *  - 蛟的 jiao 模式（第 5 階段；在那之前借用第一章的模式）
  */
 import type { ChapterDef } from '../chapter';
+import { run } from '../../state';
+import { bandLine3 } from '../../art/xinyingSpec';
 import { SKILLS } from '../../core/boss';
 import { CASES3, EVIDENCE3 } from './cases';
 import { CARDS3, PROLOGUE3, PROLOGUE_JIAO3, bossEffects3, epitaphs3, ghostEpitaphs3, jiaoEpitaph, ledger3, newBelievers3 } from './believers';
@@ -31,11 +33,8 @@ export const CHAPTER3: ChapterDef = {
   prologueLine: '炳伯：「九月初九快到了……請示太子，今年出不出營。」',
   days: DAY_PLANS3,
   // 白天：五營旗 → 東營章將軍 → 南營霄將軍 → 太子神轎（中營）→ 西營柳將軍 → 北營廉將軍 → 營兵
-  // 【第 1 階段暫代】隊伍圖第 2 階段重畫（五色營旗、太子轎、營兵依收編數量變多）
-  band: () => [
-    ['w3_flags', 860, 0.8], ['w3_zhang', 740, 0.72], ['w3_xiao', 670, 0.72], ['palanquin', 500, 0.78],
-    ['w3_liu', 340, 0.72], ['w3_lian', 270, 0.72], ['w3_soldier', 160, 0.7], ['w3_soldier', 90, 0.7],
-  ],
+  // 營兵依收編（編入五營）的數量變多（art/xinyingSpec.ts 的 bandLine3）
+  band: () => bandLine3(Object.values(run.cases).filter((c) => c.verdict === 'recruit').length),
   cases: CASES3,
   evidence: EVIDENCE3,
   cards: CARDS3,

@@ -11,10 +11,10 @@ import type { FinaleRound } from '../finale';
 
 /** 五將與收編的鬼（數值是暫代，第 5 階段依 jiao 模式重訂；第 7 階段平衡定案） */
 export const MEMBER_STATS3: Record<string, MemberStats & { tex: string[]; desc: string }> = {
-  zhang: { key: 'zhang', name: '東營・章將軍', role: 'melee', hp: 300, atk: 20, cd: 1.3, range: 170, aoe: 0, guard: 0.9, trait: 'block', tex: ['w3_zhang'], desc: '前排肉盾：格擋，替前排隊友擋一下' },
-  xiao: { key: 'xiao', name: '南營・霄將軍', role: 'melee', hp: 200, atk: 28, cd: 1.1, range: 170, aoe: 60, guard: 1, tex: ['w3_xiao'], desc: '前排爆發：和太子同在前排觸發合擊' },
-  liu: { key: 'liu', name: '西營・柳將軍', role: 'ranged', hp: 110, atk: 22, cd: 1.6, range: 600, aoe: 0, guard: 1, tex: ['w3_liu'], desc: '後排遠程：專打頭目，可以射斷拖人' },
-  lian: { key: 'lian', name: '北營・廉將軍', role: 'support', hp: 160, atk: 10, cd: 1.6, range: 480, aoe: 60, guard: 1, trait: 'frost', tex: ['w3_lian'], desc: '控場：定身；在前排時翻江減傷' },
+  zhang: { key: 'zhang', name: '東營・章將軍', role: 'melee', hp: 300, atk: 20, cd: 1.3, range: 170, aoe: 0, guard: 0.9, trait: 'block', tex: ['b3_zhang'], desc: '前排肉盾：格擋，替前排隊友擋一下' },
+  xiao: { key: 'xiao', name: '南營・霄將軍', role: 'melee', hp: 200, atk: 28, cd: 1.1, range: 170, aoe: 60, guard: 1, tex: ['b3_xiao'], desc: '前排爆發：和太子同在前排觸發合擊' },
+  liu: { key: 'liu', name: '西營・柳將軍', role: 'ranged', hp: 110, atk: 22, cd: 1.6, range: 600, aoe: 0, guard: 1, tex: ['b3_liu'], desc: '後排遠程：專打頭目，可以射斷拖人' },
+  lian: { key: 'lian', name: '北營・廉將軍', role: 'support', hp: 160, atk: 10, cd: 1.6, range: 480, aoe: 60, guard: 1, trait: 'frost', tex: ['b3_lian'], desc: '控場：定身；在前排時翻江減傷' },
   // 收編（編入五營）的鬼
   hutou: { key: 'hutou', name: '南營・扛轎虎頭', role: 'melee', hp: 360, atk: 18, cd: 1.4, range: 170, aoe: 0, guard: 0.75, tex: ['g3_hutou'], desc: '收編：扛轎，最耐打的前排' },
   yamupo: { key: 'yamupo', name: '北營・鴨母婆', role: 'support', hp: 120, atk: 8, cd: 1.6, range: 480, aoe: 70, guard: 1, trait: 'slow', tex: ['g3_yamupo'], desc: '收編：鴨群讓蝦兵變慢' },

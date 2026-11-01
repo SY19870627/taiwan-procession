@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { loadPortraits } from '../art/portraits';
+import { BG_FILES } from '../art/xinyingSpec';
 
 /**
  * 背景載入立繪圖檔：遊戲一開就在背後載，不擋畫面。
@@ -13,5 +14,7 @@ export class AssetScene extends Phaser.Scene {
   preload(): void {
     this.load.on('loaderror', (f: Phaser.Loader.File) => console.warn('立繪載入失敗', f.key));
     loadPortraits(this);
+    // 第三章的正式背景圖（有放進 public/bg/ 才會列在 BG_FILES；沒有就用程式畫的暫代美術）
+    for (const k of BG_FILES) this.load.image(k, `bg/${k}.webp`);
   }
 }

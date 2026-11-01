@@ -1,33 +1,25 @@
 /**
  * 第三章「新瀛・太子出營」的美術（程式繪製）。
  *
- * 【暫代美術】第 1 階段只先畫「小人」：五將、營兵、九個鬼、信徒與路人、五色營旗、蝦兵，
- * 讓白天、夜審、最後一戰引用得到貼圖、不會當掉。
- * 三張新背景（庄頭街景、鴨母寮、溪邊渡口）、太子轎、蛟與戰鬥圖在第 2 階段補齊（見 docs/第三章_開發計畫.md §5）。
- * 有立繪的角色（太子、五將、鬼、信徒）在對話、夜審時用立繪；這裡的小人只在隊伍帶、卡片小圖示上出現。
+ * 【暫代美術】全部程式繪製（見 docs/第三章_開發計畫.md §5），之後可換正式圖：
+ *  - 隊伍：五色營旗、太子神轎、四將步行小人、營兵（扛東南西北中五色小旗）
+ *  - 九個鬼、信徒與路人的小人（隊伍帶、卡片小圖示用；對話與夜審用立繪）
+ *  - 戰鬥圖：太子（出轎、踩風火輪）、四將（戰鬥姿勢）、蛟（平常／浪頭升起）、蝦兵、乾坤圈、風火輪火痕、水牆
+ *  - 三張背景（庄頭街景、鴨母寮、溪邊渡口）在 art/xinyingScenery.ts
  */
 import Phaser from 'phaser';
-import { make, person, type G } from './figures';
+import { drawPalanquin, make, person } from './figures';
 import { makeTemple } from './backdrop';
+import { makeXinyingScenery } from './xinyingScenery';
+import { makeXinyingBattle, pennant, ring } from './xinyingBattle';
+import { CAMP_COLORS, CAMP_ORDER } from './xinyingSpec';
 
-/** 五營的顏色：東青、南紅、西白、北黑、中黃 */
-export const CAMP_COLORS = { east: 0x2f8f5a, south: 0xc8372d, west: 0xe8e4da, north: 0x2a2a34, center: 0xe9b949 } as const;
-
-/** 一面三角小旗 */
-function pennant(g: G, x: number, y: number, len: number, color: number): void {
-  g.fillStyle(color, 1);
-  g.beginPath();
-  g.moveTo(x, y);
-  g.lineTo(x + len, y + len * 0.35);
-  g.lineTo(x, y + len * 0.7);
-  g.closePath();
-  g.fillPath();
-  g.lineStyle(2, 0xe9b949, 1);
-  g.strokePath();
-}
+export { CAMP_COLORS, CAMP_ORDER } from './xinyingSpec';
 
 export function makeXinying(scene: Phaser.Scene): void {
   makeTemple(scene, 'temple_taizi', '太子殿');
+  makeXinyingScenery(scene);
+  makeXinyingBattle(scene);
 
   // 五色營旗：一根竹竿上五面三角旗（白天隊伍最前面、營旗下的圖示）
   make(scene, 'w3_flags', 120, 210, (g, w, h) => {
@@ -45,12 +37,26 @@ export function makeXinying(scene: Phaser.Scene): void {
   general('w3_xiao', CAMP_COLORS.south, 0xe9b949, 'club');
   general('w3_liu', 0xd8d4ca, 0x6a6a7a, 'flag');
   general('w3_lian', CAMP_COLORS.north, 0x7a8aa0, 'chain');
-  // 營兵：拿著營旗的小兵（收編越多畫越多，第 2 階段做）
-  make(scene, 'w3_soldier', 80, 116, (g, w, h) => {
+  // 營兵：扛著小營旗的小兵；收編越多隊伍後面越多（xinyingSpec 的 bandLine3），小旗依東南西北中輪流上色
+  const soldier = (key: string, flag: number) => make(scene, key, 80, 116, (g, w, h) => {
     person(g, w, h, { robe: 0x6a5a3a, trim: 0xe9b949, pants: 0x2a2a30, tall: 0.92, hat: 'helmet', hatColor: 0x3a3a3a, item: 'none' });
     g.fillStyle(0x8a6a3a, 1);
     g.fillRect(w / 2 + 12, 10, 3, h - 30);
-    pennant(g, w / 2 + 15, 12, 22, CAMP_COLORS.center);
+    pennant(g, w / 2 + 15, 12, 22, flag);
+  });
+  soldier('w3_soldier', CAMP_COLORS.center);
+  CAMP_ORDER.forEach((camp, i) => soldier(`w3_soldier${i}`, CAMP_COLORS[camp]));
+
+  // 太子神轎（中營）：紅轎身、轎班穿中營黃、轎頂一圈乾坤圈、後面飄著混天綾
+  make(scene, 'w3_palanquin', 230, 200, (g, w, h) => {
+    // 混天綾（紅綢帶）從轎頂往後飄
+    g.lineStyle(7, 0xd8372d, 0.9);
+    g.beginPath();
+    g.moveTo(w / 2 - 20, h - 150);
+    for (let k = 1; k <= 8; k++) g.lineTo(w / 2 - 20 - k * 11, h - 150 + Math.sin(k * 0.9) * 12 + k * 2);
+    g.strokePath();
+    drawPalanquin(g, w, h, { shirt: 0xe9c13a, body: 0xb3261e, roof: 0xc8372d, sash: 0xb3261e });
+    ring(g, w / 2, h - 176, 9, 3);
   });
 
   // 九個鬼

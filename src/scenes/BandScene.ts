@@ -20,6 +20,8 @@ export interface BandData {
   hour: number;
   /** 隊伍的排列：貼圖、x、大小（面向右邊前進） */
   line: [string, number, number][];
+  /** 溪水倒流（第三章第三天） */
+  reverse?: boolean;
 }
 
 /** 路上遇到的東西長什麼樣子 */
@@ -38,6 +40,7 @@ export class BandScene extends Phaser.Scene {
   private target = 0;
   private arrive?: () => void;
   private t = 0;
+  private reverse = false;
 
   constructor() {
     super('band');
@@ -54,7 +57,8 @@ export class BandScene extends Phaser.Scene {
     this.arrive = undefined;
     this.cameras.main.setViewport(0, data.y, W, BandScene.height()).setZoom(ZOOM).centerOn(FW / 2, CROP + (FH - CROP) / 2);
     this.cameras.main.fadeIn(400, 10, 8, 18);
-    this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour });
+    this.reverse = !!data.reverse;
+    this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour, reverse: this.reverse });
     // 隊伍（每一章不同，見 content/chapter.ts 的 band）
     for (const [key, x, sc] of data.line) {
       const img = this.add.image(x, GROUND_Y + 10, key).setOrigin(0.5, 1).setScale(sc * BIG).setDepth(20 + x / 100);
@@ -64,6 +68,19 @@ export class BandScene extends Phaser.Scene {
 
   setHour(hour: number): void {
     this.street.setHour(hour);
+  }
+
+  /** 換街景（第三章岔路後：庄頭線進鴨母寮，會合後回到庄頭）：畫面暗一下再換 */
+  setTheme(theme: StreetTheme, hour: number, done?: () => void): void {
+    if (this.street.themeName === theme) return done?.();
+    const cam = this.cameras.main;
+    cam.fadeOut(220, 10, 8, 18);
+    cam.once('camerafadeoutcomplete', () => {
+      this.street.destroy();
+      this.street = new Street(this, { night: false, theme, hour, reverse: this.reverse });
+      cam.fadeIn(320, 10, 8, 18);
+      done?.();
+    });
   }
 
   /** 隊伍往前走一段（純走路，沒有東西） */
@@ -173,6 +190,7 @@ export class BandScene extends Phaser.Scene {
   update(_t: number, dms: number): void {
     const dt = Math.min(0.05, dms / 1000);
     this.t += dt;
+    if (!this.walking) this.street.idle(dt);
     if (this.walking) {
       this.street.update(dt, SPEED);
       if (this.visitor) {

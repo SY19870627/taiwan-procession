@@ -51,8 +51,8 @@ export interface Cutscene {
   /** 畫面色調：妖怪視角是紫色，廟裡是金色 */
   mood: 'demon' | 'temple' | 'dawn';
   place: string;
-  /** 遠景：海邊（第二章） */
-  bg?: 'sea';
+  /** 遠景：海邊（第二章）、溪邊（第三章疾水溪） */
+  bg?: 'sea' | 'river';
   /** 神明視角時的廟 */
   temple?: string;
   lines: Line[];
@@ -102,6 +102,7 @@ export const CUTSCENES: Record<string, Cutscene> = {
   jiao3: {
     mood: 'demon',
     place: '疾水溪・收營夜',
+    bg: 'river',
     lines: [
       { who: 'narrator', text: '溪水倒流了一整天。入夜，疾水溪的水面整個鼓了起來。' },
       { who: 'jiao', text: '哪來的小鬼，在我的溪邊插旗子？' },
@@ -112,6 +113,7 @@ export const CUTSCENES: Record<string, Cutscene> = {
   jiaoRecall: {
     mood: 'dawn',
     place: '疾水溪・天將亮',
+    bg: 'river',
     lines: [
       { who: 'jiaoCalm', text: '……我輸了。' },
       { who: 'taizi', text: '我只是缺一隻坐騎。', expr: 'pout', fx: 'flash' },

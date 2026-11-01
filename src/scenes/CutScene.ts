@@ -5,6 +5,7 @@
  *  - dawn：雞啼天亮。天色由暗轉亮，太陽升起。
  *  - boss：魔王現身（石駒：山在震，紫色煞氣裡走出石馬；黑潮：海面隆起，浪裡浮出人臉）。
  * 第二章在漁港：遠景換成海和漁船，廟換成代天府。
+ * 第三章在嘉南平原（look: 'plain'）：遠景是平原與糖廠煙囪、近景是紅磚平房與五營旗竿；蛟從疾水溪裡升起。
  */
 import Phaser from 'phaser';
 import { C, H, W, lerpColor } from '../theme';
@@ -51,13 +52,21 @@ export class CutScene extends Phaser.Scene {
 
     let len = 3600;
     const harbor = CH().look === 'harbor';
+    const plain = CH().look === 'plain';
     const far = (night: boolean, y = G - 40) => harbor
       ? this.add.tileSprite(0, y + 10, W, 200, night ? 'seaFarN' : 'seaFar').setOrigin(0, 1)
-      : this.add.tileSprite(0, y, W, 260, night ? 'mtnFarN' : 'mtnFar').setOrigin(0, 1);
+      : plain
+        ? this.add.tileSprite(0, y + 40, W, 230, night ? 'x3_plainFarN' : 'x3_plainFar').setOrigin(0, 1)
+        : this.add.tileSprite(0, y, W, 260, night ? 'mtnFarN' : 'mtnFar').setOrigin(0, 1);
+    // 起駕時路邊的房子：第三章是紅磚平房、柑仔店、五營旗竿
+    const PLAIN_ROW = ['x3_house0', 'x3_flagpole', 'x3_shop', 'x3_house1', 'x3_pole', 'x3_house2'];
     if (data.kind === 'depart') {
       paintSky(0x8ec8f0, 0xf6e7c8);
       far(false).setAlpha(0.8);
-      for (let i = 0; i < 4; i++) this.add.image(i * 230 - 40, G + 4, harbor ? `hshop${(i * 3) % 8}` : `shop${(i * 3) % 8}`).setOrigin(0, 1);
+      if (plain) {
+        let x = -20;
+        for (const k of PLAIN_ROW) x += this.add.image(x, G + 4, k).setOrigin(0, 1).width + 6;
+      } else for (let i = 0; i < 4; i++) this.add.image(i * 230 - 40, G + 4, harbor ? `hshop${(i * 3) % 8}` : `shop${(i * 3) % 8}`).setOrigin(0, 1);
       ground();
       // 隊伍從左邊走進來（用這一章白天的隊伍）
       const line = this.add.container(-560, G + 90).setDepth(10);
@@ -131,6 +140,23 @@ export class CutScene extends Phaser.Scene {
       this.tweens.add({ targets: tide, alpha: 1, y: G + 30, scale: 1.1, duration: 2000, delay: 400, ease: 'Cubic.out' });
       this.time.delayedCall(300, () => { this.cameras.main.shake(1600, 0.005); });
       this.time.delayedCall(2200, () => { this.cameras.main.flash(200, 80, 120, 200); });
+      len = 3800;
+    } else if (data.kind === 'boss' && plain) {
+      // 蛟現身：疾水溪的水倒流、浪頭鼓起，蛟從溪裡升起
+      paintSky(0x050a16, 0x1a2440);
+      this.add.circle(W * 0.2, H * 0.14, 34, 0xfff3c4, 0.8);
+      this.add.tileSprite(0, G - 110, W, 200, 'x3_riverFarN').setOrigin(0, 1).setDepth(1);
+      const river = this.add.tileSprite(0, G - 110, W, 150, 'x3_waterN').setOrigin(0, 0).setDepth(2);
+      this.tweens.add({ targets: river, tilePositionX: -600, duration: 3800 });
+      const bank = this.add.graphics().setDepth(5);
+      bank.fillStyle(0x2a2a32, 1);
+      bank.fillRect(0, G + 40, W, H - G - 40);
+      this.add.image(0, G + 44, 'x3_reedsN').setOrigin(0, 1).setDepth(6);
+      this.add.image(W - 150, G + 44, 'x3_reedsN').setOrigin(0, 1).setDepth(6);
+      const jiao = this.add.image(W * 0.62, G + 220, 'jiao_rise').setOrigin(0.5, 1).setScale(1.1).setAlpha(0).setDepth(4);
+      this.tweens.add({ targets: jiao, alpha: 1, y: G + 60, duration: 2000, delay: 400, ease: 'Cubic.out' });
+      this.time.delayedCall(300, () => { this.cameras.main.shake(1600, 0.005); });
+      this.time.delayedCall(2200, () => { this.cameras.main.flash(200, 80, 200, 180); });
       len = 3800;
     } else if (data.kind === 'boss') {
       paintSky(0x0a0614, 0x2e1446);

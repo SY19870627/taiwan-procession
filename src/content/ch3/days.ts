@@ -91,7 +91,7 @@ const DAY2: DayPlan = {
 };
 
 const DAY3: DayPlan = {
-  day: 3, title: '第三天・遶境', area: '新瀛 → 疾水溪舊渡口', hours: 4, miracles: 2, theme: 'ferry',
+  day: 3, title: '第三天・遶境', area: '新瀛 → 疾水溪舊渡口', hours: 4, miracles: 2, theme: 'ferry', reverseRiver: true,
   almanac: () => ({
     lunar: '九月初十', yi: '遶境　收營', ji: '渡水', source: '新瀛舊聞',
     text: '渡口廢掉那年，溪中間一連翻了三艘船。撈起來的人都說，水底有東西抓著船底不放，是撐船的人用竹篙把他們一個一個撥回岸邊。\n今天遶境一路走到疾水溪。溪水，往山那邊流。',
