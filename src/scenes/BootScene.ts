@@ -22,6 +22,11 @@ export class BootScene extends Phaser.Scene {
     this.scene.launch('assets');
     // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）
     const q = new URLSearchParams(location.search);
+    // 【原型】?proto=stage&id=recall（或 dusk3）：引擎內演出的過場原型（第一二章熱鬧化計畫 §4），看完回標題
+    if (q.get('proto') === 'stage') {
+      this.scene.start('protoStage', { id: q.get('id') ?? 'recall' });
+      return;
+    }
     const jump = q.get('scene');
     if (jump) {
       const n = Number(q.get('n') ?? 1);
