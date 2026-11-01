@@ -224,9 +224,11 @@ describe('白天互嗆的掛勾與成長解鎖卡', () => {
     }
   });
 
-  it('第一、二章沒有互嗆', () => {
-    expect(CHAPTERS.wanjia.banter).toBeUndefined();
-    expect(CHAPTERS.dongjin.banter).toBeUndefined();
+  it('第一、二章的互嗆不混第三章的說話者（第一、二章熱鬧化第 5 階段起有白天互嗆，見 banter12.test）', () => {
+    const ch3who = new Set(['太子', '章將軍', '霄將軍', '柳將軍', '廉將軍']);
+    for (const id of ['wanjia', 'dongjin']) {
+      for (const sets of Object.values(CHAPTERS[id].banter ?? {})) for (const set of sets) for (const l of set) expect(ch3who.has(l.who), `${id}：${l.who}`).toBe(false);
+    }
   });
 
   it('三天各有一張成長解鎖卡（各將一招、合擊、五營合陣）', () => {

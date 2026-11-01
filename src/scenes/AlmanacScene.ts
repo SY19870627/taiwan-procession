@@ -100,7 +100,7 @@ export class AlmanacScene extends Phaser.Scene {
     fullscreenButton(this);
   }
 
-  /** 第三章：黃曆之後的成長解鎖卡（第一天各將一招、第二天合擊、第三天五營合陣） */
+  /** 黃曆之後的卡：第三章是成長解鎖（第一天各將一招、第二天合擊、第三天五營合陣）；第一、二章是今日陣頭（只說明，沒有營旗條與「成長」） */
   private unlockCard(u: { title: string; text: string }): void {
     const objs: Phaser.GameObjects.GameObject[] = [];
     const pw = W - 80;
@@ -114,7 +114,7 @@ export class AlmanacScene extends Phaser.Scene {
     // 五色營旗條
     const camps = CH().slotLabels ?? [];
     camps.forEach((c, i) => objs.push(this.add.rectangle(x + 32 + i * 34, y + 30, 26, 14, c.color).setOrigin(0, 0.5).setStrokeStyle(1, 0xe9b949, 0.8).setDepth(902)));
-    objs.push(txt(this, x + 32 + camps.length * 34 + 8, y + 30, '成長', 20, 0xffd76a).setOrigin(0, 0.5).setDepth(902));
+    if (camps.length) objs.push(txt(this, x + 32 + camps.length * 34 + 8, y + 30, '成長', 20, 0xffd76a).setOrigin(0, 0.5).setDepth(902));
     objs.push(txt(this, x + 32, y + 52, u.title, 32, C.gold, { serif: true }).setDepth(902));
     objs.push(body);
     const b = button(this, W / 2, y + ph - 56, 220, 64, '知道了', () => { for (const o of objs) o.destroy(); }, { size: 24, fill: 0x8a1b14 });

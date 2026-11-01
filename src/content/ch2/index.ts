@@ -7,7 +7,8 @@ import type { ChapterDef } from '../chapter';
 import { SKILLS } from '../../core/boss';
 import { CASES2, EVIDENCE2 } from './cases';
 import { CARDS2, PROLOGUE2, PROLOGUE_JIAO2, bossEffects2, epitaphs2, ghostEpitaphs2, ledger2, newBelievers2, tideEpitaph } from './believers';
-import { DAY_PLANS2, dawn2, endOfDay3_2, verdictEffects2 } from './days';
+import { DAY_PLANS2, UNLOCKS2, dawn2, endOfDay3_2, verdictEffects2 } from './days';
+import { BANTER2 } from './banter';
 import { FINALE_ROUNDS2, FINALE_WRONG2, GHOST_MEMBERS2, MEMBER_STATS2, RELEASE_SKILL2, finaleSetup2 } from './finale';
 
 export const CHAPTER2: ChapterDef = {
@@ -91,4 +92,7 @@ export const CHAPTER2: ChapterDef = {
   // 第二章熱鬧化（第 3 階段）：開場（請王）、第二夜天亮前（王船廠）
   prologueStory: 'qingwang2',
   dawnStory: { 3: 'qianchuan2' },
+  // 第二章熱鬧化（第 5 階段）：白天互嗆、今日陣頭卡
+  banter: BANTER2,
+  unlocks: UNLOCKS2,
 };

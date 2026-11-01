@@ -1,19 +1,14 @@
 /**
- * 互嗆小字幕（第三章）：一句一行，從畫面上方滑進來，幾秒後自己消失。
+ * 互嗆小字幕（第三章起；第一、二章熱鬧化第 5 階段起白天也有）：一句一行，從畫面上方滑進來，幾秒後自己消失。
  * 不攔點擊、不暫停（大綱 §3：每句 1 行、不擋操作）。同一場景同時只顯示一組，新的一組會蓋掉舊的。
  * 也不蓋住按鈕：每句放在不和場景裡任何可點的東西重疊的高度；之後才冒出來的按鈕也會讓開（freeY）。
  * 可以限制寬度（maxW），太長就換行，不蓋到畫面中間的東西（夜審的立繪）。
  */
 import Phaser from 'phaser';
-import { H, W } from '../theme';
+import { H, W, WHO_COLOR } from '../theme';
 import { freeY, type Rect } from '../core/layout';
 import type { BanterLine } from '../content/chapter';
 import { txt } from './widgets';
-
-/** 說話的人名字的顏色（依五營） */
-const WHO_COLOR: Record<string, number> = {
-  太子: 0xffb347, 章將軍: 0x6fd39a, 霄將軍: 0xff7a6a, 柳將軍: 0xf2efe6, 廉將軍: 0xa8a8c8,
-};
 
 const LINE_MS = 2200;
 const live = new WeakMap<Phaser.Scene, Phaser.GameObjects.GameObject[]>();

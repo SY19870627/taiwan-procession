@@ -115,6 +115,16 @@ const DAY3: DayPlan = {
 
 export const DAY_PLANS2: Record<number, DayPlan> = { 1: DAY1, 2: DAY2, 3: DAY3 };
 
+/**
+ * 今日陣頭卡（黃曆之後顯示；計畫「第一、二章熱鬧化」第 5 階段）。只用白話說明現有規則與當天的陣頭，不改任何數值。
+ * 文字全部【待定】。王令每天 2 道（index.ts 的 imp.perDay）、最後一戰的王令（core/boss.ts）照程式。
+ */
+export const UNLOCKS2: Record<number, { title: string; text: string }> = {
+  1: { title: '今日陣頭・中軍府', text: '中軍府替千歲爺開路。遇到鬼，令牌一亮，\n牠就跟著回到王令下，晚上在代天府調閱案卷。\n路上的小妖用王令押上王船，王令一天兩道。\n中軍府：「點名。」' },
+  2: { title: '今日陣頭・七境頭轎班', text: '今天遶七境頭。轎班扛著千歲爺走街串巷，每一境的人家都出來接香。\n轎班：「嘿——咻！」' },
+  3: { title: '今日陣頭・王船', text: '今天遷船：王船從東盛宮推到大鵬澳。\n今晚送王：觸手從沙裡伸出來拖船時，用王令押走。\n巡捕：「拉回來拉回來！」' },
+};
+
 /** 夜審結束後呼叫（n = 剛過完第幾夜）。改變信徒狀態，回傳明天黃曆「昨日」欄的文字。 */
 export function dawn2(r: RunState, n: number): string[] {
   const out: string[] = [];

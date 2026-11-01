@@ -197,7 +197,7 @@ describe('互嗆台詞庫（白天、夜審、最後一戰）', () => {
     expect(p.pick('b_formation', 3500, true)).toBe(BANTER3.b_formation[0]);
     expect(p.pick('b_qiankun', 11000)).toBe(BANTER3.b_qiankun[1]);
     expect(p.pick('nope', 99999)).toBeNull();
-    // 第一、二章沒有台詞庫：永遠不播
+    // 第一章還沒有最後一戰的台詞（第 7 階段才補）：不播
     expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_start', 0, true)).toBeNull();
   });
 });
