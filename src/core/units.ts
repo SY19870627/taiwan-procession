@@ -48,7 +48,7 @@ export const UNITS: Record<UnitId, UnitDef> = {
   },
 };
 
-export type EnemyId = 'wang' | 'mei' | 'kui' | 'boss' | 'yi' | 'sha' | 'chu' | 'tide';
+export type EnemyId = 'wang' | 'mei' | 'kui' | 'boss' | 'yi' | 'sha' | 'chu' | 'tide' | 'xia' | 'jiao';
 
 export interface EnemyDef {
   id: EnemyId;
@@ -78,4 +78,9 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   chu: { id: 'chu', name: '觸手', hp: 260, atk: 9, speed: 0, cd: 1.8, range: 260, armor: 0.8, quakeWeak: 1.4, capturable: false },
   /** 黑潮：在海裡，打不到；會捲浪 */
   tide: { id: 'tide', name: '黑潮', hp: 99999, atk: 26, speed: 0, cd: 2, range: 0, armor: 1, quakeWeak: 1, capturable: false },
+  // 第三章（新瀛・疾水溪）
+  /** 蝦兵：一波波從溪裡爬上岸 */
+  xia: { id: 'xia', name: '蝦兵', hp: 90, atk: 6, speed: 48, cd: 1.0, range: 26, armor: 1, quakeWeak: 1, capturable: true },
+  /** 蛟：身子在水裡，頭伸上岸咬人；會翻江、會拖人 */
+  jiao: { id: 'jiao', name: '蛟', hp: 8500, atk: 30, speed: 60, cd: 1.7, range: 60, armor: 0.5, quakeWeak: 1, capturable: false },
 };

@@ -102,7 +102,7 @@ export function makeXinying(scene: Phaser.Scene): void {
   make(scene, 'n3_kids', 70, 90, (g, w, h) => person(g, w, h, { robe: 0xe9b949, pants: 0x2a3a6a, tall: 0.65, wide: 0.8, hat: 'none', item: 'none' }));
   make(scene, 'n3_farmer', 72, 110, (g, w, h) => person(g, w, h, { robe: 0x8a7a5a, pants: 0x3a3a30, tall: 0.88, hat: 'straw', hatColor: 0xc8a86a, item: 'none' }));
 
-  // 小妖：蝦兵（白天路上；最後一戰的蝦兵在第 5 階段）
+  // 小妖：蝦兵（白天路上；最後一戰的蝦兵是 xinyingBattle.ts 的 xia）
   make(scene, 'xia_imp', 80, 70, (g, w, h) => {
     g.fillStyle(0xd86a4a, 1);
     g.fillEllipse(w / 2, h - 24, 50, 26);

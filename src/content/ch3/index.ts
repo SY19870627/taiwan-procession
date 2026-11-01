@@ -6,7 +6,7 @@
  * 進度見 docs/第三章_開發計畫.md。第 1 階段只有資料；規則與畫面在之後的階段接上：
  *  - 乾坤圈動畫、威名、看相、快判、風火輪追（第 3 階段：core/renown.ts、DayScene）
  *  - 點將問罪畫面、每晚 2 案、壓一晚、路邊點將（第 4 階段：core/dianjiang.ts、ui/dianjiang.ts、TrialScene）
- *  - 蛟的 jiao 模式（第 5 階段；在那之前借用第一章的模式）
+ *  - 蛟的 jiao 模式（第 5 階段：core/boss.ts、ch3/finale.ts、BossScene）
  */
 import type { ChapterDef } from '../chapter';
 import { run } from '../../state';
@@ -87,7 +87,7 @@ export const CHAPTER3: ChapterDef = {
     finalLabel: '出陣・疾水溪',
   },
   finale: {
-    // 【第 1 階段暫代】過場與戰鬥都是占位，第 5、6 階段完成
+    // 戰鬥是 jiao 模式（第 5 階段）；蛟現身、收蛟為坐騎的過場第 6 階段補齊
     story: 'jiao3', cutTitle: '蛟現身', cutSub: '最後一戰・疾水溪',
     title: '最後一戰・疾水溪', place: '疾水溪舊渡口', bossName: '蛟', bossFrom: '蛟從溪裡來 ▶',
     setup: finaleSetup3,

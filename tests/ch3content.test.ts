@@ -319,7 +319,7 @@ describe('第三章：信徒、黃曆、最後一戰占位', () => {
     expect(Object.keys(RELEASE_SKILL3).sort()).toEqual(['dubo', 'yamupo']);
   });
 
-  it('最後一戰（暫代）的設定能產生：五將都在、收編的鬼會加入', () => {
+  it('最後一戰的設定能產生：五將都在、收編的鬼會加入', () => {
     const r = ch3Run();
     const s = finaleSetup3(r);
     expect(s.members.map((m) => m.stats.key)).toEqual(['zhang', 'xiao', 'liu', 'lian']);
