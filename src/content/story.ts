@@ -195,6 +195,82 @@ export const CUTSCENES: Record<string, Cutscene> = {
       { who: 'narrator', text: '王船點了火。火光裡，海面上好像有五個人影，朝岸上揮了揮手。', fx: 'firecracker' },
     ],
   },
+  // ---------- 第二章熱鬧化（docs/第一二章_熱鬧化計畫.md 第 3 階段）：以下 5 段台詞全部【待定】 ----------
+  // 開場（請王）：序章擲筊之後、第一天黃曆之前
+  qingwang2: {
+    mood: 'temple',
+    place: '東盛宮代天府・請王',
+    temple: 'temple_daitian',
+    lines: [
+      { who: 'narrator', text: '九月十四，東盛宮的匾換成了「代天府」。\n七境頭的轎班，天沒亮就到齊了。' },
+      { who: 'zhongjun', text: '點名。王令旗、中軍府轎、雲府千歲轎……鹽米隊。' },
+      { who: 'xunbu', text: '到！都到了！王令也清點好了，一張、兩張……一張不少！' },
+      { who: 'zhongjun', text: '你手上那張，是香油錢的收據。' },
+      { who: 'xunbu', text: '……我再數一次。' },
+      { who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！' },
+      { who: 'yun', text: '開路吧。這三年東津的案卷，千歲爺要一頁一頁看。', fx: 'flash' },
+    ],
+  },
+  // 第二夜天亮前（第三天黃曆之前）：王船廠
+  qianchuan2: {
+    mood: 'dawn',
+    place: '東盛宮王船廠・天亮前',
+    bg: 'sea',
+    lines: [
+      { who: 'narrator', text: '王船廠的燈亮了一整夜。\n天快亮的時候，船上已經堆滿了金紙和米包。' },
+      { who: 'jiaoban', text: '嘿——咻！最後一包米！' },
+      { who: 'xunbu', text: '慢點慢點！龍骨裂過三次，輕輕放！' },
+      { who: 'zhongjun', text: '米包、金紙、替身，一樣一樣都記下了。' },
+      { who: 'jiaoban', text: '中軍府，龍骨今晚沒有再裂吧？' },
+      { who: 'zhongjun', text: '沒有。……可是船底下的沙，濕了一圈。' },
+      { who: 'xunbu', text: '昨晚沒漲潮啊。……誰在船底下哭過？', fx: 'shake' },
+    ],
+  },
+  // 最後一戰・鎮回海裡
+  heichaoReturn2: {
+    mood: 'dawn',
+    place: '大鵬澳・天將亮',
+    bg: 'sea',
+    lines: [
+      { who: 'narrator', text: '王令一壓，黑潮退回了海裡。\n王船點了火，自己出海了。' },
+      { who: 'yun', text: '回去吧。海還很大，岸上等你們的人，也還在。', fx: 'flash' },
+      { who: 'xunbu', text: '鎮住了……就這樣？船上不是留了五個位子？' },
+      { who: 'zhongjun', text: '案卷沒有補完的，不能上船。' },
+      { who: 'jiaoban', text: '……那他們還在下面嗎？' },
+      { who: 'narrator', text: '浪退下去的地方，沙灘上留著五排腳印，\n一直走進海裡。' },
+      { who: 'zhongjun', text: '記下。三年後，再來接。' },
+    ],
+  },
+  // 最後一戰・斬
+  heichaoSlay2: {
+    mood: 'dawn',
+    place: '大鵬澳・天將亮',
+    bg: 'sea',
+    lines: [
+      { who: 'narrator', text: '中軍府令下行刑。黑潮散成一片浪花，打在沙灘上。', fx: 'shake' },
+      { who: 'xunbu', text: '……散、散了。' },
+      { who: 'jiaoban', text: '王船……可以走了吧？' },
+      { who: 'zhongjun', text: '可以。案卷，也可以封了。' },
+      { who: 'narrator', text: '王船點了火，出海了。船上留的那五個位子，一直空著。' },
+      { who: 'zhongjun', text: '……五個人的名字，我一個也沒問到。' },
+    ],
+  },
+  // 送王（三種結局都播），之後是信徒錄
+  songwang2: {
+    mood: 'dawn',
+    place: '大鵬澳・天亮',
+    bg: 'sea',
+    lines: [
+      { who: 'narrator', text: '天亮了。沙灘上只剩王船燒剩的灰，\n被浪一點一點帶走。' },
+      { who: 'jiaoban', text: '肚子好餓……誰有帶飯糰？' },
+      { who: 'xunbu', text: '我有！……等等，這是供桌上的。' },
+      { who: 'zhongjun', text: '放回去。' },
+      { who: 'narrator', text: '轎班們坐在堤防上，一人一碗虱目魚粥，看著海。' },
+      { who: 'jiaoban', text: '三年後再來扛！千歲爺，下次轎子輕一點好不好？' },
+      { who: 'zhongjun', text: '案卷都封好了。三天的帳，一筆不差。' },
+      { who: 'yun', text: '辛苦了。送王，到此為止。', fx: 'flash' },
+    ],
+  },
   // ---------- 第三章：新瀛・太子出營（ch3/story.ts） ----------
   ...CUTSCENES3,
   retreat: {

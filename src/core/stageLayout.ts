@@ -60,3 +60,14 @@ export function bubbleBox(px: number, py: number, bw: number, bh: number, L: Sta
   const tipY = Math.max(y + bh + 10, Math.min(py - 4, y + bh + 34));
   return { x, y, tipX, tipY };
 }
+
+/** 遠景帶的最大高度（山、城市剪影、海） */
+export const FAR_MAX_H = 260;
+
+/**
+ * 遠景帶多高：照貼圖本身的高度、最多 FAR_MAX_H。
+ * 遠景貼圖比 260 矮時（城市剪影 220、海 200），原本會上下重複貼一截；改成照貼圖高度就不會。
+ */
+export function farBandHeight(texHeight: number): number {
+  return texHeight > 0 ? Math.min(FAR_MAX_H, texHeight) : FAR_MAX_H;
+}

@@ -85,7 +85,7 @@ export const THUMB: Record<string, [number, number]> = {
   axiu: [0.21, 0.0],
   azhe: [0.118, 0.001],
   baoma: [0.194, 0.001],
-  baye: [0.177, 0.037],
+  baye: [0.191, 0.182],
   bingbo: [0.155, 0.001],
   buzhuang: [0.172, 0.001],
   caisao: [0.199, 0.001],

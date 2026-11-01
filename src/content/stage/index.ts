@@ -4,12 +4,14 @@
  *
  * 第 1 階段：第一章兩段從原型搬過來（recall、dusk3），改用演出用的暫代小人（art/stage.ts）。
  * 第 2 階段：第一章新增 5 段（anfang1、shanlu1、shijuReturn1、shijuSlay1、huigong1），recall、dusk3 依新版面再調。
+ * 第 3 階段：第二章 7 段在 ./ch2.ts（tide3、sendoff、qingwang2、qianchuan2、heichaoReturn2、heichaoSlay2、songwang2）。
  * 補寫的拍子標 draft（【待定】，見計畫 §9）。
  *
  * 石駒站姿：畫師只畫了跪、回頭（計畫 Q17），站著的石駒先用「回頭」那張（煞氣時加紫色調）；跪、回頭兩張都臉朝左；
  * 七爺八爺仍是陣頭小人（Q18），放大到和畫師的全身圖差不多高（八爺照樣比別人矮）。
  */
 import type { StageScript } from './types';
+import { STAGES2 } from './ch2';
 
 export type { StageActor, StageBeat, StageFore, StageMove, StageScript } from './types';
 
@@ -340,4 +342,6 @@ export const STAGES: Record<string, StageScript> = {
       },
     ],
   },
+  // ---------- 第 3 階段：第二章（./ch2.ts） ----------
+  ...STAGES2,
 };

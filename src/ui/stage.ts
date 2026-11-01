@@ -13,7 +13,7 @@ import { C, W } from '../theme';
 import { SPEAKERS, type SpeakerId } from '../content/story';
 import type { StageBeat, StageFore, StageMove, StageScript } from '../content/stage';
 import { STAGE_SIZES } from '../art/stageSpec';
-import { actorScale, bubbleBox, stageLayout, type StageLayout } from '../core/stageLayout';
+import { actorScale, bubbleBox, farBandHeight, stageLayout, type StageLayout } from '../core/stageLayout';
 import { txt } from './widgets';
 
 const BUBBLE_W = 400;
@@ -62,7 +62,10 @@ export class StagePlayer {
 
     // 舞台：遠景、廟、地面、演員、前景都在這個容器裡，鏡頭就是縮放、平移它
     this.world = scene.add.container(0, 0);
-    if (sc.far && scene.textures.exists(sc.far)) this.world.add(scene.add.tileSprite(-100, G - 30, W + 200, 260, sc.far).setOrigin(0, 1).setAlpha(0.85));
+    if (sc.far && scene.textures.exists(sc.far)) {
+      const fh = farBandHeight(scene.textures.get(sc.far).getSourceImage().height);
+      this.world.add(scene.add.tileSprite(-100, G - 30, W + 200, fh, sc.far).setOrigin(0, 1).setAlpha(0.85));
+    }
     if (sc.temple && scene.textures.exists(sc.temple)) {
       this.world.add(scene.add.image(W / 2 + 60, G + 8, sc.temple).setOrigin(0.5, 1).setScale(0.8 * k).setTint(0x8a6a50));
     }
@@ -72,6 +75,20 @@ export class StagePlayer {
     ground.lineStyle(1, 0x3a3444, 1);
     for (let y = G; y < H + 200; y += 40) ground.lineBetween(-100, y, W + 100, y);
     this.world.add(ground);
+    // 海邊：遠景的海和沙灘之間補一段近海（浪一條一條打上來）
+    if (sc.fore === 'sea') {
+      const night = sc.mood === 'demon';
+      const sea = scene.add.graphics();
+      sea.fillStyle(night ? 0x0a1028 : 0x3a5a7a, 1);
+      sea.fillRect(-100, G - 32, W + 200, 40);
+      sea.lineStyle(2, night ? 0x2a3a6a : 0xcfe0f0, 0.55);
+      for (let n = 0, y = G - 26; y < G + 6; n++, y += 9) {
+        for (let x = -80 + (n % 2) * 45; x < W + 80; x += 110) sea.lineBetween(x, y, x + 50, y);
+      }
+      sea.lineStyle(3, 0xe8eef4, night ? 0.25 : 0.6);
+      sea.lineBetween(-100, G + 8, W + 100, G + 8);
+      this.world.add(sea);
+    }
     if (sc.mood === 'temple') {
       for (let n = 0; n < 5; n++) this.world.add(scene.add.image(80 + n * 140, G - 330 * k, 'lantern').setScale(0.7 * k));
     }
@@ -376,10 +393,10 @@ export class StagePlayer {
         g.fillTriangle(x - 30, this.H + 10, x + 30, this.H + 10, x + ((n % 3) - 1) * 14, this.H - (70 + (n % 4) * 26) * k);
       }
     } else {
-      // 海邊：沙灘＋浪花
-      g.fillStyle(0x3a3448, 1);
+      // 海邊：沙灘＋浪花（白天、天亮是沙色，晚上偏暗）
+      g.fillStyle(this.sc.mood === 'demon' ? 0x2a2638 : 0x5a4c50, 1);
       g.fillRect(-100, foreTop, W + 200, bottom - foreTop);
-      g.lineStyle(3, 0xcfe0f0, 0.5);
+      g.lineStyle(3, 0xcfe0f0, this.sc.mood === 'demon' ? 0.3 : 0.4);
       for (let n = 0, y = foreTop + 20; y < this.H + 20; n++, y += 36 * k) {
         for (let x = -60 + (n % 2) * 50; x < W + 60; x += 120) g.lineBetween(x, y, x + 60, y);
       }

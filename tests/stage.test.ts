@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { ART, CUTSCENES, SPEAKERS } from '../src/content/story';
 import { STAGES } from '../src/content/stage';
 import { STAGE_ART, STAGE_EXTRA, STAGE_FILES, STAGE_PORTRAIT_FILES, STAGE_PORTRAITS, STAGE_SIZES } from '../src/art/stageSpec';
-import { STAGE_MAX_K, actorScale, bubbleBox, stageLayout } from '../src/core/stageLayout';
+import { FAR_MAX_H, STAGE_MAX_K, actorScale, bubbleBox, farBandHeight, stageLayout } from '../src/core/stageLayout';
 import { isBorrowedPortrait, portraitKey } from '../src/art/portraits';
 import { BASE_H, W } from '../src/theme';
 
@@ -28,14 +28,15 @@ function drawnTextures(): { names: Set<string>; families: string[] } {
   for (const [p, s] of Object.entries(raw)) {
     if (!p.includes('/art/') && !p.endsWith('/BootScene.ts')) continue;
     for (const m of s.matchAll(/'([A-Za-z0-9_]+)'/g)) names.add(m[1]);
-    for (const m of s.matchAll(/`([A-Za-z0-9_]+)\$\{i\}`/g)) families.push(m[1]);
+    // `flag${i}`、`jb_${k}` 這種一整組的
+    for (const m of s.matchAll(/`([A-Za-z0-9_]+)\$\{\w+\}`/g)) families.push(m[1]);
   }
   return { names, families };
 }
 
 describe('演出腳本', () => {
   const { names, families } = drawnTextures();
-  const drawn = (k: string) => names.has(k) || families.some((f) => new RegExp(`^${f}\\d+$`).test(k));
+  const drawn = (k: string) => names.has(k) || families.some((f) => new RegExp(`^${f}[a-z0-9]+$`).test(k));
 
   it('第 1 階段至少有第一章的 recall、dusk3', () => {
     expect(STAGES.recall).toBeDefined();
@@ -94,6 +95,33 @@ describe('演出腳本', () => {
     }
     // retreat 目前沒有場景會播（計畫 Q16）：不寫演出
     expect(STAGES.retreat).toBeUndefined();
+  });
+
+  it('第 3 階段：第二章 7 段過場都有演出；新的 5 段每段 ≤ 8 句、海邊場景用海的遠景與浪花前景', () => {
+    const ch2 = ['tide3', 'sendoff', 'qingwang2', 'qianchuan2', 'heichaoReturn2', 'heichaoSlay2', 'songwang2'];
+    for (const id of ch2) expect(STAGES[id], id).toBeDefined();
+    for (const id of ch2.slice(2)) {
+      expect(CUTSCENES[id].lines.length, id).toBeGreaterThan(0);
+      expect(CUTSCENES[id].lines.length, id).toBeLessThanOrEqual(8);
+    }
+    for (const id of ch2) {
+      const sc = STAGES[id];
+      if (CUTSCENES[id].bg !== 'sea') continue;
+      expect(sc.fore, id).toBe('sea');
+      expect(['seaFar', 'seaFarN'], id).toContain(sc.far);
+      // 晚上（妖怪視角）用夜裡的海
+      expect(sc.far, id).toBe(sc.mood === 'demon' ? 'seaFarN' : 'seaFar');
+    }
+    // 王船：tide3、qianchuan2、sendoff 都有；sendoff 點火那拍換成燒的那張
+    for (const id of ['tide3', 'qianchuan2', 'sendoff']) expect(STAGES[id].actors.some((a) => a.tex === 'st_wangchuan'), id).toBe(true);
+    const fire = STAGES.sendoff.beats.find((b) => b.src === 2)!;
+    expect(fire.moves?.find((m) => m.id === 'ship')?.tex).toBe('st_wangchuan_fire');
+    // 黑潮的五個人影只在一起送走時出現
+    expect(STAGES.sendoff.actors.some((a) => a.tex === 'st_heichao_figures')).toBe(true);
+    // 第二章的說話者是中軍府、巡捕、轎班，不混進第一章的隨從
+    for (const id of ch2) {
+      for (const b of STAGES[id].beats) expect(['wupan', 'qiye', 'baye', 'baoma', 'judge', 'god', 'kaijiang'], `${id}「${b.text}」`).not.toContain(b.who);
+    }
   });
 
   it('翻面、轉角度的走位只用在有那個演員的拍子上；石駒回頭那拍有翻面', () => {
@@ -258,6 +286,14 @@ describe('演出版面（手機直式）', () => {
         expect(b.tipX).toBeLessThanOrEqual(b.x + 400);
       }
     }
+  });
+
+  it('遠景帶照貼圖高度（最多 260），比較矮的城市剪影、海不會上下重複貼一截', () => {
+    expect(farBandHeight(260)).toBe(FAR_MAX_H);
+    expect(farBandHeight(400)).toBe(FAR_MAX_H);
+    expect(farBandHeight(220)).toBe(220);
+    expect(farBandHeight(200)).toBe(200);
+    expect(farBandHeight(0)).toBe(FAR_MAX_H);
   });
 
   it('演出小人用設計尺寸：畫師的圖比暫代大一倍，縮放就減半（顯示一樣高）', () => {
