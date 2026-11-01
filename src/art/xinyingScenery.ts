@@ -216,9 +216,7 @@ const road: Draw = (g, w, h, night) => {
   }
   g.fillStyle(c(0x5a5862), 1);
   g.fillRect(0, 24, w, h - 24);
-  // 補過的柏油
-  g.fillStyle(c(0x4a4852), 1);
-  g.fillRect(60, 70, 80, 30);
+  // （原本有一塊「補過的柏油」深色方塊；疊在正式街景下面時看起來像沒蓋掉的暫代物件，第 10 階段拿掉）
   g.fillStyle(c(0xd8c84a, 0.75), night ? 0.5 : 0.85);
   g.fillRect(20, 150, 90, 5);
   g.fillRect(148, 150, 90, 5);

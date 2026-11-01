@@ -9,7 +9,7 @@
  */
 import Phaser from 'phaser';
 import { C, H, W, FIELD_W as FW, FIELD_H as FH, GROUND_Y, TIME_SCALE } from '../theme';
-import { BossBattle, CUE_TIME, FLAG_TIME, FRONT_MAX, JIAO_CAMPS, JIAO_HOME, SKILLS, SPELLS, TIDE_X, type BossEvent, type JiaoCamp, type SkillId, type Unit } from '../core/boss';
+import { BossBattle, CUE_TIME, FLAG_TIME, FRONT_MAX, FRONT_X, JIAO_CAMPS, JIAO_HOME, SKILLS, SPELLS, TIDE_X, type BossEvent, type JiaoCamp, type SkillId, type Unit } from '../core/boss';
 import { CH } from '../content/chapter';
 import { FULLPOWER_CUES3 } from '../content/ch3/finale';
 import { BOSS_NIGHT_BG, CAMP_COLORS } from '../art/xinyingSpec';
@@ -21,8 +21,16 @@ import { button, floatText, fullscreenButton, panel, txt, type Button } from '..
 
 /** 五營的名字（HUD 的營旗列） */
 const CAMP_NAME: Record<JiaoCamp, string> = { east: '東', south: '南', west: '西', north: '北', center: '中' };
-/** 戰場上方五面營旗的位置（逐一立起） */
-const FLAG_X = [300, 390, 480, 570, 660];
+/** 戰場上方五面營旗的位置（逐一立起）：放在溪面上空、月亮下面，不和左上角的互嗆字幕疊在一起 */
+const FLAG_X = [760, 840, 920, 1000, 1080];
+/** 營旗旗竿底的高度（插滿時旗竿高 FLAG_POLE） */
+const FLAG_BASE = 250;
+const FLAG_POLE = 150;
+/** 第三章：前排①在畫面上的位置、前排每格在畫面上拉開多少（只改畫的位置，戰鬥邏輯照 core/boss.ts） */
+const SHOW_FRONT0 = 620;
+const SHOW_GAP = 90;
+/** 太子出轎時，我方整排往左讓多少（太子站在前排①前面、蛟頭左邊） */
+const SHOW_TAIZI_ROOM = 70;
 
 export const BAND_Y = 132;
 const ZOOM = W / FW;
@@ -38,6 +46,8 @@ interface View {
 
 /** 柳將軍射斷水繩時箭從哪裡飛出（後排） */
 const BACK_X_LIU = 380;
+/** 第三章：程式畫的神轎在夜景裡略調暗 */
+const PAL_TINT = 0xc8c0d8;
 
 export class BossScene extends Phaser.Scene {
   battle!: BossBattle;
@@ -56,6 +66,8 @@ export class BossScene extends Phaser.Scene {
   /** 第三章：五面營旗、水繩、太子全開的光 */
   private flagG?: Phaser.GameObjects.Graphics;
   private lastCombo = 0;
+  /** 0–1：太子出轎時我方往左讓位（慢慢滑過去，不要瞬間跳） */
+  private tzShift = 0;
 
   constructor() {
     super('boss');
@@ -78,6 +90,7 @@ export class BossScene extends Phaser.Scene {
     this.scroll = [];
     this.lastProg = 0;
     this.lastCombo = 0;
+    this.tzShift = 0;
     this.waveImg = undefined;
     this.flagG = undefined;
     this.battle = new BossBattle(CH().finale.setup(run));
@@ -91,7 +104,10 @@ export class BossScene extends Phaser.Scene {
     if (this.escort) {
       this.palImg = this.add.image(this.battle.palanquin.x + 10, GROUND_Y + 14, 'wangchuan').setOrigin(0.5, 1).setScale(0.95).setDepth(18);
     } else {
-      this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 10, CH().look === 'plain' ? 'w3_palanquin' : 'palanquin').setOrigin(0.5, 1).setScale(0.78 * BIG).setDepth(20);
+      const key = CH().look === 'plain' ? 'w3_palanquin' : 'palanquin';
+      if (CH().look === 'plain') this.palOutline(key);
+      this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 10, key).setOrigin(0.5, 1).setScale(0.78 * BIG).setDepth(20);
+      if (CH().look === 'plain') this.palImg.setTint(PAL_TINT);
     }
     this.palHp = this.add.graphics().setDepth(210);
     this.ropes = this.add.graphics().setDepth(19);
@@ -99,10 +115,35 @@ export class BossScene extends Phaser.Scene {
     // 前排的位置標示
     const g = this.add.graphics().setDepth(-60);
     g.fillStyle(0xd23a2a, 0.12);
-    g.fillRect(500, GROUND_Y - 60, 170, 90);
+    if (this.jiao) g.fillRect(this.showX(FRONT_X[2]) - 60, GROUND_Y - 60, this.showX(FRONT_X[0]) - this.showX(FRONT_X[2]) + 120, 90);
+    else g.fillRect(500, GROUND_Y - 60, 170, 90);
     if (this.jiao) this.flagG = this.add.graphics().setDepth(190);
     this.scene.launch('bosshud', { boss: this });
     this.events.once('shutdown', () => this.scene.stop('bosshud'));
+  }
+
+  /**
+   * 第三章：我方在畫面上的 x。正式戰鬥圖比暫代圖寬，照邏輯位置畫會擠成一團，所以前排三格拉開
+   * （SHOW_GAP）、後排往神轎靠一點；太子出轎站在前排①前面。只改畫的位置，打不打得到照 core/boss.ts。
+   */
+  showX(x: number, taizi = false): number {
+    if (!this.jiao) return x;
+    if (taizi) return x - 25;
+    const room = SHOW_TAIZI_ROOM * this.tzShift;
+    const front = FRONT_X[0] - FRONT_X[1];
+    if (x >= FRONT_X[2]) return SHOW_FRONT0 + (x - FRONT_X[0]) * (SHOW_GAP / front) - room;
+    // 後排離前排越遠讓得越少（最少 4 成），不要擠到神轎上
+    const k = Phaser.Math.Clamp(0.4 + ((x - (FRONT_X[2] - 100)) / 100) * 0.6, 0.4, 1);
+    return SHOW_FRONT0 - 2 * SHOW_GAP - (FRONT_X[2] - x) * 0.6 - room * k;
+  }
+
+  /** 第三章：程式畫的神轎放在正式夜景上，加腳下影子和深色描邊（正式神轎圖還沒有） */
+  private palOutline(key: string): void {
+    const x = this.battle.palanquin.x;
+    this.add.ellipse(x, GROUND_Y + 8, 250, 36, 0x000000, 0.45).setDepth(19);
+    for (const [dx, dy] of [[-4, 0], [4, 0], [0, -4], [0, 4]]) {
+      this.add.image(x + dx, GROUND_Y + 10 + dy, key).setOrigin(0.5, 1).setScale(0.78 * BIG).setTintFill(0x07060e).setAlpha(0.85).setDepth(19.5);
+    }
   }
 
   private drawBackground(): void {
@@ -254,18 +295,22 @@ export class BossScene extends Phaser.Scene {
     const b = this.battle;
     const F = CH().finale;
     this.ropes.clear();
+    if (this.jiao) {
+      const want = b.taiziOut ? 1 : 0;
+      this.tzShift += Phaser.Math.Clamp(want - this.tzShift, -0.05, 0.05);
+    }
     for (const u of b.units) {
       const st = F.members[u.key];
       const ghost = F.ghostMembers.includes(u.key);
       const v = this.viewFor(u.uid, st.tex, false, ghost);
       seen.add(u.uid);
-      v.c.x = u.x;
+      v.c.x = this.showX(u.x, u.taizi);
       let y = GROUND_Y + 10 + (u.row === 'back' ? -12 : 0);
       if (u.moving > 0) y -= Math.abs(Math.sin(this.t * 10 + v.phase)) * 8;
       const dragged = b.drag?.uid === u.uid;
       if (dragged) {
         // 被水繩拖著往溪邊滑
-        v.c.x = u.x + Math.min(1, b.drag!.t / 3) * 120 + Math.sin(this.t * 30) * 4;
+        v.c.x = this.showX(u.x) + Math.min(1, b.drag!.t / 3) * 120 + Math.sin(this.t * 30) * 4;
       }
       if ((u.sunk ?? 0) > 0) y += 40 + Math.sin(this.t * 3 + v.phase) * 4;
       v.c.y = y;
@@ -289,6 +334,9 @@ export class BossScene extends Phaser.Scene {
       }
       this.bar(v, u.alive && u.hp < u.maxHp, u.hp / u.maxHp, -240, 80, 0x6fe08a);
     }
+    // 第三章：浪頭升起時蛟整條拱起來，蝦兵退到蛟後面、變淡，不擋住蛟
+    const rising = this.jiao && (b.boss.state === 'paw' || b.boss.state === 'back' || b.boss.state === 'charge');
+    const riseLeft = rising ? (this.views.get(b.boss.uid)?.imgs[0].getBounds().x ?? JIAO_HOME - 260) : FW;
     for (const e of b.enemies) {
       const boss = e === b.boss;
       const tex = boss ? (this.escort ? 'heichao' : CH().look === 'plain' ? 'jiao' : 'shiju') : e.id;
@@ -301,6 +349,7 @@ export class BossScene extends Phaser.Scene {
         const rise = e.state === 'paw' || e.state === 'back' || e.state === 'charge';
         v.imgs[0].setTexture(rise ? 'jiao_rise' : 'jiao');
         fitBattleArt(v.imgs[0], v.imgs[0].getData('bs'));
+        v.c.setDepth(rise ? 40 : 35);
         v.c.y = GROUND_Y + 40 + (e.state === 'breath' ? 24 : 0) + Math.sin(this.t * 1.6) * 6 - (e.state === 'paw' ? Math.min(1, e.stateTime / 2.5) * 30 : 0);
         for (const img of v.imgs) {
           if (e.flash > 0.5) img.setTintFill(0xffffff);
@@ -343,7 +392,16 @@ export class BossScene extends Phaser.Scene {
         else img.clearTint();
         if (e.id !== 'chu') img.angle = e.stun > 0 ? Math.sin(this.t * 20) * 8 : 0;
       }
-      if (!boss) this.bar(v, e.alive && e.hp < e.maxHp, e.hp / e.maxHp, e.id === 'chu' ? -230 : -140, 60, 0xd04aff);
+      if (this.jiao && !boss && e.alive) {
+        // 蝦兵從右邊進場：停在畫面裡（右緣留 8）淡入，不要半隻出畫；浪頭升起時在蛟後面、變淡
+        const hw = v.imgs[0].displayWidth / 2;
+        const edge = FW - hw - 8;
+        v.c.x = Math.min(e.x, edge);
+        const enter = Phaser.Math.Clamp(1 - (e.x - edge) / 60, 0, 1);
+        v.c.setAlpha(enter * (v.c.x + hw > riseLeft ? 0.4 : 1));
+      }
+      // 第三章的蝦兵血條放在腳下，不和蛟頭同高
+      if (!boss) this.bar(v, e.alive && e.hp < e.maxHp, e.hp / e.maxHp, e.id === 'chu' ? -230 : this.jiao ? 4 : -140, 60, 0xd04aff);
       if (!e.alive && !v.c.getData('dying')) {
         v.c.setData('dying', true);
         this.tweens.add({ targets: v.c, alpha: 0, duration: 400 });
@@ -385,6 +443,7 @@ export class BossScene extends Phaser.Scene {
     }
     const p = b.palanquin;
     if (p.flash > 0.5) this.palImg.setTint(0xff8080);
+    else if (CH().look === 'plain' && !this.escort) this.palImg.setTint(PAL_TINT);
     else this.palImg.clearTint();
     this.palHp.clear();
     const hy = this.escort ? GROUND_Y - 330 : GROUND_Y - 300;
@@ -402,13 +461,18 @@ export class BossScene extends Phaser.Scene {
     g.clear();
     JIAO_CAMPS.forEach((c, i) => {
       const x = FLAG_X[i];
-      const base = 210;
+      const base = FLAG_BASE;
       const f = prog[c];
-      const top = base - 150 * Math.max(0.08, f);
-      g.lineStyle(2, 0xe9b949, 0.35);
-      g.strokeRect(x - 3, base - 150, 6, 150);
-      g.fillStyle(0x8a6a3a, f >= 1 ? 1 : 0.6);
-      g.fillRect(x - 3, top, 6, base - top);
+      const top = base - FLAG_POLE * f;
+      // 還沒插的旗位只畫地上的旗座（營色），旗竿照站前排的時間長高
+      g.fillStyle(0x2a2230, 0.9);
+      g.fillRect(x - 12, base - 4, 24, 10);
+      g.fillStyle(CAMP_COLORS[c], 0.85);
+      g.fillRect(x - 12, base - 4, 24, 3);
+      if (f > 0.02) {
+        g.fillStyle(0x8a6a3a, f >= 1 ? 1 : 0.75);
+        g.fillRect(x - 3, top, 6, base - top);
+      }
       if (f >= 1) {
         const wave = Math.sin(this.t * 5 + i) * 4;
         g.fillStyle(CAMP_COLORS[c], 1);
@@ -442,7 +506,7 @@ export class BossScene extends Phaser.Scene {
           if (e.weak) this.ft(e.x, GROUND_Y - 160, `${this.jiao ? (this.battle.setup.bellyWound ? '打下巴！' : '喘息！') : '打肚子！'}${e.dmg}`, 0xff8a8a, 24);
           break;
         case 'shot':
-          this.shot(e.fromX, e.toX, e.kind);
+          this.shot(this.showX(e.fromX), e.toX, e.kind);
           break;
         case 'quake':
           this.ring(e.x, e.r, 0xe9b949);
@@ -455,14 +519,14 @@ export class BossScene extends Phaser.Scene {
           break;
         }
         case 'block':
-          this.ft(e.x, GROUND_Y - 150, '格擋', 0xbfe0ff, 22);
+          this.ft(this.showX(e.x), GROUND_Y - 150, '格擋', 0xbfe0ff, 22);
           break;
         case 'heal':
-          this.ft(e.x, GROUND_Y - 170, `+${e.amount}`, 0x8ff0a4, 22);
+          this.ft(this.showX(e.x), GROUND_Y - 170, `+${e.amount}`, 0x8ff0a4, 22);
           break;
         case 'die':
           if (e.ally) {
-            this.ft(e.x, GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
+            this.ft(this.showX(e.x), GROUND_Y - 200, `${e.name}倒下了`, 0xff8a8a, 26);
             this.hud.toast(`${e.name}倒下了`, 0xff8a8a);
             if (this.jiao) this.hud.chat('b_down');
           }
@@ -545,21 +609,21 @@ export class BossScene extends Phaser.Scene {
           this.hud.toast(`水繩纏住了${e.name}，往溪裡拖！（柳將軍在後排會射斷）`, 0x9adfff, 2400);
           break;
         case 'cut':
-          this.shot(BACK_X_LIU, e.x + 90, 'flag');
-          this.ft(e.x + 60, GROUND_Y - 200, '柳將軍：「中。」', 0xf4f2ea, 24);
+          this.shot(this.showX(BACK_X_LIU), this.showX(e.x) + 90, 'flag');
+          this.ft(this.showX(e.x) + 60, GROUND_Y - 200, '柳將軍：「中。」', 0xf4f2ea, 24);
           this.hud.chat('b_snipe');
           break;
         case 'paper':
-          this.ft(e.x + 60, GROUND_Y - 200, '紙人替身被拖下去了', 0xf4e2b0, 24);
+          this.ft(this.showX(e.x) + 60, GROUND_Y - 200, '紙人替身被拖下去了', 0xf4e2b0, 24);
           this.hud.toast('紙紮童：「我的紙人借你！」', 0xf4e2b0);
           break;
         case 'sunk':
-          this.ring(e.x + 120, 120, 0x2a5a6a);
+          this.ring(this.showX(e.x) + 120, 120, 0x2a5a6a);
           this.hud.toast(`${e.name}被拖進水裡！10 秒爬不上來`, 0xff8a8a, 2400);
           this.hud.chat('b_sunk');
           break;
         case 'flag':
-          this.ft(FLAG_X[JIAO_CAMPS.indexOf(e.camp)] + 30, 120, `${CAMP_NAME[e.camp]}營旗插下`, CAMP_COLORS[e.camp] === CAMP_COLORS.north ? 0xc8c8d8 : CAMP_COLORS[e.camp], 24);
+          this.ft(FLAG_X[JIAO_CAMPS.indexOf(e.camp)] + 30, FLAG_BASE - FLAG_POLE - 20, `${CAMP_NAME[e.camp]}營旗插下`, CAMP_COLORS[e.camp] === CAMP_COLORS.north ? 0xc8c8d8 : CAMP_COLORS[e.camp], 24);
           this.cameras.main.shake(80, 0.003);
           this.hud.chat('b_flag');
           break;
@@ -580,12 +644,13 @@ export class BossScene extends Phaser.Scene {
           this.hud.chat('b_back');
           break;
         case 'cover':
-          this.ft(e.x, GROUND_Y - 190, '章將軍擋下', 0x8fe0b0, 22);
+          this.ft(this.showX(e.x), GROUND_Y - 190, '章將軍擋下', 0x8fe0b0, 22);
           break;
         case 'combo':
           if (this.t - this.lastCombo > 1.2) {
             this.lastCombo = this.t;
-            this.ft(e.x + 40, GROUND_Y - 230, '合擊！', 0xff8a5a, 28);
+            // 字放在角色頭頂上方（血條上面），不壓在太子身上
+            this.ft(this.showX(e.x) + 40, GROUND_Y - 300, '合擊！', 0xff8a5a, 28);
             this.hud.chat('b_combo');
           }
           break;
@@ -680,7 +745,7 @@ export class BossScene extends Phaser.Scene {
   /** 太子出轎：踩著風火輪從轎裡衝出來 */
   private chujiao(): void {
     const tz = this.battle.taiziOut;
-    const x = tz?.x ?? this.battle.palanquin.x + 300;
+    const x = tz ? this.showX(tz.x, true) : this.battle.palanquin.x + 300;
     const trail = this.add.image(this.battle.palanquin.x, GROUND_Y - 10, 'x3_firetrail').setOrigin(0, 0.5).setDepth(40).setScale(1.5);
     this.tweens.add({ targets: trail, scaleX: (x - this.battle.palanquin.x) / 160, alpha: 0, duration: 700, onComplete: () => trail.destroy() });
     this.cameras.main.flash(200, 255, 120, 80);
@@ -701,7 +766,8 @@ export class BossScene extends Phaser.Scene {
   /** 陣前審問第 3 輪：鏡頭停在太子（轎）身上 2 秒，戰鬥不停 */
   closeUp(): void {
     const cam = this.cameras.main;
-    const x = this.battle.taiziOut?.x ?? this.battle.palanquin.x;
+    const tz = this.battle.taiziOut;
+    const x = tz ? this.showX(tz.x, true) : this.battle.palanquin.x;
     cam.pan(x, GROUND_Y - 160, 500, 'Sine.easeInOut');
     cam.zoomTo(ZOOM * 1.8, 500, 'Sine.easeInOut');
     this.time.delayedCall(500 + 2000, () => {

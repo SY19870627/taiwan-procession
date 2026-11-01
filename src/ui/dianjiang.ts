@@ -145,13 +145,14 @@ class DianjiangView {
     // 鬼：跪了換害怕的表情
     const kneeling = knelt(run, k);
     const expr: Expr = kneeling ? 'scared' : this.last.expr;
-    const glow = this.add(sc.add.circle(W / 2, 470, 150, kneeling ? 0xffd76a : 0x7fd6ff, 0.1));
+    // 光圈：底緣在面板上緣上面一點，立繪（底部置中）頭頂在光圈上緣下 10 左右
+    const glow = this.add(sc.add.circle(W / 2, 480, 170, kneeling ? 0xffd76a : 0x7fd6ff, 0.1));
     sc.tweens.add({ targets: glow, scale: 1.08, duration: 1400, yoyo: true, repeat: -1 });
     const art = portraitKey(sc, k.id, expr);
     const img = art
-      ? this.add(sc.add.image(W / 2, 640, art).setOrigin(0.5, 1).setAlpha(0.95))
+      ? this.add(sc.add.image(W / 2, 646, fadeBottom(sc, art)).setOrigin(0.5, 1).setAlpha(0.95))
       : this.add(sc.add.image(W / 2, 630, k.tex).setOrigin(0.5, 1).setTint(0x9ad0ff).setAlpha(0.8));
-    img.setScale(art ? 340 / img.height : Math.min(300 / img.height, 220 / img.width));
+    img.setScale(art ? 320 / img.height : Math.min(300 / img.height, 220 / img.width));
     if (kneeling) img.setScale(img.scaleX * 0.9).setY(img.y + 20);
     this.ghost = img;
     sc.tweens.add({ targets: img, y: img.y - 6, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
@@ -442,4 +443,33 @@ export function resultScreen(scene: Phaser.Scene, root: Phaser.GameObjects.Conta
   root.add(txt(scene, p.x + 24, p.y + 18, verdictName(verdict), 32, verdict === 'slay' ? 0xff8a8a : C.gold, { serif: true }));
   root.add(txt(scene, p.x + 24, p.y + 72, lines.join('\n'), 22, C.paper, { bold: false, lineSpacing: 9, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
   root.add(button(scene, W / 2, p.y + p.h - 60, 240, 70, '繼續', onDone, { size: 24, fill: 0x8a1b14 }));
+}
+
+/**
+ * 正式立繪多半只畫到大腿：做一張下緣 16% 漸漸透明的版本（只做一次、存成新貼圖，原圖不動），
+ * 堂上的立繪用它，下緣淡進面板，不會一刀切。
+ */
+const fadedFrom = new Map<string, unknown>();
+function fadeBottom(scene: Phaser.Scene, key: string, frac = 0.16): string {
+  const k = `${key}__fade`;
+  const src = scene.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+  // 正式圖晚一點載到、用同樣的名字蓋掉原圖時，淡出版也要重做
+  if (scene.textures.exists(k)) {
+    if (fadedFrom.get(k) === src) return k;
+    scene.textures.remove(k);
+  }
+  fadedFrom.set(k, src);
+  const tex = scene.textures.createCanvas(k, src.width, src.height);
+  if (!tex) return key;
+  const ctx = tex.getContext();
+  ctx.drawImage(src, 0, 0);
+  ctx.globalCompositeOperation = 'destination-in';
+  const g = ctx.createLinearGradient(0, 0, 0, src.height);
+  g.addColorStop(0, 'rgba(0,0,0,1)');
+  g.addColorStop(1 - frac, 'rgba(0,0,0,1)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, src.width, src.height);
+  tex.refresh();
+  return k;
 }
