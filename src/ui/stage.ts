@@ -26,9 +26,17 @@ const BUBBLE_W = 400;
 const SHADOW: Record<string, { w: number; front?: boolean }> = {
   st_wenpan: { w: 0.7 }, st_wupan: { w: 0.7 }, st_baoma: { w: 0.6 }, st_zhongjun: { w: 0.7 }, st_xunbu: { w: 0.7 },
   st_shiju: { w: 0.75 }, st_shiju_calm: { w: 0.75 }, st_shiju_look: { w: 0.75 }, st_shiju_kneel: { w: 0.8 },
-  st_jiao_qingling: { w: 1.1, front: true }, jb_blue: { w: 1.05 },
+  // 修正第 3 輪：青嶺王神轎新圖去掉了底部白邊與地面陰影，影子改回轎子後面（程式補）
+  st_jiao_qingling: { w: 0.95 }, jb_blue: { w: 1.05 },
+  st_qiye: { w: 0.7 }, st_baye: { w: 0.8 }, st_jiaoban: { w: 0.7 }, st_wangjiao: { w: 0.75 }, st_taizijiao: { w: 0.7 },
   qiye: { w: 0.9 }, baye: { w: 0.9 }, jiaoban: { w: 0.9 },
 };
+
+/**
+ * 修正第 3 輪補交的圖比先前的 st_ 圖飽和：播放時降一點彩度（WebGL 的顏色矩陣，不改圖檔），和同畫面的判官、中軍府一致。
+ * 值是 saturate 的量（負的是降）。
+ */
+const MUTE: Record<string, number> = { st_qiye: -0.15, st_baye: -0.15, st_jiaoban: -0.25, st_wangjiao: -0.25, st_taizijiao: -0.5 };
 
 /** 程式畫的暫代小人（還沒有畫師的 B 組圖）：加一圈深色描邊，和畫師圖並排時不那麼突兀 */
 const OUTLINE = new Set(['qiye', 'baye', 'jiaoban']);
@@ -209,6 +217,7 @@ export class StagePlayer {
     img.setScale(actorScale(a.tex, a.scale, k, img.height));
     if (a.center) img.setOrigin(0.5); else img.setOrigin(0.5, 1);
     if (a.tint !== undefined) img.setTint(a.tint);
+    if (MUTE[a.tex]) img.preFX?.addColorMatrix().saturate(MUTE[a.tex]);
     if (a.tex === 'decree') {
       scene.tweens.add({ targets: img, scale: img.scale * 1.06, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
       const glow = scene.add.circle(a.x, G + a.y * k, 70 * k, 0xffd76a, 0).setBlendMode(Phaser.BlendModes.ADD);

@@ -23,7 +23,7 @@ export const STAGE_PORTRAITS: Record<string, Expr[]> = {
 export const STAGE_PORTRAIT_FILES: string[] = Object.entries(STAGE_PORTRAITS).flatMap(([id, ex]) => ex.map((e) => `${id}_${e}.webp`));
 
 /**
- * B 組：演出用全身小人（11 張，去背、腳底對齊下緣，畫 2 倍大）。
+ * B 組：演出用全身小人與神轎（16 張，去背、腳底對齊下緣，畫 2 倍大）。
  * [寬, 高] 是畫師交圖的尺寸，也是程式畫暫代的尺寸；演出腳本的 scale 以這個尺寸為準
  * （畫師的圖尺寸不同也會縮成同樣的顯示高度）。
  */
@@ -39,6 +39,12 @@ export const STAGE_ART = {
   st_wangchuan: [1024, 600],
   st_wangchuan_fire: [1024, 600],
   st_jiao_qingling: [400, 400],
+  // 修正第 3 輪補交（Q18、Q21）：七爺、八爺、轎班全身；王轎（第二章）、太子轎（第三章）。神轎沒有轎班，轎班另外站
+  st_qiye: [240, 480],
+  st_baye: [240, 480],
+  st_jiaoban: [240, 480],
+  st_wangjiao: [400, 400],
+  st_taizijiao: [400, 400],
 } as const satisfies Record<string, readonly [number, number]>;
 
 export type StageArtKey = keyof typeof STAGE_ART;

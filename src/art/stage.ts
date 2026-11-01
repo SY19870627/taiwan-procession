@@ -114,6 +114,26 @@ export function makeStageArt(scene: Phaser.Scene): void {
     for (let x = cx - 22; x < cx + 26; x += 8) g.lineBetween(x, by - 116, x, by - 74);
     g.restore();
   });
+
+  // 修正第 3 輪：七爺、八爺、轎班、王轎、太子轎的畫師圖沒載到時，用原本的程式小人／神轎放大當暫代
+  // （八爺照畫師圖只佔 2/3 高；兩頂神轎沿用有轎班扛的暫代）
+  enlarge(scene, 'st_qiye', 'qiye');
+  enlarge(scene, 'st_baye', 'baye', 0.67);
+  enlarge(scene, 'st_jiaoban', 'jiaoban');
+  enlarge(scene, 'st_wangjiao', 'jb_blue', 0.9);
+  enlarge(scene, 'st_taizijiao', 'w3_palanquin', 0.9);
+}
+
+/** 把已經畫好的貼圖 src 等比放大進 key 的設計尺寸（底部置中、最高佔 fill 成高） */
+function enlarge(scene: Phaser.Scene, key: string, src: string, fill = 1): void {
+  if (scene.textures.exists(key) || !scene.textures.exists(src)) return;
+  const [w, h] = STAGE_SIZES[key];
+  const img = scene.textures.get(src).getSourceImage() as HTMLCanvasElement | HTMLImageElement;
+  const s = Math.min(w / img.width, (h * fill) / img.height);
+  const ct = scene.textures.createCanvas(key, w, h);
+  if (!ct) return;
+  ct.context.drawImage(img, (w - img.width * s) / 2, h - img.height * s, img.width * s, img.height * s);
+  ct.refresh();
 }
 
 /** 一地碎石：大小不一的灰色石塊，上面有一點青苔 */

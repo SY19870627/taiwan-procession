@@ -9,8 +9,8 @@
  * 補寫的拍子標 draft（【待定】，見計畫 §9）。
  *
  * 石駒站姿：畫師只畫了跪、回頭（計畫 Q17），站著的石駒先用「回頭」那張（煞氣時加紫色調）；跪、回頭兩張都臉朝左；
- * 七爺八爺仍是陣頭小人（Q18），放大到和畫師的全身圖差不多高（八爺照樣比別人矮）；
- * 視覺修正：七爺縮到 1.1（和判官的全身圖一樣高，原本 1.35 高出兩成），播放器另外加深色描邊與落地影。
+ * 七爺八爺（Q18）：修正第 3 輪換成畫師的 st_qiye、st_baye（和判官同樣 0.44 高）；八爺的圖只有七爺的 0.67 高，
+ * scale 放大到 0.49，並排時約 0.75 高（矮一點但不會太小）。圖沒載到時用陣頭小人放大的暫代。
  */
 import type { StageScript } from './types';
 import { STAGES2 } from './ch2';
@@ -32,8 +32,8 @@ export const STAGES: Record<string, StageScript> = {
     actors: [
       { id: 'fog', tex: 'smoke', x: 560, y: -120, scale: 5, tint: 0x9b3cff, alpha: 0.35, center: true },
       { id: 'jiao', tex: 'st_jiao_qingling', x: 230, y: 40, scale: 0.45 },
-      { id: 'qiye', tex: 'qiye', x: 80, y: 70, scale: 1.1 },
-      { id: 'baye', tex: 'baye', x: 360, y: 95, scale: 1.35 },
+      { id: 'qiye', tex: 'st_qiye', x: 80, y: 70, scale: 0.44 },
+      { id: 'baye', tex: 'st_baye', x: 360, y: 95, scale: 0.49 },
       { id: 'decree', tex: 'decree', x: 230, y: -330, scale: 0.8, alpha: 0, center: true },
       { id: 'shiju', tex: 'st_shiju_look', x: 610, y: 80, scale: 0.42, tint: 0xb89ad0 },
     ],
@@ -124,8 +124,8 @@ export const STAGES: Record<string, StageScript> = {
       { id: 'jiao', tex: 'st_jiao_qingling', x: 360, y: 10, scale: 0.48 },
       { id: 'wenpan', tex: 'st_wenpan', x: 200, y: 30, scale: 0.44 },
       { id: 'wupan', tex: 'st_wupan', x: 525, y: 30, scale: 0.44 },
-      { id: 'qiye', tex: 'qiye', x: 610, y: 70, scale: 1.1 },
-      { id: 'baye', tex: 'baye', x: 680, y: 95, scale: 1.35 },
+      { id: 'qiye', tex: 'st_qiye', x: 610, y: 70, scale: 0.44 },
+      { id: 'baye', tex: 'st_baye', x: 680, y: 95, scale: 0.49 },
       { id: 'baoma', tex: 'st_baoma', x: -120, y: 90, scale: 0.48 },
     ],
     beats: [
@@ -174,9 +174,9 @@ export const STAGES: Record<string, StageScript> = {
     actors: [
       { id: 'flag', tex: 'flag1', x: 320, y: 0, scale: 0.9 },
       { id: 'wupan', tex: 'st_wupan', x: 390, y: 30, scale: 0.44 },
-      { id: 'qiye', tex: 'qiye', x: 480, y: 65, scale: 1.1 },
+      { id: 'qiye', tex: 'st_qiye', x: 480, y: 65, scale: 0.44 },
       { id: 'wenpan', tex: 'st_wenpan', x: 630, y: 35, scale: 0.44 },
-      { id: 'baye', tex: 'baye', x: 560, y: 95, scale: 1.35 },
+      { id: 'baye', tex: 'st_baye', x: 560, y: 95, scale: 0.49 },
       { id: 'baoma', tex: 'st_baoma', x: -120, y: 80, scale: 0.48 },
     ],
     beats: [
@@ -216,8 +216,8 @@ export const STAGES: Record<string, StageScript> = {
       { id: 'mist', tex: 'smoke', x: 640, y: -90, scale: 6, tint: 0xf0e6dc, alpha: 0, center: true },
       { id: 'decree', tex: 'decree', x: 190, y: -340, scale: 0.8, alpha: 0, center: true },
       { id: 'jiao', tex: 'st_jiao_qingling', x: 190, y: 30, scale: 0.42 },
-      { id: 'qiye', tex: 'qiye', x: 90, y: 70, scale: 1.1 },
-      { id: 'baye', tex: 'baye', x: 300, y: 95, scale: 1.35 },
+      { id: 'qiye', tex: 'st_qiye', x: 90, y: 70, scale: 0.44 },
+      { id: 'baye', tex: 'st_baye', x: 300, y: 95, scale: 0.49 },
       { id: 'shiju', tex: 'st_shiju_kneel', x: 470, y: 70, scale: 0.42 },
     ],
     beats: [
@@ -264,9 +264,9 @@ export const STAGES: Record<string, StageScript> = {
     ground: 0x2a2630,
     fore: 'mountain',
     actors: [
-      { id: 'qiye', tex: 'qiye', x: 75, y: 65, scale: 1.1 },
+      { id: 'qiye', tex: 'st_qiye', x: 75, y: 65, scale: 0.44 },
       { id: 'wenpan', tex: 'st_wenpan', x: 200, y: 35, scale: 0.44 },
-      { id: 'baye', tex: 'baye', x: 140, y: 95, scale: 1.35 },
+      { id: 'baye', tex: 'st_baye', x: 140, y: 95, scale: 0.49 },
       { id: 'wupan', tex: 'st_wupan', x: 300, y: 55, scale: 0.44 },
       { id: 'rubble', tex: 'st_rubble', x: 500, y: 75, scale: 1.2, alpha: 0 },
       { id: 'shiju', tex: 'st_shiju_kneel', x: 500, y: 70, scale: 0.42 },
@@ -313,8 +313,8 @@ export const STAGES: Record<string, StageScript> = {
       { id: 'decree', tex: 'decree', x: 360, y: -370, scale: 0.8, alpha: 0, center: true },
       { id: 'jiao', tex: 'st_jiao_qingling', x: 120, y: 10, scale: 0.48 },
       { id: 'wenpan', tex: 'st_wenpan', x: 150, y: 30, scale: 0.44 },
-      { id: 'qiye', tex: 'qiye', x: -80, y: 65, scale: 1.1 },
-      { id: 'baye', tex: 'baye', x: -160, y: 95, scale: 1.35 },
+      { id: 'qiye', tex: 'st_qiye', x: -80, y: 65, scale: 0.44 },
+      { id: 'baye', tex: 'st_baye', x: -160, y: 95, scale: 0.49 },
       { id: 'baoma', tex: 'st_baoma', x: 270, y: 90, scale: 0.48 },
     ],
     beats: [

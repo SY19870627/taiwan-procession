@@ -205,8 +205,8 @@ describe('美術檔名（計畫 §5）', () => {
     for (const f of STAGE_PORTRAIT_FILES) expect(plan, f).toContain(f);
   });
 
-  it('B 組 11 張 st_ 小人：檔名、尺寸和計畫一致', () => {
-    expect(STAGE_FILES).toHaveLength(11);
+  it('B 組 16 張 st_ 小人：檔名、尺寸和計畫一致', () => {
+    expect(STAGE_FILES).toHaveLength(16);
     for (const k of STAGE_FILES) {
       const [w, h] = STAGE_ART[k];
       // 計畫的表格：| … | `st_xxx.webp` | 240×480 | … |

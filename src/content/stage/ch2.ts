@@ -3,7 +3,7 @@
  * tide3、sendoff（原有台詞）＋新的 qingwang2、qianchuan2、heichaoReturn2、heichaoSlay2、songwang2（台詞【待定】，在 content/story.ts）。
  *
  * 海邊用 seaFar／seaFarN 遠景＋近海＋浪花前景（fore: 'sea'）；王船用 st_wangchuan／st_wangchuan_fire。
- * 轎班沒有 B 組全身圖，用說話者的小人 jiaoban 放大（和中軍府、巡捕的全身圖差不多高）。
+ * 轎班、王轎用畫師的 st_jiaoban、st_wangjiao（修正第 3 輪，Q21）；第二個轎班用淡色調區分（送王時翻面和第一個面對面）。圖沒載到時用程式小人放大的暫代。
  * 補寫的拍子標 draft（【待定】，見計畫 §9）。
  */
 import type { StageScript } from './types';
@@ -22,11 +22,11 @@ export const STAGES2: Record<string, StageScript> = {
     actors: [
       { id: 'decree', tex: 'decree', x: 380, y: -360, scale: 0.8, alpha: 0, center: true },
       { id: 'flag', tex: 'wlflag', x: 600, y: 20, scale: 1.1 },
-      { id: 'jiao', tex: 'jb_blue', x: 380, y: 20, scale: 1.25 },
+      { id: 'jiao', tex: 'st_wangjiao', x: 370, y: 15, scale: 0.75 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 170, y: 40, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 540, y: 60, scale: 0.44 },
-      { id: 'jiaoban', tex: 'jiaoban', x: 660, y: 90, scale: 1.75 },
-      { id: 'jiaoban2', tex: 'jiaoban', x: 60, y: 85, scale: 1.7, tint: 0xd8c8b0 },
+      { id: 'jiaoban', tex: 'st_jiaoban', x: 660, y: 90, scale: 0.44 },
+      { id: 'jiaoban2', tex: 'st_jiaoban', x: 60, y: 85, scale: 0.43, tint: 0xd8c8b0 },
     ],
     beats: [
       { who: 'narrator', text: '九月十四，東盛宮的匾換成了「代天府」。\n七境頭的轎班，天沒亮就到齊了。', src: 0, cam: { x: 360, y: -120, zoom: 1, ms: 1200 } },
@@ -45,8 +45,8 @@ export const STAGES2: Record<string, StageScript> = {
         moves: [{ id: 'xunbu', x: 500, ms: 400 }],
       },
       {
-        // 視覺修正：泡泡指向扛轎的轎班（王轎底下那排人），不指到令旗
-        at: 'jiao', who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！', src: 5, fx: 'firecracker',
+        // 修正第 3 輪：畫師的王轎沒有轎班，泡泡改指旁邊的轎班
+        at: 'jiaoban', who: 'jiaoban', text: '起轎——！千歲爺坐穩囉！', src: 5, fx: 'firecracker',
         cam: { x: 480, y: -100, zoom: 1.1, ms: 800 },
         moves: [{ id: 'jiao', y: 0, hop: true, ms: 600 }, { id: 'jiaoban', x: 640, hop: true, ms: 400 }],
         sfx: { text: '嘿——！', at: 'jiaoban', color: 0xffd76a },
@@ -88,7 +88,7 @@ export const STAGES2: Record<string, StageScript> = {
       { id: 'paper', tex: 'jinzhi', x: 600, y: 70, scale: 1.2 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 660, y: 50, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 520, y: 75, scale: 0.44 },
-      { id: 'jiaoban', tex: 'jiaoban', x: -60, y: 90, scale: 1.75 },
+      { id: 'jiaoban', tex: 'st_jiaoban', x: -60, y: 90, scale: 0.44 },
       { id: 'sack', tex: 'yanmi', x: -120, y: 85, scale: 1.6 },
     ],
     beats: [
@@ -233,8 +233,8 @@ export const STAGES2: Record<string, StageScript> = {
       { id: 'heichao', tex: 'heichao', x: 600, y: 10, scale: 0.8, alpha: 0.85 },
       { id: 'ship', tex: 'st_wangchuan', x: 420, y: 10, scale: 0.46 },
       { id: 'mist', tex: 'smoke', x: 560, y: -40, scale: 7, tint: 0xcfe0f0, alpha: 0, center: true },
-      // 視覺修正：轎班暫代退到中軍府、巡捕後面一排，縮小一點
-      { id: 'jiaoban', tex: 'jiaoban', x: 125, y: 30, scale: 1.45 },
+      // 視覺修正：轎班退到中軍府、巡捕後面一排，縮小一點
+      { id: 'jiaoban', tex: 'st_jiaoban', x: 125, y: 30, scale: 0.36 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 70, y: 55, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 170, y: 80, scale: 0.44 },
     ],
@@ -282,8 +282,8 @@ export const STAGES2: Record<string, StageScript> = {
       { id: 'heichao', tex: 'heichao', x: 600, y: 10, scale: 0.85 },
       { id: 'ship', tex: 'st_wangchuan', x: 400, y: 10, scale: 0.46 },
       { id: 'spray', tex: 'smoke', x: 600, y: -80, scale: 3, tint: 0xe8eef4, alpha: 0, center: true },
-      // 視覺修正：轎班暫代退到中軍府、巡捕後面一排，縮小一點
-      { id: 'jiaoban', tex: 'jiaoban', x: 125, y: 30, scale: 1.45 },
+      // 視覺修正：轎班退到中軍府、巡捕後面一排，縮小一點
+      { id: 'jiaoban', tex: 'st_jiaoban', x: 125, y: 30, scale: 0.36 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 70, y: 55, scale: 0.44 },
       { id: 'xunbu', tex: 'st_xunbu', x: 170, y: 80, scale: 0.44 },
     ],
@@ -321,8 +321,8 @@ export const STAGES2: Record<string, StageScript> = {
     actors: [
       { id: 'decree', tex: 'decree', x: 380, y: -360, scale: 0.8, alpha: 0, center: true },
       { id: 'ash', tex: 'smoke', x: 470, y: 10, scale: 3.5, tint: 0x6a6460, alpha: 0.55, center: true },
-      { id: 'jiaoban', tex: 'jiaoban', x: 120, y: 85, scale: 1.75 },
-      { id: 'jiaoban2', tex: 'jiaoban', x: 215, y: 90, scale: 1.7, tint: 0xd8c8b0 },
+      { id: 'jiaoban', tex: 'st_jiaoban', x: 120, y: 85, scale: 0.44 },
+      { id: 'jiaoban2', tex: 'st_jiaoban', x: 215, y: 90, scale: 0.43, flip: true, tint: 0xd8c8b0 },
       { id: 'xunbu', tex: 'st_xunbu', x: 330, y: 75, scale: 0.44 },
       { id: 'zhongjun', tex: 'st_zhongjun', x: 590, y: 55, scale: 0.44 },
     ],

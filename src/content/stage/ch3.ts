@@ -63,7 +63,7 @@ export const STAGES3: Record<string, StageScript> = {
     actors: [
       { id: 'flags', tex: 'w3_flags', x: 650, y: 10, scale: 1.1, alpha: 0.3 },
       // 神轎矮一點、往前站（修正第 2 輪：轎頂的寶珠原本插進「太子殿」匾）
-      { id: 'jiao', tex: 'w3_palanquin', x: 360, y: 30, scale: 1.0 },
+      { id: 'jiao', tex: 'st_taizijiao', x: 360, y: 60, scale: 0.6 },
       { id: 'liu', tex: 'b3_liu', x: 860, y: 30, scale: 1.2 },
       { id: 'lian', tex: 'b3_lian', x: 940, y: 40, scale: 1.2 },
       { id: 'taizi', tex: 'b3_taizi', x: 360, y: 50, scale: 1.1, alpha: 0 },
@@ -240,7 +240,7 @@ export const STAGES3: Record<string, StageScript> = {
       { id: 's2', tex: 'w3_soldier2', x: 220, y: -10, scale: 1.1, alpha: 0 },
       { id: 's3', tex: 'w3_soldier3', x: 310, y: -10, scale: 1.1, alpha: 0 },
       { id: 's4', tex: 'w3_soldier4', x: 400, y: -10, scale: 1.1, alpha: 0 },
-      { id: 'palanquin', tex: 'w3_palanquin', x: 110, y: 10, scale: 1.1 },
+      { id: 'palanquin', tex: 'st_taizijiao', x: 110, y: 10, scale: 0.68 },
       { id: 'taizi', tex: 'b3_taizi', x: 230, y: 50, scale: 1.1, alpha: 0 },
       { id: 'liu', tex: 'b3_liu', x: -100, y: 40, scale: 1.15 },
       { id: 'zhang', tex: 'b3_zhang', x: -40, y: 55, scale: 1.2 },
@@ -457,7 +457,7 @@ export const STAGES3: Record<string, StageScript> = {
     place: '新瀛太子殿・收營',
     actors: [
       { id: 'flags', tex: 'w3_flags', x: 700, y: 0, scale: 1.1 },
-      { id: 'jiao', tex: 'w3_palanquin', x: 360, y: 10, scale: 1.15 },
+      { id: 'jiao', tex: 'st_taizijiao', x: 360, y: 10, scale: 0.7 },
       { id: 'taizi', tex: 'b3_taizi', x: 360, y: 50, scale: 1.1 },
       // 跟回來的營兵（比出營時多）：從右邊走進來，站在北營後面
       { id: 's0', tex: 'w3_soldier0', x: 820, y: 30, scale: 1.1 },
