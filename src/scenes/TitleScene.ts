@@ -56,7 +56,7 @@ export class TitleScene extends Phaser.Scene {
     // 版本號（左下角小字）；放在測試區 /test/ 底下時前面加「測試版」
     const testTag = location.pathname.includes('/test/') ? '測試版・' : '';
     txt(this, 12, H - 12, testTag + __VERSION__, 14, C.muted, { bold: false }).setOrigin(0, 1).setAlpha(0.7);
-    // 開發者資訊（右下角：小字署名＋兩顆金框小按鈕，連結開新分頁）
+    // 開發者資訊（右下角：小字署名＋四顆金框小按鈕，連結開新分頁）
     this.devInfo();
   }
 
@@ -73,21 +73,39 @@ export class TitleScene extends Phaser.Scene {
     const font = css(13);
     const btnH = css(46);
     const gap = css(10);
-    const labels = ['GitHub ↗', 'X ↗'];
-    const urls = ['https://github.com/SY19870627', 'https://x.com/nelsonyehfon'];
+    const labels = ['GitHub ↗', 'X ↗', 'Threads ↗', '方格子 ↗'];
+    const urls = [
+      'https://github.com/SY19870627',
+      'https://x.com/nelsonyehfon',
+      'https://www.threads.com/@ye.c.feng',
+      'https://vocus.cc/user/@SY19870627',
+    ];
     const texts = labels.map((l) => txt(this, 0, 0, l, font, C.gold, { bold: false }).setOrigin(0.5));
     const btnW = Math.max(css(46), ...texts.map((t) => Math.ceil(t.width) + css(14)));
-    // 靠右留 12px；窄螢幕（約 320 寬）會碰到起駕按鈕（寬 300）就縮成 6px
-    const roomy = W - css(12) - btnW >= W / 2 + 150 + css(8);
-    const cx = W - css(roomy ? 12 : 6) - btnW / 2;
-    // 底緣對齊起駕按鈕的下緣（H - 65），螢幕很窄時再往上留夠 16px
-    const bottom = H - Math.max(65, css(16));
+    // 四顆排成兩欄兩列（每列兩顆），整組靠右
+    const cols = 2;
+    const rows = Math.ceil(texts.length / cols);
+    const gridW = cols * btnW + (cols - 1) * gap;
+    const gridH = rows * btnH + (rows - 1) * gap;
+    // 靠右留 12px（太窄放不下才縮成 6px）。整組放得進起駕按鈕（寬 300、上緣 H - 155）右邊，
+    // 就和它底緣對齊（H - 65）；放不下（手機）就整組移到起駕按鈕上方再留 8px
+    const gridR = W - css(W - css(12) - gridW >= css(12) ? 12 : 6);
+    const cx = gridR - gridW / 2;
+    const besideGo = gridR - gridW >= W / 2 + 150 + css(8);
+    // 螢幕很窄時再往上留夠 16px
+    const bottom = besideGo ? H - Math.max(65, css(16)) : Math.min(H - 155 - css(8), H - css(16));
     texts.forEach((t, i) => {
-      const cy = bottom - btnH / 2 - (texts.length - 1 - i) * (btnH + gap);
-      this.devLink(t, cx, cy, btnW, btnH, urls[i]);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const bx = gridR - gridW + btnW / 2 + col * (btnW + gap);
+      const by = bottom - gridH + btnH / 2 + row * (btnH + gap);
+      this.devLink(t, bx, by, btnW, btnH, urls[i]);
     });
-    const top = bottom - texts.length * btnH - (texts.length - 1) * gap;
-    txt(this, cx, top - css(6), '開發者：SY', css(12), C.muted, { bold: false }).setOrigin(0.5, 1).setAlpha(0.9);
+    const top = bottom - gridH;
+    const sign = txt(this, 0, 0, '開發者：SY', css(12), C.muted, { bold: false }).setAlpha(0.9);
+    // 署名平常在整組上方；整組移到起駕上方時改放左側，免得壓到持旗的人
+    if (besideGo) sign.setOrigin(0.5, 1).setPosition(cx, top - css(6));
+    else sign.setOrigin(1, 0.5).setPosition(gridR - gridW - css(8), top + gridH / 2);
   }
 
   /** 金框小按鈕：文字本身用 padding 撐成整顆按鈕大小，可點範圍＝整顆按鈕；手指放開才開新分頁 */
