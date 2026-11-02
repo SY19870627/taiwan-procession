@@ -56,7 +56,7 @@ export class TitleScene extends Phaser.Scene {
     // 版本號（左下角小字）；放在測試區 /test/ 底下時前面加「測試版」
     const testTag = location.pathname.includes('/test/') ? '測試版・' : '';
     txt(this, 12, H - 12, testTag + __VERSION__, 14, C.muted, { bold: false }).setOrigin(0, 1).setAlpha(0.7);
-    // 開發者資訊（右下角：小字署名＋四顆金框小按鈕，連結開新分頁）
+    // 開發者資訊（右下角：小字署名＋三顆金框小按鈕，連結開新分頁）
     this.devInfo();
   }
 
@@ -73,16 +73,15 @@ export class TitleScene extends Phaser.Scene {
     const font = css(13);
     const btnH = css(46);
     const gap = css(10);
-    const labels = ['GitHub ↗', 'X ↗', 'Threads ↗', '方格子 ↗'];
+    const labels = ['GitHub ↗', 'Threads ↗', '方格子 ↗'];
     const urls = [
       'https://github.com/SY19870627',
-      'https://x.com/nelsonyehfon',
       'https://www.threads.com/@ye.c.feng',
       'https://vocus.cc/user/@SY19870627',
     ];
     const texts = labels.map((l) => txt(this, 0, 0, l, font, C.gold, { bold: false }).setOrigin(0.5));
     const btnW = Math.max(css(46), ...texts.map((t) => Math.ceil(t.width) + css(14)));
-    // 四顆排成兩欄兩列（每列兩顆），整組靠右
+    // 排成兩欄（每列兩顆，最後一列不滿就置中），整組靠右
     const cols = 2;
     const rows = Math.ceil(texts.length / cols);
     const gridW = cols * btnW + (cols - 1) * gap;
@@ -97,7 +96,9 @@ export class TitleScene extends Phaser.Scene {
     texts.forEach((t, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const bx = gridR - gridW + btnW / 2 + col * (btnW + gap);
+      const inRow = Math.min(cols, texts.length - row * cols);
+      const rowW = inRow * btnW + (inRow - 1) * gap;
+      const bx = cx - rowW / 2 + btnW / 2 + col * (btnW + gap);
       const by = bottom - gridH + btnH / 2 + row * (btnH + gap);
       this.devLink(t, bx, by, btnW, btnH, urls[i]);
     });
