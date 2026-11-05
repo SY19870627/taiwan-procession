@@ -5,7 +5,7 @@ name: 部署測試區
 
 on:
   push:
-    branches: [feat/ch3-xinying]
+    branches: [feat/ch3-xinying, feat/ch12-lively]
   workflow_dispatch:
 
 permissions:

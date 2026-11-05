@@ -21,6 +21,7 @@ import * as ch1Finale from './finale';
 import { SKILLS } from '../core/boss';
 import { approachHours, impsFlee, moodOf, type Mood } from '../core/renown';
 import { CHAPTER2 } from './ch2';
+import { BANTER1 } from './banter1';
 import { CHAPTER3 } from './ch3';
 
 /** 小妖怎麼處理 */
@@ -161,9 +162,9 @@ export interface ChapterDef {
   slayRule?: 'liqi' | 'renown';
   /** 戾氣讓鬼躲起來時可以「風火輪追」（0 時辰、怨氣 +1） */
   chase?: boolean;
-  /** 每天早上黃曆後顯示的成長解鎖（第三章：各將一招、合擊、五營合陣） */
+  /** 每天早上黃曆後顯示的卡（第三章：成長解鎖，各將一招、合擊、五營合陣；第一、二章：今日陣頭，只說明不改數值） */
   unlocks?: Record<number, { title: string; text: string }>;
-  /** 互嗆台詞庫：場合（depart、ring、look、slay…）→ 幾組對話，每組一句一行輪流跳出來（第三章） */
+  /** 互嗆台詞庫：場合（depart、ring、look、slay…）→ 幾組對話，每組一句一行輪流跳出來（第三章；第一、二章白天起） */
   banter?: Record<string, BanterLine[][]>;
   /** 序章擲筊之後、第一天黃曆之前的劇情（第三章：開營） */
   prologueStory?: string;
@@ -243,11 +244,20 @@ const CHAPTER1: ChapterDef = {
     winTitle: '石駒的煞氣散了',
     winText: '牠跪在廟埕上，喘著氣，看著你們。要怎麼判？',
     recallStory: 'recall',
+    // 第一章熱鬧化（第 2 階段）：三種結局各自的劇情＋回宮
+    endStory: { recall: 'recall', return: 'shijuReturn1', slay: 'shijuSlay1' },
+    closeStory: 'huigong1',
     loseText: '隊伍退回廟裡重整。\n試著把血少的陣頭輪流退到後排回血；石駒刨地時先讓脆的退下來。\n下次石駒的煞氣會少一些。',
     dawnText: '石駒退回山裡。今晚再試一次：\n下次石駒的煞氣會少一些。',
   },
   temple: 'temple_qingling',
   endSub: '青嶺王暗訪・三日之後',
+  // 第一章熱鬧化（第 2 階段）：開場（暗訪出廟）、第二夜天亮前（報馬仔回報蹄印）
+  prologueStory: 'anfang1',
+  dawnStory: { 3: 'shanlu1' },
+  // 第一章熱鬧化（第 5 階段）：白天互嗆、今日陣頭卡
+  banter: BANTER1,
+  unlocks: ch1Days.UNLOCKS1,
 };
 
 export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin: CHAPTER2, xinying: CHAPTER3 };

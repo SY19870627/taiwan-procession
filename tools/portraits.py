@@ -8,7 +8,7 @@ FLIP = {'axiu', 'zhangjiang', 'xiaojiang', 'liujiang', 'akai', 'yashen'}
 # 綾帶、弓弦圍出的白色空隙（不連到畫面邊緣）也要去掉的角色；白衣服的角色不要加
 HOLES = {'taizi', 'liujiang', 'jiao', 'huosha', 'shuyao'}
 # 穿白衣服的角色：只把接近純白（背景本身）的區塊當背景，不然白衣服會被一起去掉
-STRICT = {'hebo', 'bingbo'}
+STRICT = {'hebo', 'bingbo', 'qiye'}
 CW, CH = 420, 560
 
 def cut(path, holes=False, strict=False):

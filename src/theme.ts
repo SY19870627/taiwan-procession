@@ -72,3 +72,10 @@ export const TIME_SCALE = (() => {
     return 1;
   }
 })();
+
+/** 說話的人名字的顏色（第三章依五營；第一、二章依人設：文青、武赭紅、七爺白、八爺藍灰、報馬仔橘黃、中軍府金、巡捕藍灰、轎班朱紅） */
+export const WHO_COLOR: Record<string, number> = {
+  太子: 0xffb347, 章將軍: 0x6fd39a, 霄將軍: 0xff7a6a, 柳將軍: 0xf2efe6, 廉將軍: 0xa8a8c8,
+  文判官: 0x5ccfc0, 武判官: 0xd9824a, 七爺: 0xf4f1ea, 八爺: 0x9db4d8, 報馬仔: 0xffb62e,
+  中軍府: 0xf0cc58, 巡捕: 0x9fb2c8, 轎班: 0xff6f4f,
+};

@@ -96,15 +96,48 @@ describe('第三章過場劇情', () => {
     expect(takeKneelStory(r(), ch3.cases.hutou)).toBeUndefined();
   });
 
-  it('第一、二章沒有接上第三章的劇情（序章、天亮前、結局、收營），最好結局照舊用 recallStory', () => {
-    for (const id of ['wanjia', 'dongjin']) {
-      const c = CHAPTERS[id];
-      expect(c.prologueStory, id).toBeUndefined();
-      expect(c.dawnStory, id).toBeUndefined();
-      expect(c.finale.endStory, id).toBeUndefined();
-      expect(c.finale.closeStory, id).toBeUndefined();
-      expect(CUTSCENES[c.finale.recallStory], id).toBeDefined();
-      expect(Object.values(c.cases).some((k) => k.kneelStory), id).toBe(false);
+  it('第一章（熱鬧化第 2 階段）：序章、天亮前、三種結局、回宮指到的劇情都存在，最好結局仍是 recall', () => {
+    const c = CHAPTERS.wanjia;
+    const F = c.finale;
+    expect(c.prologueStory).toBe('anfang1');
+    expect(c.dawnStory).toEqual({ 3: 'shanlu1' });
+    expect(F.endStory).toEqual({ recall: 'recall', return: 'shijuReturn1', slay: 'shijuSlay1' });
+    expect(F.closeStory).toBe('huigong1');
+    expect(F.recallStory).toBe('recall');
+    for (const s of [c.prologueStory!, ...Object.values(c.dawnStory!), ...Object.values(F.endStory!), F.closeStory!, F.recallStory, F.story]) {
+      expect(CUTSCENES[s], s).toBeDefined();
+      // 說話的人都在 SPEAKERS（文字版也播得出來）
+      for (const l of CUTSCENES[s].lines) if (l.who !== 'narrator') expect(SPEAKERS[l.who], `${s} ${l.who}`).toBeDefined();
+    }
+    // 第一章不是第三章的點將問罪：沒有跪下劇情
+    expect(Object.values(c.cases).some((k) => k.kneelStory)).toBe(false);
+  });
+
+  it('第二章（熱鬧化第 3 階段）：請王、天亮前、三種結局、送王指到的劇情都存在，最好結局仍是 sendoff', () => {
+    const c = CHAPTERS.dongjin;
+    const F = c.finale;
+    expect(c.prologueStory).toBe('qingwang2');
+    expect(c.dawnStory).toEqual({ 3: 'qianchuan2' });
+    expect(F.endStory).toEqual({ recall: 'sendoff', return: 'heichaoReturn2', slay: 'heichaoSlay2' });
+    expect(F.closeStory).toBe('songwang2');
+    expect(F.recallStory).toBe('sendoff');
+    for (const s of [c.prologueStory!, ...Object.values(c.dawnStory!), ...Object.values(F.endStory!), F.closeStory!, F.recallStory, F.story]) {
+      expect(CUTSCENES[s], s).toBeDefined();
+      for (const l of CUTSCENES[s].lines) if (l.who !== 'narrator') expect(SPEAKERS[l.who], `${s} ${l.who}`).toBeDefined();
+    }
+    // 第二章不是第三章的點將問罪：沒有跪下劇情
+    expect(Object.values(c.cases).some((k) => k.kneelStory)).toBe(false);
+  });
+
+  it('三章的序章、天亮前、三種結局、收尾都接上了，指到的劇情都存在', () => {
+    for (const c of Object.values(CHAPTERS)) {
+      const F = c.finale;
+      const ids = [c.prologueStory, ...Object.values(c.dawnStory ?? {}), ...Object.values(F.endStory ?? {}), F.closeStory, F.recallStory, F.story];
+      for (const s of ids) {
+        expect(s, c.id).toBeTruthy();
+        expect(CUTSCENES[s!], `${c.id} ${s}`).toBeDefined();
+      }
+      expect(Object.keys(F.endStory ?? {}).sort(), c.id).toEqual(['recall', 'return', 'slay']);
     }
   });
 });
@@ -153,7 +186,8 @@ describe('互嗆台詞庫（白天、夜審、最後一戰）', () => {
     }
     if (src.includes('this.banter(`walk${this.plan.day}`)')) for (const d of [1, 2, 3]) used.add(`walk${d}`);
     for (const key of Object.keys(BANTER3)) expect(used.has(key), `${key} 沒有接到畫面上`).toBe(true);
-    for (const key of used) if (/^(b_|walk)/.test(key)) expect(BANTER3[key], key).toBeDefined();
+    // 最後一戰的 b_* 三章共用掛勾（第一、二章熱鬧化第 7 階段）：每個 key 至少有一章有台詞
+    for (const key of used) if (/^(b_|walk)/.test(key)) expect(Object.values(CHAPTERS).some((c) => c.banter?.[key]), key).toBe(true);
   });
 
   it('輪流播、最後一戰兩組之間至少隔一段時間（大事件不受限）', () => {
@@ -164,8 +198,9 @@ describe('互嗆台詞庫（白天、夜審、最後一戰）', () => {
     expect(p.pick('b_formation', 3500, true)).toBe(BANTER3.b_formation[0]);
     expect(p.pick('b_qiankun', 11000)).toBe(BANTER3.b_qiankun[1]);
     expect(p.pick('nope', 99999)).toBeNull();
-    // 第一、二章沒有台詞庫：永遠不播
-    expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_start', 0, true)).toBeNull();
+    // 第一章（第一、二章熱鬧化第 7 階段）有自己的最後一戰台詞；第三章才有的場合不播
+    expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_start', 0, true)).toBe(CHAPTERS.wanjia.banter!.b_start[0]);
+    expect(new BanterPicker(CHAPTERS.wanjia.banter, 0).pick('b_qiankun', 0, true)).toBeNull();
   });
 });
 

@@ -9,14 +9,18 @@
  * 第三章另有：cocky 得意嘴砲、pout 嘴硬彆扭、fierce 全力出手、sigh 無奈、scared 嚇到求饒。
  * 劇本裡在「」的開頭加 {sad} 這樣的標記，就會換成那個表情（見 ui/talk.ts 的 splitStory）。
  */
-import Phaser from 'phaser';
-import { SETS, THUMB } from './portraits.data';
+import type Phaser from 'phaser';
+import { SETS as DRAWN_SETS, THUMB } from './portraits.data';
+import { STAGE_PORTRAITS } from './stageSpec';
 
 export type Expr = 'normal' | 'sad' | 'angry' | 'surprised' | 'smile' | 'relieved' | 'calm'
   | 'cocky' | 'pout' | 'fierce' | 'sigh' | 'scared';
 
-/** 遊戲裡的稱呼（人名、鬼的真名、案子代號、過場說話的人）→ 立繪代號 */
-const ALIAS: Record<string, string> = {
+/**
+ * 遊戲裡的稱呼（人名、鬼的真名、案子代號、過場說話的人）→ 立繪代號。
+ * 寫成陣列的：前面的圖還沒到，就借後面的（武判官先借文判官、巡捕先借中軍府）。
+ */
+const ALIAS: Record<string, string | string[]> = {
   // 第一章・人
   小芸: 'xiaoyun',
   阿秀嬸: 'axiu', 阿秀嬸與阿弟: 'axiu',
@@ -50,8 +54,9 @@ const ALIAS: Record<string, string> = {
   // 靈界（過場、夜審）
   石駒: 'shiju', 黑潮: 'heichao',
   阿魍: 'wang', 阿魅: 'mei', 石屑傀: 'kui',
-  文判官: 'judge', 武判官: 'judge',
-  中軍府: 'zhongjun', 巡捕: 'zhongjun',
+  文判官: 'judge', 武判官: ['wupan', 'judge'],
+  中軍府: 'zhongjun', 巡捕: ['xunbu', 'zhongjun'],
+  七爺: 'qiye', 八爺: 'baye', 報馬仔: 'baoma', 轎班: 'jiaoban',
   旨意: 'decree',
   // 第三章・神明（太子爺、五營）
   太子爺: 'taizi', 太子: 'taizi', 三太子: 'taizi', 中壇元帥: 'taizi',
@@ -93,6 +98,12 @@ const FALLBACK: Record<Expr, Expr[]> = {
   scared: ['surprised'],
 };
 
+/**
+ * 有哪些立繪：tools/portraits.py 產生的（portraits.data.ts）＋第一、二章熱鬧化等畫師交的新角色（art/stageSpec.ts）。
+ * 新角色的檔案還沒放進來時，載入失敗、貼圖不存在，portraitKey 就會往下一個代替的角色找。
+ */
+const SETS: Record<string, Expr[]> = { ...STAGE_PORTRAITS, ...DRAWN_SETS };
+
 const key = (id: string, e: Expr) => `pt_${id}_${e}`;
 
 /** BootScene.preload 呼叫：把所有立繪排進載入佇列 */
@@ -103,15 +114,35 @@ export function loadPortraits(scene: Phaser.Scene): void {
   }
 }
 
+/** 稱呼 → 依序要找的立繪代號 */
+function ids(who: string | undefined): string[] {
+  if (!who) return [];
+  const a = ALIAS[who];
+  if (a) return typeof a === 'string' ? [a] : a;
+  return SETS[who] ? [who] : [];
+}
+
 /** 這個人／鬼有沒有立繪 */
 export function hasPortrait(who: string | undefined): boolean {
-  return !!who && !!(ALIAS[who] ?? SETS[who]);
+  return ids(who).length > 0;
 }
 
 /** 取得立繪貼圖；沒有這個人的立繪就回傳 undefined（改用程式畫的小人） */
 export function portraitKey(scene: Phaser.Scene, who: string | undefined, expr: Expr = 'normal'): string | undefined {
-  const id = who ? (ALIAS[who] ?? (SETS[who] ? who : undefined)) : undefined;
-  if (!id) return undefined;
+  for (const id of ids(who)) {
+    const k = keyFor(scene, id, expr);
+    if (k) return k;
+  }
+  return undefined;
+}
+
+/** 這張立繪是不是借別人的（武判官的圖還沒到、先借文判官的）：借的要換色區分 */
+export function isBorrowedPortrait(who: string | undefined, k: string | undefined): boolean {
+  const own = ids(who)[0];
+  return !!k && !!own && !k.startsWith(`pt_${own}_`);
+}
+
+function keyFor(scene: Phaser.Scene, id: string, expr: Expr): string | undefined {
   for (const e of [expr, ...FALLBACK[expr], 'normal' as Expr]) {
     const k = key(id, e);
     if (SETS[id]?.includes(e) && scene.textures.exists(k)) return k;

@@ -794,7 +794,8 @@ export class DayScene extends Phaser.Scene {
     const grudge = this.caught?.id === k.id ? this.caught.grudge : 0;
     this.caught = undefined;
     run.held.push({ id: e.caseId, grudge, ...(isLooked(run, e.caseId) ? { looked: true } : {}) });
-    if (this.renown()) this.banter('collect');
+    // 第三章原本就每次收容都播；第一、二章有台詞庫以後也播（沒有台詞的章節，banter() 自己跳過）
+    this.banter('collect');
     run.cases[e.caseId] ??= { truths: [] };
     const gained = (k.onCollect ?? []).filter((id) => gainEvidence(id));
     this.refreshHeader();
@@ -814,6 +815,7 @@ export class DayScene extends Phaser.Scene {
         if (this.busy || !this.spend(rule.hours)) return;
         this.busy = true;
         this.refreshHeader();
+        this.banter('imp');
         this.band.scatter(() => { this.busy = false; this.after(rule.story, []); });
       });
       this.skipRow(p, y, '最後一戰小妖 +1 波', () => this.skipImp());
@@ -846,6 +848,7 @@ export class DayScene extends Phaser.Scene {
       this.busy = true;
       run.decrees--;
       this.refreshHeader();
+      this.banter('imp');
       this.band.toShip(() => { this.busy = false; this.after(rule.story, []); });
     }, true);
     this.skipRow(p, y, '最後一戰小妖 +1 波', () => this.skipImp());

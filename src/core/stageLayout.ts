@@ -1,0 +1,163 @@
+/**
+ * 引擎內演出的版面（純函式，可以單元測試；播放器在 ui/stage.ts）。
+ *
+ * 手機直式畫面比較高（最高 1560）：地平線往下、演員放大（以 1280 高為 1，上限 STAGE_MAX_K），
+ * 演員腳底下面畫前景，畫面下 40% 是字幕區；泡泡掛在說話者頭上，不超出畫面、不蓋左上地名與右上略過鈕。
+ */
+import { BASE_H, W } from '../theme';
+import { STAGE_SIZES } from '../art/stageSpec';
+import { BATTLE_ART } from '../art/xinyingSpec';
+
+/** 演員放大的上限（手機最高 1560 時） */
+export const STAGE_MAX_K = 1.3;
+
+export interface StageLayout {
+  /** 地平線（腳底 y = G + 腳本的 y × k） */
+  G: number;
+  /** 演員放大倍數（以 1280 高為 1） */
+  k: number;
+  /** 字幕區的上緣（畫面下 40%） */
+  capTop: number;
+  /** 旁白字幕的中心 y */
+  capY: number;
+  /** 前景的上緣（演員腳底下面） */
+  foreTop: number;
+  /** 泡泡最上面可以到哪裡（避開左上地名、右上略過鈕：都在 y < 80） */
+  bubbleTop: number;
+}
+
+/**
+ * 依畫面高度算版面：1280 高的地平線和原型一樣；越高地平線越往下、演員越大。
+ * 視覺修正：手機直式原本上面 40% 只有天空、下面 30% 空地——地平線少往下一點（多出來的高度只拿 11%）、
+ * 演員多放大一點（1560 高約 1.3 倍），讓演員和泡泡落在畫面中線附近。
+ */
+export function stageLayout(h: number): StageLayout {
+  const k = Math.min(STAGE_MAX_K, Math.max(1, 1 + (h / BASE_H - 1) * 1.4));
+  const G = Math.round(h * 0.66 - (h - BASE_H) * 0.55);
+  const capTop = Math.round(h * 0.6);
+  return {
+    G,
+    k,
+    capTop,
+    capY: Math.round(h - (h - capTop) * 0.42),
+    foreTop: Math.round(G + 100 * k),
+    bubbleTop: 100,
+  };
+}
+
+/**
+ * 演員的設計尺寸：演出小人（st_*）照 stageSpec；第三章的戰鬥圖（太子、四將、蛟）照 xinyingSpec 的 BATTLE_ART
+ * （正式圖比暫代大，腳本的 scale 以暫代大小為準）。其他程式畫的貼圖沒有設計尺寸。
+ */
+export function stageSize(tex: string): readonly [number, number] | undefined {
+  return STAGE_SIZES[tex] ?? (BATTLE_ART as Record<string, readonly [number, number]>)[tex];
+}
+
+/** 演員的實際縮放：演出小人（st_*）、第三章戰鬥圖以設計尺寸為準，正式圖大小不同也縮成一樣高 */
+export function actorScale(tex: string, scale: number, k: number, texHeight: number): number {
+  const size = stageSize(tex);
+  const norm = size && texHeight > 0 ? size[1] / texHeight : 1;
+  return scale * k * norm;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** 舞台左右多畫的寬度（地面、遠景、近景、前景都從 -100 畫到 W + 100） */
+export const STAGE_BLEED = 100;
+/** 鏡頭最遠拉到幾倍（小於 1 時看得到舞台左右多畫的部分；修正第 5 輪：手機直式演員放大後放不下時用） */
+export const CAM_MIN_ZOOM = 0.85;
+
+/**
+ * 鏡頭：看向 (x, 地面 + y)、放大 z 倍時，舞台容器要擺在哪裡（不讓舞台邊緣露出來）。
+ * 舞台座標 (sx, sy) 在畫面上是 (x + sx × z, y + sy × z)。y 是已經乘過 k 的。
+ * z < 1（拉遠）：看得到左右多畫的 STAGE_BLEED；上下以鏡頭看的那條線為準縮（地平線幾乎不動，演員不會掉進字幕區）。
+ */
+export function camOffset(cam: { x: number; y: number; zoom: number }, L: StageLayout, h: number): { x: number; y: number; z: number } {
+  const z = cam.zoom;
+  const [xl, xh] = camRangeX(z);
+  const fy = L.G + cam.y;
+  return {
+    x: clamp(W / 2 - cam.x * z, xl, xh),
+    y: z >= 1 ? clamp(fy * (1 - z), h - h * z, 0) : fy * (1 - z),
+    z,
+  };
+}
+
+/** 放大 z 倍時，舞台容器的 x 可以擺的範圍（不露出舞台邊緣） */
+export function camRangeX(z: number): [number, number] {
+  return z >= 1 ? [W - W * z, 0] : [W - (W + STAGE_BLEED) * z, STAGE_BLEED * z];
+}
+
+/** 泡泡要讓開的地方（畫面座標，例如廟的匾額） */
+export interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const hit = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/**
+ * 泡泡放哪裡：(px, py) 是說話者頭頂在畫面上的位置，bw×bh 是泡泡大小。
+ * 回傳泡泡左上角與尾巴尖端；泡泡左右留 12、上不超過 bubbleTop、下留 24。
+ * avoid（修正第 2 輪：開營的泡泡蓋住「太子殿」匾）：蓋到就先左右讓開，左右放不下就搬到它上面（尾巴拉長指回說話的人），
+ * 上面也放不下才放到它下面。
+ */
+export function bubbleBox(px: number, py: number, bw: number, bh: number, L: StageLayout, h: number, avoid?: Box): { x: number; y: number; tipX: number; tipY: number } {
+  let x = clamp(px - bw / 2, 12, W - bw - 12);
+  let y = clamp(py - bh - 34, L.bubbleTop, h - bh - 24);
+  let tail = 34;
+  if (avoid) {
+    const a = { x: avoid.x - 8, y: avoid.y - 8, w: avoid.w + 16, h: avoid.h + 16 };
+    if (hit({ x, y, w: bw, h: bh }, a)) {
+      const left = a.x - bw;
+      const right = a.x + a.w;
+      const xs = [left >= 12 ? left : NaN, right <= W - bw - 12 ? right : NaN].filter((v) => !isNaN(v)).sort((p, q) => Math.abs(p - x) - Math.abs(q - x));
+      if (xs.length) x = xs[0];
+      else if (a.y - bh >= L.bubbleTop) {
+        tail = Math.max(34, Math.min(120, py - 4 - a.y));
+        y = a.y - bh;
+      } else y = clamp(a.y + a.h, L.bubbleTop, h - bh - 24);
+    }
+  }
+  const tipX = clamp(px, x + 24, x + bw - 24);
+  let tipY = Math.max(y + bh + 10, Math.min(py - 4, y + bh + tail));
+  // 尾巴也不插進匾裡：停在匾的上緣
+  if (avoid && tipX > avoid.x - 14 && tipX < avoid.x + avoid.w + 14 && y + bh <= avoid.y && tipY > avoid.y - 4) tipY = Math.max(y + bh + 6, avoid.y - 4);
+  return { x, y, tipX, tipY };
+}
+
+/** 遠景帶的最大高度（山、城市剪影、海） */
+export const FAR_MAX_H = 260;
+
+/**
+ * 遠景帶多高：照貼圖本身的高度、最多 FAR_MAX_H。
+ * 遠景貼圖比 260 矮時（城市剪影 220、海 200），原本會上下重複貼一截；改成照貼圖高度就不會。
+ */
+export function farBandHeight(texHeight: number): number {
+  return texHeight > 0 ? Math.min(FAR_MAX_H, texHeight) : FAR_MAX_H;
+}
+
+/**
+ * 遠景用哪張：正式圖（far）有載到就用它、套 farTint；沒載到用 farAlt（程式畫的暫代，不套色）。
+ * 兩張都沒有就不畫遠景。
+ */
+export function pickFar(sc: { far?: string; farAlt?: string; farTint?: number }, exists: (k: string) => boolean): { key: string; tint?: number } | undefined {
+  if (sc.far && exists(sc.far)) return { key: sc.far, tint: sc.farTint };
+  if (sc.farAlt && exists(sc.farAlt)) return { key: sc.farAlt };
+  return undefined;
+}
+
+/** 近景圖（溪邊堤防 2048×400）的路面在圖高的幾成：演員腳底踩在這條線上 */
+export const NEAR_WALK = 0.675;
+
+/**
+ * 近景帶怎麼擺：縮成 0.55k 倍，路面（NEAR_WALK）對齊地面線下 20k（演員腳底附近）。
+ * 回傳上緣 y、高度、縮放。
+ */
+export function nearBand(G: number, k: number, texHeight: number): { top: number; h: number; s: number } {
+  const s = 0.55 * k;
+  const h = texHeight * s;
+  return { top: G + 20 * k - h * NEAR_WALK, h, s };
+}

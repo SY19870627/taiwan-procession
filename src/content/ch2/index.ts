@@ -7,7 +7,8 @@ import type { ChapterDef } from '../chapter';
 import { SKILLS } from '../../core/boss';
 import { CASES2, EVIDENCE2 } from './cases';
 import { CARDS2, PROLOGUE2, PROLOGUE_JIAO2, bossEffects2, epitaphs2, ghostEpitaphs2, ledger2, newBelievers2, tideEpitaph } from './believers';
-import { DAY_PLANS2, dawn2, endOfDay3_2, verdictEffects2 } from './days';
+import { DAY_PLANS2, UNLOCKS2, dawn2, endOfDay3_2, verdictEffects2 } from './days';
+import { BANTER2 } from './banter';
 import { FINALE_ROUNDS2, FINALE_WRONG2, GHOST_MEMBERS2, MEMBER_STATS2, RELEASE_SKILL2, finaleSetup2 } from './finale';
 
 export const CHAPTER2: ChapterDef = {
@@ -80,9 +81,18 @@ export const CHAPTER2: ChapterDef = {
     winTitle: '王船到了沙灘',
     winText: '金紙堆好了，疏文唸完了。黑潮停在浪邊，看著王船。要怎麼判？',
     recallStory: 'sendoff',
+    // 第二章熱鬧化（第 3 階段）：三種結局各自的劇情＋送王
+    endStory: { recall: 'sendoff', return: 'heichaoReturn2', slay: 'heichaoSlay2' },
+    closeStory: 'songwang2',
     loseText: '王船被拖回去一段，隊伍退回堤防重整。\n觸手拖船時先用王令押走；浪頭升起時，把血少的陣頭退到後排。\n下次王船會走得順一些。',
     dawnText: '天快亮了，王船還沒到沙灘。今晚再送一次：\n下次王船會走得順一些。',
   },
   temple: 'temple_daitian',
   endSub: '東津迎王・送王之後',
+  // 第二章熱鬧化（第 3 階段）：開場（請王）、第二夜天亮前（王船廠）
+  prologueStory: 'qingwang2',
+  dawnStory: { 3: 'qianchuan2' },
+  // 第二章熱鬧化（第 5 階段）：白天互嗆、今日陣頭卡
+  banter: BANTER2,
+  unlocks: UNLOCKS2,
 };

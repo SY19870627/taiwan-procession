@@ -26,3 +26,43 @@ export function freeY(box: { x: number; w: number; h: number }, want: number, bl
   }
   return start;
 }
+
+/**
+ * 夜審（第一、二章）的版面：鬼的光圈、立繪、下方面板，以及互嗆字幕放哪裡。
+ * 字幕比照點將問罪：放在立繪左邊、限寬到光圈（脈動放到最大時）左緣 − 8，太長就換行，
+ * 不蓋鬼的臉，也不碰下方的供詞／案卷面板（第一、二章熱鬧化第 6 階段）。
+ */
+export const TRIAL = {
+  /** 審問畫面：光圈中心、半徑、脈動放大倍數 */
+  glow: { x: 360, y: 360, r: 130, pulse: 1.1 },
+  /** 審問畫面：鬼的立繪底部與高度（420×560 的圖） */
+  ghost: { bottom: 532, h: 320 },
+  /** 審問畫面：下方面板的上緣 */
+  panelY: 530,
+  /** 判決結果：鬼的立繪底部與高度、下方面板的上緣 */
+  verdict: { bottom: 556, h: 340, panelY: 560 },
+  /**
+   * 互嗆字幕條（修正第 2 輪：上一輪的 chatY 386 剛好在判官胸口，底框又只有字那麼寬，看起來還是靠左兩條）：
+   * 改成全寬（x 16～W − 16）的字幕條，下緣貼在當時下方面板上緣上面 gap，最多疊 rows 行、每行 rowH 高，
+   * 只蓋判官與鬼的腰部以下；說話的人站哪邊，字就靠哪邊、加朝那邊的箭頭（ui/banter.ts 的 banterStrip）。
+   */
+  strip: { size: 22, rowH: 36, rows: 2, gap: 4 },
+  /** 判官立繪：底部 y 與最高多高（create 畫的） */
+  officer: { bottom: 506, h: 250 },
+} as const;
+
+/** 換行後有沒有哪一行以標點開頭（「，再問問。」這種）——互嗆字幕換行時要避開 */
+export function punctLeads(rows: string[]): boolean {
+  return rows.slice(1).some((r) => /^[，。、！？；：…」』）—]/.test(r));
+}
+
+/**
+ * 互嗆字幕換行寬度：從平均分的寬度 base 開始，依序試寬一點、窄一點（每次一個字 step），
+ * 挑第一個不會讓標點落在行首的寬度（不超過 max）；都不行就用 base。wrap 回傳照某個寬度換好的各行。
+ */
+export function wrapWidth(base: number, max: number, step: number, wrap: (w: number) => string[]): number {
+  for (const w of [base, base + step, base + 2 * step, base - step, base - 2 * step]) {
+    if (w > step && w <= max && !punctLeads(wrap(w))) return w;
+  }
+  return base;
+}

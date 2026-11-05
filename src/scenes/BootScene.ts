@@ -3,6 +3,7 @@ import { makeFigures } from '../art/figures';
 import { makeBackdropTextures, makeTemple } from '../art/backdrop';
 import { makeHarbor } from '../art/harbor';
 import { makeXinying } from '../art/xinying';
+import { makeStageArt } from '../art/stage';
 import { startChapter } from '../content/chapter';
 
 export class BootScene extends Phaser.Scene {
@@ -18,11 +19,13 @@ export class BootScene extends Phaser.Scene {
     makeTemple(this, 'temple_huize', '惠澤宮');
     makeHarbor(this);
     makeXinying(this);
+    makeStageArt(this);
     // 立繪圖檔在背景載入
     this.scene.launch('assets');
     // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）
     const q = new URLSearchParams(location.search);
-    const jump = q.get('scene');
+    // ?proto=stage&id=recall：原型的舊網址，現在等同 ?scene=story&id=recall（播正式演出，看完回標題）
+    const jump = q.get('proto') === 'stage' ? 'story' : q.get('scene');
     if (jump) {
       const n = Number(q.get('n') ?? 1);
       // ?ch=dongjin 指定章節
@@ -30,7 +33,12 @@ export class BootScene extends Phaser.Scene {
       if (ch) startChapter(ch);
       // ?scene=cut&kind=boss 看過場（depart／dusk／dawn／boss），看完回標題
       const kind = q.get('kind') ?? 'depart';
-      this.scene.start(jump, { day: n, night: n, id: q.get('id') ?? 'dusk3', prologue: q.get('prologue') === '1', kind, title: kind, next: { key: 'title' } });
+      // ?scene=story&id=recall：&text=1 強制播文字版、&beat=3 演出直接停在第 4 拍（截圖、驗收用）
+      const beat = q.get('beat') !== null ? Math.max(0, Math.floor(Number(q.get('beat'))) || 0) : undefined;
+      this.scene.start(jump, {
+        day: n, night: n, id: q.get('id') ?? (jump === 'story' && q.get('proto') ? 'recall' : 'dusk3'), prologue: q.get('prologue') === '1', kind, title: kind, next: { key: 'title' },
+        text: q.get('text') === '1', beat,
+      });
       return;
     }
     this.scene.start('title');
