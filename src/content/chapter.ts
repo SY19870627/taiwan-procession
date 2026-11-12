@@ -23,6 +23,7 @@ import { approachHours, impsFlee, moodOf, type Mood } from '../core/renown';
 import { CHAPTER2 } from './ch2';
 import { BANTER1 } from './banter1';
 import { CHAPTER3 } from './ch3';
+import { CHAPTER4 } from './ch4';
 
 /** 小妖怎麼處理 */
 export type ImpRule =
@@ -31,7 +32,12 @@ export type ImpRule =
   /** 押煞上船：用王令（每天有限），不花時辰 */
   | { mode: 'decree'; verb: string; perDay: number; result: string; story: string }
   /** 乾坤圈（第三章）：不花時辰、不加戾氣；略過的小妖最後一戰變成蝦兵（skipAdds 波） */
-  | { mode: 'ring'; verb: string; result: string; story: string; skipAdds: number };
+  | { mode: 'ring'; verb: string; result: string; story: string; skipAdds: number }
+  /**
+   * 牽路仔（第四章）：把隊尾落隊的人帶偏。派兵回頭喊花 hours 時辰；附近有點心站可以託人顧（0 時辰，那一攤這段不能再幫別的）。
+   * 略過：有人沒跟上（記遺憾，follow.strayed +1）。見 core/procession.ts。
+   */
+  | { mode: 'stray'; verb: string; hours: number; result: string; story: string; entrustStory: string; skip: string };
 
 /** 第三章點將問罪：堂上出手的將軍（北營夜審不上場） */
 export interface General {
@@ -48,8 +54,11 @@ export interface General {
 }
 
 export interface TrialStyle {
-  /** interrogate：審問供詞；dossier：調閱案卷；dianjiang：點將問罪（第三章；core/dianjiang.ts、ui/dianjiang.ts） */
-  style: 'interrogate' | 'dossier' | 'dianjiang';
+  /**
+   * interrogate：審問供詞；dossier：調閱案卷；dianjiang：點將問罪（第三章；core/dianjiang.ts、ui/dianjiang.ts）；
+   * guihu：問歸處（第四章；沿用審問供詞的追問／出示，判決換成歸處，見 core/guihu.ts）
+   */
+  style: 'interrogate' | 'dossier' | 'dianjiang' | 'guihu';
   /** 每晚能審幾案（沒寫＝不限） */
   perNight?: number;
   /** 點將問罪的將軍 */
@@ -156,8 +165,8 @@ export interface ChapterDef {
   startHeld?: string[];
   /** 收容格的名稱與顏色（第三章：東青、南紅、西白、北黑、中黃） */
   slotLabels?: { label: string; color: number }[];
-  /** 押著過夜：grudge 天亮怨氣 +1、到 3 掙脫（預設）；tame 太子壓下去教訓一晚 */
-  overnight?: 'grudge' | 'tame';
+  /** 押著過夜：grudge 天亮怨氣 +1、到 3 掙脫（預設）；tame 太子壓下去教訓一晚；carry 跟在頭旗後面走（第四章：不加怨氣、不掙脫） */
+  overnight?: 'grudge' | 'tame' | 'carry';
   /** 斬的結算：liqi 一律戾氣 +1、斬錯再 +1（預設）；renown 看斬的是誰（十惡、真惡威名 +1；冤魂戾氣 +1） */
   slayRule?: 'liqi' | 'renown';
   /** 戾氣讓鬼躲起來時可以「風火輪追」（0 時辰、怨氣 +1） */
@@ -170,6 +179,20 @@ export interface ChapterDef {
   prologueStory?: string;
   /** 第 n 天的黃曆之前（前一晚天亮前）播的劇情（第三章：第三天溪水倒流） */
   dawnStory?: Record<number, string>;
+  // ----- 第四章起（全部可選） -----
+  /**
+   * 跟轎（第四章）：開局帶 follow 進度；神蹟換成「稟報」。
+   * 白天的行程要另外在 DayPlan.follow 寫（core/procession.ts）。
+   */
+  follow?: { reportLabel: string; reportVerb: string };
+  /** 問歸處：歸處（id → 名稱、第幾夜到）。見 core/guihu.ts */
+  guihu?: import('../core/guihu').GuihuRules;
+  /** 試玩版只做到第幾天：過完這一夜（天亮後）接試玩結束畫面（scenes/SliceEndScene.ts），不翻到下一天 */
+  playableDays?: number;
+  /** 試玩結束畫面的字 */
+  sliceEnd?: { title: string; text: string };
+  /** 序章擲筊按鈕的字（沒寫：第三章「請示太子」、其他「請示王爺」） */
+  askLabel?: string;
 }
 
 /** 互嗆的一句（一行、不擋操作） */
@@ -260,7 +283,7 @@ const CHAPTER1: ChapterDef = {
   unlocks: ch1Days.UNLOCKS1,
 };
 
-export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin: CHAPTER2, xinying: CHAPTER3 };
+export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin: CHAPTER2, xinying: CHAPTER3, baishadun: CHAPTER4 };
 
 /** 目前這一章 */
 export function CH(): ChapterDef {
@@ -270,7 +293,7 @@ export function CH(): ChapterDef {
 /** 開始一章：重設進度（收容格數、開局押著的鬼依章節設定） */
 export function startChapter(id: string): void {
   const ch = CHAPTERS[id];
-  resetRun(id, ch.newBelievers(), { slots: ch.slots, startHeld: ch.startHeld });
+  resetRun(id, ch.newBelievers(), { slots: ch.slots, startHeld: ch.startHeld, follow: !!ch.follow });
 }
 
 /** 判決的名稱（這一章的叫法） */
@@ -293,7 +316,8 @@ export function visible(r: RunState, e: Encounter): boolean {
     case 'ghost': return !caseDone(e.caseId) && !isHeld(e.caseId);
     case 'clue': return !r.evidence.includes(e.evidence) && (!e.needs || r.evidence.includes(e.needs));
     case 'talk': return !r.evidence.includes(e.evidence);
-    case 'imp': return true;
+    // 第四章：先鋒押中那條路，小妖已經清掉了（core/procession.ts 的 resolveBet）
+    case 'imp': return !r.flags[`cleared_${e.id}`];
   }
 }
 
@@ -329,6 +353,9 @@ export function summary(r: RunState, e: Encounter): { icon: string; title: strin
     }
     case 'imp': {
       const rule = CH().imp;
+      if (rule.mode === 'stray') {
+        return { icon: '妖', title: `${e.place}・牽路仔`, cost: `${rule.verb} ${rule.hours} 時辰${e.stall ? '／託點心站 0' : ''}`, color: 0xc9a0ff };
+      }
       const cost = rule.mode === 'scatter' ? `${rule.verb} ${rule.hours} 時辰` : rule.mode === 'decree' ? `${rule.verb}・王令 1 道`
         : impsFlee(r, CH()) ? '見隊伍就逃' : `${rule.verb}・不花時辰`;
       return { icon: '妖', title: `${e.place}・小妖`, cost, color: 0xc9a0ff };
@@ -348,8 +375,10 @@ export function laterSightings(caseId: string, day: number): string[] {
   const out: string[] = [];
   for (let d = day + 1; d <= 3; d++) {
     const p = CH().days[d];
+    // 第四章：臨時轉進、停駕點的事也算
+    const extra = p.follow ? [...(p.follow.detour?.encounters ?? []), ...p.follow.rest.encounters] : [];
     for (const r of p.routes) {
-      for (const e of [...p.pre, ...r.encounters, ...p.post]) {
+      for (const e of [...p.pre, ...r.encounters, ...extra, ...p.post]) {
         if (e.kind === 'ghost' && e.caseId === caseId) out.push(`第${'一二三'[d - 1]}天${r.id}線・${e.place}`);
       }
     }

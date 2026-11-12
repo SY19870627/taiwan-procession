@@ -21,6 +21,7 @@ import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
 import { banterStrip } from '../ui/banter';
 import { TRIAL } from '../core/layout';
 import { isBorrowedPortrait, portraitKey, portraitThumb, type Expr } from '../art/portraits';
+import { arrive, carrying, judgeGuihu, pending } from '../core/guihu';
 
 const WATCHES = 3;
 const DEFECT_COLOR: Record<string, number> = { 塗改: 0xff9a6a, 缺頁: 0xd9b0ff, 模糊: 0x9fd0ff };
@@ -48,6 +49,11 @@ export class TrialScene extends Phaser.Scene {
     // 第三章每晚 2 案（其他章不限，trialsLeft 不設）
     beginNight(run, CH());
     if (T.style === 'dianjiang') this.time.delayedCall(700, () => chat(this, 'lobby'));
+    // 第四章問歸處：歸處到了的鬼，開審前放下（空出頭旗下的格子）
+    const G = CH().guihu;
+    if (T.style === 'guihu' && G) {
+      for (const a of arrive(run, this.n, G)) this.messages.push(`${CH().cases[a.id].name}到了${G.dests[a.dest]?.name ?? a.dest}，放下了。`);
+    }
     this.cameras.main.fadeIn(500, 10, 8, 18);
     const bg = this.add.graphics();
     const dossier = T.style === 'dossier';
@@ -109,13 +115,21 @@ export class TrialScene extends Phaser.Scene {
     const p = { x: 16, y: 560, w: W - 32, h: H - 576 };
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     this.panelTop = p.y;
-    if (!run.held.length || left <= 0) {
-      this.add2(txt(this, p.x + 24, p.y + 24, run.held.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要審的鬼了。`, 24, C.paper, { bold: false }));
+    // 第四章問歸處：已經決定帶著走的鬼不用再問，只列出來（到了歸處才放下）
+    const guihu = T.style === 'guihu';
+    const list = guihu ? pending(run) : run.held;
+    if (guihu) {
+      const carried = carrying(run).map((h) => `${CH().cases[h.id].name}（往${CH().guihu?.dests[h.dest!]?.name ?? h.dest}）`);
+      const info = [...this.messages.slice(-2), carried.length ? `跟在頭旗後面走：${carried.join('、')}` : ''].filter(Boolean).join('\n');
+      if (info) this.add2(txt(this, W / 2, 180, info, 19, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
+    }
+    if (!list.length || left <= 0) {
+      this.add2(txt(this, p.x + 24, p.y + 24, list.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要${guihu ? '問' : '審'}的鬼了。`, 24, C.paper, { bold: false }));
       this.add2(button(this, W / 2, p.y + p.h - 70, 280, 76, this.n === 3 ? T.finalLabel : '天亮', () => this.finish(), { size: 28, fill: 0x8a1b14 }));
       return;
     }
     this.add2(txt(this, p.x + 24, p.y + 18, `${CH().held.label}的鬼`, 26, C.gold, { serif: true }));
-    run.held.forEach((h, i) => {
+    list.forEach((h, i) => {
       const k = CH().cases[h.id];
       const st = run.cases[h.id] ?? { truths: [] };
       const y = p.y + 70 + i * 120;
@@ -130,7 +144,7 @@ export class TrialScene extends Phaser.Scene {
       }
       this.add2(txt(this, p.x + 124, y + 12, k.dayName, 24, 0x9fd0ff));
       this.add2(txt(this, p.x + 124, y + 52, `已查明 ${st.truths.length}／${k.truths.length}・怨氣 ${h.grudge}／3`, 20, C.muted, { bold: false }));
-      this.add2(button(this, p.x + p.w - 90, y + 54, 130, 56, '升堂', () => this.open(k), { size: 22, fill: 0x8a1b14 }));
+      this.add2(button(this, p.x + p.w - 90, y + 54, 130, 56, guihu ? '問' : '升堂', () => this.open(k), { size: 22, fill: 0x8a1b14 }));
     });
     this.add2(button(this, W / 2, p.y + p.h - 60, 300, 64, '今夜不再審，天亮', () => this.finish(), { size: 20, fill: 0x3a3442 }));
   }
@@ -220,7 +234,7 @@ export class TrialScene extends Phaser.Scene {
     // 證據不足可以先押著：已查明的真相會保留，明天白天再去找證據
     this.add2(button(this, p.x + 24 + 150, p.y + p.h - 56, 300, 70, '先押著，改日再審', () => this.postpone(k), { size: 20, fill: 0x3a3442 }));
     this.add2(button(this, p.x + p.w - 24 - 150, p.y + p.h - 56, 300, 70, '下判決', () => this.verdicts(k), { size: 26, fill: 0x8a1b14 }));
-    if (this.n < 3) this.add2(txt(this, p.x + 24 + 150, p.y + p.h - 98, '真相會保留・天亮時怨氣 +1', 17, C.muted, { bold: false }).setOrigin(0.5, 1));
+    if (this.n < 3) this.add2(txt(this, p.x + 24 + 150, p.y + p.h - 98, CH().overnight === 'carry' ? '真相會保留・跟著走不加怨氣' : '真相會保留・天亮時怨氣 +1', 17, C.muted, { bold: false }).setOrigin(0.5, 1));
   }
 
   /** 出示（補正）證據：列出這個案子相關的證據，挑一件 */
@@ -315,7 +329,7 @@ export class TrialScene extends Phaser.Scene {
     }
     this.add2(button(this, p.x + p.w / 2 - 150, p.y + p.h - 56, 260, 62, '◀ 再問問', () => this.say(k, CH().trial.again), { size: 22, fill: 0x3a3442 }));
     this.add2(button(this, p.x + p.w / 2 + 150, p.y + p.h - 56, 260, 62, '改日再審', () => this.postpone(k), { size: 22, fill: 0x3a3442 }));
-    this.add2(txt(this, p.x + p.w / 2 + 150, p.y + p.h - 14, '怨氣 +1，明天可以再找證據', 16, C.muted, { bold: false }).setOrigin(0.5));
+    this.add2(txt(this, p.x + p.w / 2 + 150, p.y + p.h - 14, CH().overnight === 'carry' ? '先跟著走，明天可以再找證據' : '怨氣 +1，明天可以再找證據', 16, C.muted, { bold: false }).setOrigin(0.5));
   }
 
   private postpone(k: GhostCase): void {
@@ -333,10 +347,16 @@ export class TrialScene extends Phaser.Scene {
     if (this.why(k, v)) return;
     const T = CH().trial;
     const st = this.caseState(k);
-    st.verdict = v.verdict;
-    run.held = run.held.filter((h) => h.id !== k.id);
     const lines: string[] = [];
     const name = st.truths.length ? k.name : k.dayName;
+    // 第四章問歸處：帶著走的留在格子裡（跨天佔格），其他的空出格子；對鬼不斬（core/guihu.ts）
+    const G = CH().guihu;
+    if (T.style === 'guihu' && G) lines.push(v.result, '', ...judgeGuihu(run, k, v, G, this.n));
+    else {
+      st.verdict = v.verdict;
+      run.held = run.held.filter((h) => h.id !== k.id);
+    }
+    // 問歸處的四種判決（tobeijin／tohome／here／leave）不在下面任何一個 case 裡
     switch (v.verdict) {
       case 'release': {
         run.liqi = Math.max(0, run.liqi - 1);
@@ -504,9 +524,16 @@ export class TrialScene extends Phaser.Scene {
 
   // ---------- 天亮 ----------
   private finish(): void {
-    // 第一、二章：沒審的鬼怨氣 +1，到 3 會掙脫；第三章：太子壓一晚（core/dianjiang.ts）
+    // 第一、二章：沒審的鬼怨氣 +1，到 3 會掙脫；第三章：太子壓一晚（core/dianjiang.ts）；第四章：跟著走，不加怨氣
     const out = dawnHeld(run, CH());
     const F = CH().finale;
+    // 試玩版（第四章只做到第一天）：這一夜天亮之後接試玩結束畫面，不翻到下一天
+    const last = CH().playableDays;
+    if (last !== undefined && this.n >= last) {
+      run.yesterday = [...out, ...CH().dawn(run, this.n)];
+      go(this, 'cut', { kind: 'dawn', title: '雞啼・天亮', sub: '試玩到這裡', next: { key: 'sliceEnd' } });
+      return;
+    }
     if (this.n >= 3) {
       go(this, 'story', { id: F.story, next: { key: 'cut', data: { kind: 'boss', title: F.cutTitle, sub: F.cutSub, next: { key: 'boss' } } } });
       return;

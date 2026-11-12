@@ -247,7 +247,7 @@ export class AlmanacScene extends Phaser.Scene {
       objs.push(tb);
     };
     txt(this, W / 2, H - 126, CH().prologueLine, 22, C.paper, { serif: true, align: 'center', wordWrap: { width: W - 40, useAdvancedWrap: true } }).setOrigin(0.5);
-    const ask = button(this, W / 2, H - 62, 280, 76, CH().look === 'plain' ? '請示太子' : '請示王爺', () => { ask.setEnabled(false); open(); }, { size: 30, fill: 0x8a1b14 });
+    const ask = button(this, W / 2, H - 62, 280, 76, CH().askLabel ?? (CH().look === 'plain' ? '請示太子' : '請示王爺'), () => { ask.setEnabled(false); open(); }, { size: 30, fill: 0x8a1b14 });
   }
 }
 

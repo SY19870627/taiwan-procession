@@ -24,9 +24,10 @@ export const MAP_CHAPTERS: MapChapter[] = [
     scale: '三天晝夜・五位信徒・四個有冤情的鬼・魔王石駒',
   },
   {
-    id: 'baishadun', place: '白砂墩', title: '媽祖徒步進香', lon: 120.68, lat: 24.49, open: false,
+    // feat/ch4-baishadun 分支：只部署到測試區，所以這裡先開放（試玩到第一天）
+    id: 'baishadun', place: '白砂墩', title: '媽祖徒步進香', lon: 120.68, lat: 24.49, open: true,
     desc: '往哪裡走，只有媽祖知道。轎子一動，跟上來的人一天比一天多，多到整條省道都是人。',
-    scale: '尚未開放',
+    scale: '試玩版・第一天（第二天待續）',
   },
   {
     id: 'lanze', place: '蘭澤潭', title: '潭底的聲音', lon: 120.47, lat: 23.46, open: false,

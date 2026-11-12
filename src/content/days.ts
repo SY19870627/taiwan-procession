@@ -11,8 +11,8 @@ export type Encounter =
   | { kind: 'person'; id: string; place: string; card: string; tex: string }
   /** 有冤情的鬼：收容回去晚上審 */
   | { kind: 'ghost'; id: string; place: string; caseId: string }
-  /** 小妖：當場驅散，不用審 */
-  | { kind: 'imp'; id: string; place: string; text: string; tex: string }
+  /** 小妖：當場驅散，不用審（第四章牽路仔：stall＝附近的點心站，可以託人顧） */
+  | { kind: 'imp'; id: string; place: string; text: string; tex: string; stall?: string }
   /** 線索：得到物證 */
   | { kind: 'clue'; id: string; place: string; evidence: string; hours: number; text: string; needs?: string }
   /** 問話：得到證詞 */
@@ -45,6 +45,57 @@ export interface DayPlan {
   theme: StreetTheme;
   /** 溪水倒流（第三章第三天的異象：渡口的水紋往上游流） */
   reverseRiver?: boolean;
+  // ----- 第四章起（全部可選；沒寫就是第一～三章的「pre → 玩家二選一 → post」） -----
+  /**
+   * 跟轎：pre → 行轎岔路（方向由內容決定，玩家只押先鋒）→（臨時轉進）→ 停駕點 → post → 駐駕。
+   * 有寫這個，岔路就不讓玩家選路（core/procession.ts）。
+   */
+  follow?: FollowPlan;
+  /** 依前一天日落「傳消息」的標籤多出來的事（隔天事件池切換；core/procession.ts 的 poolFor） */
+  tagged?: TaggedPool[];
+  /** 日落「傳消息」：讓跟轎台拍到哪一件事（決定明天的事件池） */
+  broadcast?: BroadcastOption[];
+  /** 正式背景圖的主題（public/bg/bg_<art>_far.webp、_near.webp；有圖用圖，沒圖用 theme 的程式畫街景） */
+  art?: string;
+}
+
+/** 第四章：一天的跟轎行程 */
+export interface FollowPlan {
+  /** 轎子真的走哪一條（routes 的 id）；由內容決定（當天哪位信徒的故事線在哪條路上），不是亂數 */
+  goes: string;
+  /** 到岔路口前看得到的線索（押兵畫面上） */
+  hint: string;
+  /** 轎子轉向之後的說明（押中、押錯都會看到） */
+  turn: string;
+  /** 臨時轉進：甲乙都不是，轎子拐進第三個地方（沒得猜，事後才有解釋） */
+  detour?: { name: string; place: string; text: string; encounters: Encounter[]; why: string };
+  /** 停駕點：短暫休息 */
+  rest: { name: string; place: string; text: string; encounters: Encounter[] };
+  /** 駐駕：過夜的地方（日落畫面） */
+  stay: { name: string; text: string };
+}
+
+/** 依標籤加進當天的事 */
+export interface TaggedPool {
+  tag: string;
+  /** 加在出發後（pre）還是會合後（post） */
+  where: 'pre' | 'post';
+  encounters: Encounter[];
+}
+
+/** 日落傳消息的一個選項（代價照例明講） */
+export interface BroadcastOption {
+  id: string;
+  /** 讓跟轎台拍到什麼 */
+  label: string;
+  /** 明天多來的人 */
+  brings: string;
+  /** 明天的代價 */
+  cost: string;
+  /** 明天事件池的標籤 */
+  tags: string[];
+  /** 最後一戰人鏈多幾段 */
+  chain: number;
 }
 
 // ---------- 可以重複用的事 ----------

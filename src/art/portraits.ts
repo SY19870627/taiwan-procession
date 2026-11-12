@@ -80,6 +80,13 @@ const ALIAS: Record<string, string | string[]> = {
   哨仔伯: 'shaozaibo', '哨仔伯【待定】': 'shaozaibo', shaozaibo: 'shaozaibo',
   阿旺: 'awang', '阿旺【待定】': 'awang', awang: 'awang',
   蛟: 'jiao', 蝦兵: 'xiabing',
+  // 第四章（白砂墩；清單見 art/baishadunSpec.ts 的 CH4_PORTRAITS）。媽祖沒有立繪。
+  // 跟轎台的義工叫阿睿（arui）；第一章冰果室的阿哲（azhe）不動
+  阿滿姨: 'aman', 阿睿: 'arui', 賢仔: 'xianzai', 秀枝: 'xiuzhi', 阿翰: 'ahan',
+  前哨: 'qianshao', 押尾: 'yawei', 頭旗手: 'touqi',
+  草鞋丁: 'caoxie', caoxie: 'caoxie', 點心擔阿婆: 'apo', apo: 'apo',
+  沒走成的新娘: 'xinniang', xinniang: 'xinniang', 假香燈腳: 'jiajiao', jiajiao: 'jiajiao',
+  茫渡: 'mangdu',
 };
 
 /** 表情沒有圖時，用哪一個代替 */

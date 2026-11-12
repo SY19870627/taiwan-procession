@@ -62,6 +62,32 @@ export interface RunState {
   weiming: number;
   /** 第三章：今晚還能審幾案（每晚 2 案）；沒有限制的章節是 undefined */
   trialsLeft?: number;
+  /** 第四章：跟轎的進度（押先鋒、牽路仔、稟報、傳消息）；其他章 undefined（見 core/procession.ts） */
+  follow?: FollowState;
+}
+
+/** 第四章：跟轎的進度 */
+export interface FollowState {
+  /** 今天先鋒押在哪：路線 id（甲／乙）或 'stay'（留在轎邊）；還沒到岔路是 undefined */
+  bet?: string;
+  /** 押兵的結果：hit 押中、miss 押錯、stay 留在轎邊 */
+  betResult?: 'hit' | 'miss' | 'stay';
+  /** 被牽路仔帶偏、沒跟上的人（遺憾；最後一戰與黃曆「昨日」用） */
+  strayed: number;
+  /** 每天日落傳消息選了什麼（天數 → 選項 id） */
+  broadcast: Record<number, string>;
+  /** 明天事件池的標籤（傳消息決定；DayPlan.tagged 依這個加事件） */
+  tags: string[];
+  /** 最後一戰「人鏈」：會下水牽人的有幾段 */
+  chain: number;
+  /** 用掉的點心站（`段:攤名`；同一段同一攤只能幫一件事） */
+  stallsUsed: string[];
+  /** 稟報過的事（選項 key → 轎子有沒有停） */
+  reports: Record<string, boolean>;
+}
+
+export function newFollow(): FollowState {
+  return { strayed: 0, broadcast: {}, tags: [], chain: 0, stallsUsed: [], reports: {} };
 }
 
 export interface Held {
@@ -69,12 +95,18 @@ export interface Held {
   grudge: number;
   tamed?: boolean;
   looked?: boolean;
+  /** 第四章問歸處：決定帶去哪裡（歸處 id）；到了才放下，在那之前一直佔著格子（跨天） */
+  dest?: string;
+  /** 第四章：第幾夜決定帶著走的 */
+  since?: number;
 }
 
 /** 開始一章時，依章節設定的收容格數與預放的鬼（第一、二章：3 格、不預放） */
 export interface RunOpts {
   slots?: number;
   startHeld?: string[];
+  /** 第四章：跟轎 */
+  follow?: boolean;
 }
 
 export function newRun(): RunState {
@@ -112,6 +144,7 @@ export function resetRun(chapter = 'wanjia', believers?: Record<string, string>,
   if (believers) run.b = { ...believers };
   if (opts.slots) run.slots = opts.slots;
   if (opts.startHeld) run.held = opts.startHeld.map((id) => ({ id, grudge: 0 }));
+  if (opts.follow) run.follow = newFollow();
 }
 
 export function clamp(v: number, lo: number, hi: number): number {

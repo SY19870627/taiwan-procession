@@ -40,6 +40,13 @@ export interface Option {
   result: string;
   /** 真的選了：改變狀態，回傳結果敘述 */
   apply: (r: RunState) => string;
+  /**
+   * 第四章「稟報」（取代神蹟）：把這個人的事報到轎前，用掉一次稟報。
+   * 選之前明講「媽祖會知道；轎子會不會為他停，不保證」；停不停由內容決定（stops），不是亂數。
+   */
+  report?: { key: string; stops: (r: RunState) => boolean; stop: string; pass: string };
+  /** 第四章：要用附近的點心站（這一段那一攤就不能再幫別的） */
+  stall?: string;
 }
 
 export interface Card {

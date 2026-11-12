@@ -22,6 +22,8 @@ export interface BandData {
   line: [string, number, number][];
   /** 溪水倒流（第三章第三天） */
   reverse?: boolean;
+  /** 第四章起：正式背景圖的主題（bg_<art>_far／_near；沒有圖就用 theme 的程式畫街景） */
+  art?: string;
 }
 
 /** 路上遇到的東西長什麼樣子 */
@@ -42,6 +44,7 @@ export class BandScene extends Phaser.Scene {
   private t = 0;
   private reverse = false;
   private hour?: number;
+  private art?: string;
 
   constructor() {
     super('band');
@@ -60,13 +63,14 @@ export class BandScene extends Phaser.Scene {
     this.cameras.main.fadeIn(400, 10, 8, 18);
     this.reverse = !!data.reverse;
     this.hour = data.hour;
-    this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour, reverse: this.reverse });
+    this.art = data.art;
+    this.street = new Street(this, { night: false, theme: data.theme, hour: data.hour, reverse: this.reverse, art: this.art });
     // 第三章的正式背景圖如果比這個畫面晚載到（例如直接用網址跳進來），載到時換上
     const onArt = (k: string) => {
       const theme = this.street.themeName;
-      if (!k.startsWith(`bg_${theme}_`)) return;
+      if (!k.startsWith(`bg_${theme}_`) && !(this.art && k.startsWith(`bg_${this.art}_`))) return;
       this.street.destroy();
-      this.street = new Street(this, { night: false, theme, hour: this.hour, reverse: this.reverse });
+      this.street = new Street(this, { night: false, theme, hour: this.hour, reverse: this.reverse, art: this.art });
     };
     this.game.events.on('artloaded', onArt);
     this.events.once('shutdown', () => this.game.events.off('artloaded', onArt));
@@ -90,7 +94,7 @@ export class BandScene extends Phaser.Scene {
     cam.once('camerafadeoutcomplete', () => {
       this.street.destroy();
       this.hour = hour;
-      this.street = new Street(this, { night: false, theme, hour, reverse: this.reverse });
+      this.street = new Street(this, { night: false, theme, hour, reverse: this.reverse, art: this.art });
       cam.fadeIn(320, 10, 8, 18);
       done?.();
     });

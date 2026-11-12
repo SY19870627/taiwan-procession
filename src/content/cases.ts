@@ -45,7 +45,9 @@ export const EVIDENCE: Record<string, Evidence> = {
 };
 
 // ---------- 案子 ----------
-export type Verdict = 'release' | 'recruit' | 'escort' | 'slay' | 'free' | 'ship';
+export type Verdict = 'release' | 'recruit' | 'escort' | 'slay' | 'free' | 'ship'
+  /** 第四章「問歸處」：帶去北津／帶回白砂墩（跟在頭旗後面走，佔格到那裡）／就在這裡下／不帶（core/guihu.ts） */
+  | 'tobeijin' | 'tohome' | 'here' | 'leave';
 
 export const VERDICT_NAME: Record<Verdict, string> = {
   release: '化解超渡',
@@ -54,6 +56,10 @@ export const VERDICT_NAME: Record<Verdict, string> = {
   slay: '斬',
   free: '放走',
   ship: '上王船',
+  tobeijin: '帶去北津',
+  tohome: '帶回白砂墩',
+  here: '就在這裡下',
+  leave: '不帶',
 };
 
 /** 案卷記載的毛病，以及要用哪一種證據補正 */

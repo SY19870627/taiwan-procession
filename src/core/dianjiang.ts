@@ -408,6 +408,8 @@ export function useTrial(r: RunState): void {
  */
 export function dawnHeld(r: RunState, ch: Pick<ChapterDef, 'overnight' | 'held' | 'cases'>): string[] {
   const out: string[] = [];
+  // 第四章：鬼跟在頭旗後面走，不是押著；不加怨氣、不掙脫（core/guihu.ts）
+  if (ch.overnight === 'carry') return out;
   if (ch.overnight === 'tame') {
     for (const h of r.held) {
       h.tamed = true;

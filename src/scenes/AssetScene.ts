@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { loadPortraits } from '../art/portraits';
 import { BATTLE_FILES, BG_FILES } from '../art/xinyingSpec';
 import { STAGE_DIR, STAGE_FILES } from '../art/stageSpec';
+import { CH4_BG_FILES, CH4_STAGE_FILES } from '../art/baishadunSpec';
 
 /** 正式戰鬥圖先用這個暫時的名字載入，載完再換成正式的貼圖名稱 */
 const TMP = 'art:';
@@ -34,6 +35,12 @@ export class AssetScene extends Phaser.Scene {
       this.load.image(TMP + k, `${STAGE_DIR}/${k}.webp`);
       this.load.once(`filecomplete-image-${TMP}${k}`, () => this.replaceTexture(k));
     }
+    // 第四章（art/baishadunSpec.ts）：演出小人與轎子同一套蓋掉暫代；背景圖有就用（Street 的 useArtImages）
+    for (const k of CH4_STAGE_FILES) {
+      this.load.image(TMP + k, `${STAGE_DIR}/${k}.webp`);
+      this.load.once(`filecomplete-image-${TMP}${k}`, () => this.replaceTexture(k));
+    }
+    for (const k of CH4_BG_FILES) this.load.image(k, `bg/${k}.webp`);
   }
 
   /**

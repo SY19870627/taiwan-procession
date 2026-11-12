@@ -326,10 +326,14 @@ export class Street {
   /** 0–1：從城市漸漸變成鄉間（第二天用） */
   ruralMix = 0;
 
-  constructor(scene: Phaser.Scene, opts: { night: boolean; theme: StreetTheme; hour?: number; reverse?: boolean }) {
+  /** 第四章起：正式背景圖的主題（bg_<art>_far／_near）；沒有圖就是 theme 的程式畫街景 */
+  private art?: string;
+
+  constructor(scene: Phaser.Scene, opts: { night: boolean; theme: StreetTheme; hour?: number; reverse?: boolean; art?: string }) {
     this.scene = scene;
     this.night = opts.night;
     this.theme = opts.theme;
+    this.art = opts.art;
     this.sky = scene.add.graphics().setDepth(-100);
     this.setHour(opts.hour ?? (opts.night ? 21 : 9));
     if (isPlainTheme(opts.theme)) {
@@ -358,7 +362,32 @@ export class Street {
     this.road = scene.add.tileSprite(0, GROUND_Y - 90, W, H - (GROUND_Y - 90), roadKey).setOrigin(0, 0).setDepth(-60);
     const MIX: Record<Exclude<StreetTheme, PlainTheme>, number> = { city: 0, mixed: 0.3, hill: 0.8, harbor: 0.25, shore: 0.65 };
     this.ruralMix = MIX[opts.theme];
+    this.useArtImages();
     while (this.nextX < W + 300) this.addProp();
+  }
+
+  /**
+   * 第四章起（有圖用圖、沒圖用程式畫的暫代，檔名就是接點）：有 bg_<art>_far／_near 的正式背景圖就蓋掉程式畫的遠景／近景；
+   * 近景圖裡已經有房子，就不另外擺街屋。白天才用（夜景另外處理）。
+   */
+  private useArtImages(): void {
+    if (!this.art || this.night) return;
+    const far = `bg_${this.art}_far`;
+    const near = `bg_${this.art}_near`;
+    const tx = this.scene.textures;
+    if (tx.exists(far)) {
+      this.far.destroy();
+      this.far = this.scene.add.tileSprite(0, GROUND_Y - 80, W, tx.get(far).getSourceImage().height, far).setOrigin(0, 1).setDepth(-90);
+    }
+    if (tx.exists(near)) {
+      this.near?.destroy();
+      this.near = this.scene.add.tileSprite(0, GROUND_Y - 88, W, tx.get(near).getSourceImage().height, near).setOrigin(0, 1).setDepth(-75);
+      this.plain = [];
+    }
+  }
+
+  get artName(): string | undefined {
+    return this.art;
   }
 
   setHour(hour: number): void {

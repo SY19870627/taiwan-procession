@@ -11,7 +11,8 @@ import { play, planBrain } from './sim3';
 
 describe('三章的 ChapterDef', () => {
   it('三章都註冊了，必要欄位齊全', () => {
-    expect(Object.keys(CHAPTERS).sort()).toEqual(['dongjin', 'wanjia', 'xinying']);
+    // 第四章（白砂墩）在 feat/ch4-baishadun 註冊（tests/ch4.test.ts）
+    expect(Object.keys(CHAPTERS).sort()).toEqual(['baishadun', 'dongjin', 'wanjia', 'xinying']);
     for (const ch of Object.values(CHAPTERS)) {
       expect(ch.place && ch.title && ch.god, ch.id).toBeTruthy();
       expect([1, 2, 3].every((d) => ch.days[d]), ch.id).toBe(true);

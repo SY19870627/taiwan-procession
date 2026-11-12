@@ -4,6 +4,7 @@ import { makeBackdropTextures, makeTemple } from '../art/backdrop';
 import { makeHarbor } from '../art/harbor';
 import { makeXinying } from '../art/xinying';
 import { makeStageArt } from '../art/stage';
+import { makeBaishadun } from '../art/baishadun';
 import { startChapter } from '../content/chapter';
 
 export class BootScene extends Phaser.Scene {
@@ -20,6 +21,8 @@ export class BootScene extends Phaser.Scene {
     makeHarbor(this);
     makeXinying(this);
     makeStageArt(this);
+    // 第四章：四人小轎（粉紅遮雨布）、頭旗、香擔、香燈腳、點心站、牽路仔、拱辰宮的暫代
+    makeBaishadun(this);
     // 立繪圖檔在背景載入
     this.scene.launch('assets');
     // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）

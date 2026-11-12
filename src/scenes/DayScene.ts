@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import type { Card, Option } from '../content/believers';
 import type { DayPlan, Encounter, RouteDef } from '../content/days';
-import { CH, collectHours, evidenceFor, evidenceOf, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible } from '../content/chapter';
+import { CH, collectHours, evidenceFor, evidenceOf, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible, type ImpRule } from '../content/chapter';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
@@ -19,6 +19,10 @@ import { CATCH_HOURS, LOOK_HOURS, LOOK_TAG, ROADSIDE_HOURS, WEIMING_MAX, collect
 import { flashback } from '../ui/talk';
 import { banter } from '../ui/banter';
 import type { GhostCase } from '../content/cases';
+import {
+  REPORT_NOTE, afterFork, applyBroadcast, beforeFork, betChoices, followOf, optionWhy, report, resolveBet, resolveStray,
+  skipStray, strayChoices, useStall, type Step,
+} from '../core/procession';
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -52,8 +56,11 @@ export class DayScene extends Phaser.Scene {
   private redraw?: () => void;
   private slotBox?: Phaser.GameObjects.Container;
   private side!: Phaser.GameObjects.Container;
-  private queue: (Encounter | 'fork')[] = [];
+  /** 接下來的事；字串是段落標記（fork 岔路；第四章另有 detour 臨時轉進、detourEnd 轉進結束、rest 停駕點） */
+  private queue: Step[] = [];
   private idx = 0;
+  /** 第四章：現在走在哪一段（pre、甲／乙、detour、rest）；點心站「這一段」只能幫一件事 */
+  private seg = 'pre';
   /** 岔路換了街景時：會合後（queue 的這一格起）換回當天的街景 */
   private rejoinAt = -1;
   private busy = false;
@@ -82,7 +89,9 @@ export class DayScene extends Phaser.Scene {
     this.caught = undefined;
     this.redraw = undefined;
     this.busy = false;
-    this.queue = [...this.plan.pre, 'fork'];
+    // 第四章跟轎：出發後的事依前一天傳消息的標籤加（core/procession.ts）；其他章照舊
+    this.queue = this.plan.follow ? beforeFork(this.plan, run) : [...this.plan.pre, 'fork'];
+    this.seg = 'pre';
     this.idx = 0;
     this.walkN = 0;
     this.rejoinAt = -1;
@@ -97,7 +106,7 @@ export class DayScene extends Phaser.Scene {
     this.side = this.add.container(0, 0);
 
     // 上方隊伍畫面
-    this.scene.launch('band', { y: BAND_Y, theme: this.plan.theme, hour: this.hourNow(), line: CH().band(day), reverse: this.plan.reverseRiver });
+    this.scene.launch('band', { y: BAND_Y, theme: this.plan.theme, hour: this.hourNow(), line: CH().band(day), reverse: this.plan.reverseRiver, art: this.plan.art });
     this.band = this.scene.get('band') as BandScene;
     this.events.once('shutdown', () => this.scene.stop('band'));
     const fr = this.add.graphics().setDepth(5);
@@ -112,7 +121,14 @@ export class DayScene extends Phaser.Scene {
       this.band.walk(900, () => this.next());
       this.banter('depart');
     });
-    this.panelMsg(`${this.plan.title}・起駕`, '隊伍出發了。路上遇到的人和鬼，停下來處理才花時辰；略過就走過去了。');
+    this.panelMsg(`${this.plan.title}・起駕`, this.plan.follow
+      ? '頭旗出發了，轎子跟在後面。往哪裡走，只有媽祖知道。路上遇到的事，停下來處理才花時辰；略過就走過去了。'
+      : '隊伍出發了。路上遇到的人和鬼，停下來處理才花時辰；略過就走過去了。');
+  }
+
+  /** 神蹟的叫法（第四章：稟報） */
+  private miracleLabel(): string {
+    return CH().follow?.reportLabel ?? '神蹟';
   }
 
   private hourNow(): number {
@@ -149,7 +165,7 @@ export class DayScene extends Phaser.Scene {
       for (let i = 0; i < WEIMING_MAX; i++) this.weimingPips.push(this.add.rectangle(580 + i * 16, 101, 12, 12, 0x3a3442).setStrokeStyle(1, 0xb08a3a));
       this.weimingTxt = txt(this, 530, 124, '', 13, C.muted, { bold: false }).setOrigin(0, 0.5);
     } else {
-      txt(this, 310, 111, '神蹟', 17, C.muted).setOrigin(0, 0.5);
+      txt(this, 310, 111, this.miracleLabel(), 17, C.muted).setOrigin(0, 0.5);
       for (let i = 0; i < this.plan.miracles; i++) {
         this.miracleDots.push(this.add.circle(364 + i * 26, 111, 9, 0xffd76a).setStrokeStyle(2, 0xb3261e));
       }
@@ -224,8 +240,13 @@ export class DayScene extends Phaser.Scene {
       c.add(img);
       c.add(txt(this, sx + 44, sy + 4, st.truths.length ? k.name : k.shortName, 18, 0xd8ecff));
       const grudge = '●'.repeat(h1.grudge) + '○'.repeat(3 - h1.grudge);
-      c.add(txt(this, sx + 44, sy + 32, `查明${st.truths.length}／${k.truths.length}`, 15, 0x9fe8c0, { bold: false }));
-      c.add(txt(this, sx + sw - 6, sy + 32, grudge, 14, h1.grudge ? 0xff9a8a : 0x6a7a92, { bold: false }).setOrigin(1, 0));
+      if (h1.dest) {
+        // 第四章問歸處：已經決定帶著走，到那裡之前一直佔著這格
+        c.add(txt(this, sx + 44, sy + 32, `往${CH().guihu?.dests[h1.dest]?.name ?? h1.dest}`, 15, 0xffd76a, { bold: false }));
+      } else {
+        c.add(txt(this, sx + 44, sy + 32, `查明${st.truths.length}／${k.truths.length}`, 15, 0x9fe8c0, { bold: false }));
+        c.add(txt(this, sx + sw - 6, sy + 32, grudge, 14, h1.grudge ? 0xff9a8a : 0x6a7a92, { bold: false }).setOrigin(1, 0));
+      }
       const hit = this.add.rectangle(sx, sy, sw, sh, 0xffffff, 0.001).setOrigin(0).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => this.showHeld(h1.id));
       c.add(hit);
@@ -316,6 +337,10 @@ export class DayScene extends Phaser.Scene {
         if (lost.length) para(`注意：牠身上有東西。不審直接斬，就拿不到「${lost.map((e) => CH().evidence[e].name).join('、')}」`, 0xffd76a, 19);
         para(`太子親斬：${slayPreview(run, k, CH())}`, 0xff9a8a, 19);
         para('快判（太子親斬、押送）不花時辰、不佔今晚的審案名額；路邊點將花 1 時辰。', C.muted, 18);
+      } else if (h1?.dest) {
+        para(`跟在頭旗後面走，要帶到${CH().guihu?.dests[h1.dest]?.name ?? h1.dest}才放得下；在那之前一直佔著一格。`, 0xffd76a, 19);
+      } else if (h1 && CH().overnight === 'carry') {
+        para(`怨氣 ${h1.grudge}／3。跟在頭旗後面過夜不加怨氣；今晚問歸處。`, 0xff9a8a, 19);
       } else if (h1) para(`怨氣 ${h1.grudge}／3（每過一夜沒審 +1，到 3 會掙脫）`, 0xff9a8a, 19);
     }, h1 && this.renown() ? (close) => this.heldActions(k, close) : undefined);
   }
@@ -393,14 +418,21 @@ export class DayScene extends Phaser.Scene {
 
   /** 「前方」清單：接下來會遇到的事（只看得到這條路上的，列兩件） */
   private drawAhead(p: { x: number; y: number; w: number; h: number }): void {
-    const rest = this.queue.slice(this.idx).filter((e): e is Encounter => e !== 'fork' && visible(run, e)).slice(0, 2);
+    // 只看到下一個段落標記（岔路、臨時轉進、停駕點）之前的事
+    const upto = this.queue.slice(this.idx);
+    const cut = upto.findIndex((e) => typeof e === 'string');
+    const rest = (cut >= 0 ? upto.slice(0, cut) : upto).filter((e): e is Encounter => typeof e !== 'string' && visible(run, e)).slice(0, 2);
     const top = p.y + p.h - 22 - Math.max(1, rest.length) * 38;
     const g = this.add2(this.add.graphics());
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 20, top - 10, p.x + p.w - 20, top - 10);
     this.add2(txt(this, p.x + 24, top - 2, '前方', 19, C.muted));
     if (!rest.length) {
-      this.add2(txt(this, p.x + 90, top - 2, this.queue[this.idx] === 'fork' ? '岔路' : '（這條路快走完了）', 19, C.muted, { bold: false }));
+      const mark = cut >= 0 ? upto[cut] : undefined;
+      // 第一～三章照原本的寫法（只看下一格是不是岔路）
+      const label = !this.plan.follow ? (this.queue[this.idx] === 'fork' ? '岔路' : '（這條路快走完了）')
+        : mark === 'fork' ? '岔路' : mark === 'rest' ? '停駕點' : mark === 'detourEnd' ? '回到隊伍' : mark === 'detour' ? '（轎子好像要轉彎）' : '（這條路快走完了）';
+      this.add2(txt(this, p.x + 90, top - 2, label, 19, C.muted, { bold: false }));
       return;
     }
     rest.forEach((e, i) => {
@@ -417,7 +449,7 @@ export class DayScene extends Phaser.Scene {
     // 跳過今天不會出現的事
     while (this.idx < this.queue.length) {
       const e = this.queue[this.idx];
-      if (e === 'fork' || visible(run, e)) break;
+      if (typeof e === 'string' || visible(run, e)) break;
       this.idx++;
     }
     if (this.idx >= this.queue.length) return this.endRoute();
@@ -429,7 +461,10 @@ export class DayScene extends Phaser.Scene {
     const e = this.queue[this.idx++];
     this.caught = undefined;
     this.redraw = undefined;
-    if (e === 'fork') return this.showFork();
+    if (e === 'fork') return this.plan.follow ? this.showBet() : this.showFork();
+    if (e === 'detour') return this.showDetour();
+    if (e === 'detourEnd') return this.showDetourWhy();
+    if (e === 'rest') return this.showRest();
     // 走近的這段時間，面板上還是上一件事的卡片：先擋住，免得按到舊卡片的「略過」把走近的這件事一起略過
     this.busy = true;
     if (this.walkN++ % 3 === 1) this.banter(`walk${this.plan.day}`);
@@ -580,6 +615,8 @@ export class DayScene extends Phaser.Scene {
 
   // ----- 人 -----
   private blocked(o: Option): string {
+    // 第四章：稟報次數、點心站（這一段已經在幫別的事）
+    if (CH().follow) return optionWhy(run, o, this.seg);
     if (o.miracle && run.miracles <= 0) return '今天的神蹟已經用完';
     return this.hoursWhy(o.hours);
   }
@@ -587,6 +624,8 @@ export class DayScene extends Phaser.Scene {
   private costLine(o: Option): string {
     const parts = [`${o.hours} 時辰`];
     if (o.miracle) parts.push('神蹟（最後一戰小妖 +1 波）');
+    if (o.report) parts.push(`${this.miracleLabel()} 1 次（${REPORT_NOTE}）`);
+    if (o.stall) parts.push(`點心站「${o.stall}」（這一段不能再幫別的）`);
     const newEv = (o.gives ?? []).filter((id) => !run.evidence.includes(id));
     if (newEv.length) parts.push(`得到：${newEv.map((id) => CH().evidence[id].name).join('、')}`);
     return parts.join('・');
@@ -598,7 +637,7 @@ export class DayScene extends Phaser.Scene {
     const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? { s: `期限：${card.deadline}`, color: '#b3261e' } : undefined, e.tex);
     let y = y0;
     for (const o of card.options) {
-      y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }), !!o.miracle);
+      y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }), !!o.miracle || !!o.report);
     }
     this.skipRow(p, y, card.ignore, () => this.skip());
   }
@@ -612,7 +651,10 @@ export class DayScene extends Phaser.Scene {
       run.bossAdds++;
       this.cameras.main.flash(500, 255, 230, 160);
     }
-    const story = o.apply(run);
+    if (o.stall) useStall(run, this.seg, o.stall);
+    // 第四章稟報：報到轎前。轎子停不停由內容決定（不是亂數）；不加最後一戰的小妖
+    const rep = o.report ? report(run, o) : undefined;
+    const story = [o.apply(run), rep?.text].filter(Boolean).join('\n');
     this.refreshHeader();
     this.after(story, run.evidence.slice(before), who);
   }
@@ -809,6 +851,7 @@ export class DayScene extends Phaser.Scene {
   // ----- 小妖 -----
   private showImp(e: Extract<Encounter, { kind: 'imp' }>): void {
     const rule = CH().imp;
+    if (rule.mode === 'stray') return this.showStray(e, rule);
     if (rule.mode === 'scatter') {
       const { p, y: y0 } = this.cardHead('小妖', e.place, e.text, undefined, e.tex);
       const y = this.optionRow(p, y0, rule.verb, `${rule.hours} 時辰`, rule.result, this.hoursWhy(rule.hours), () => {
@@ -857,8 +900,30 @@ export class DayScene extends Phaser.Scene {
   private skipImp(): void {
     if (this.busy) return;
     const rule = CH().imp;
-    run.bossAdds += rule.mode === 'ring' ? rule.skipAdds : 1;
+    if (rule.mode === 'stray') skipStray(run);
+    else run.bossAdds += rule.mode === 'ring' ? rule.skipAdds : 1;
     this.skip();
+  }
+
+  /**
+   * 第四章牽路仔：只對隊尾落隊的人下手（轎、頭旗、香擔牠碰不到）。
+   * 派兵回頭喊花時辰；附近有點心站可以託人顧（0 時辰，那一攤這一段不能再幫別的）。略過：有人沒跟上。
+   */
+  private showStray(e: Extract<Encounter, { kind: 'imp' }>, rule: Extract<ImpRule, { mode: 'stray' }>): void {
+    this.redraw = () => this.showStray(e, rule);
+    const near = e.stall ? `\n附近有點心站「${e.stall}」。` : '';
+    const { p, y: y0 } = this.cardHead('牽路仔', e.place, `${e.text}${near}`, { s: '隊尾', color: '#6a4a8a' }, e.tex);
+    let y = y0;
+    for (const c of strayChoices(run, e, this.seg, rule.hours)) {
+      const res = c.how === 'shout' ? rule.result : '點心站的人幫忙把人拉回來';
+      y = this.optionRow(p, y, c.label, c.cost, res, c.why, () => {
+        if (this.busy || !resolveStray(run, e, this.seg, c.how, rule.hours)) return;
+        this.busy = true;
+        this.refreshHeader();
+        this.band.scatter(() => { this.busy = false; this.after(c.how === 'shout' ? rule.story : rule.entrustStory, []); });
+      }, c.how === 'entrust');
+    }
+    this.skipRow(p, y, rule.skip, () => this.skipImp());
   }
 
   // ----- 線索 -----
@@ -939,6 +1004,102 @@ export class DayScene extends Phaser.Scene {
     } else walk();
   }
 
+  // ---------- 第四章：跟轎（core/procession.ts） ----------
+  /** 一個段落畫面：標題、說明、一顆繼續的按鈕 */
+  private stepPanel(title: string, body: string, label: string, go2: () => void): void {
+    const p = this.resetSide();
+    this.add2(txt(this, p.x + 24, p.y + 18, title, 30, C.gold, { serif: true }));
+    this.add2(txt(this, p.x + 24, p.y + 70, body, 22, C.paper, { bold: false, lineSpacing: 9, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 70, label, () => {
+      if (this.busy) return;
+      go2();
+    }, { size: 26, fill: 0x8a1b14 }));
+  }
+
+  /**
+   * 行轎岔路：轎子往哪走由內容決定，玩家只決定先鋒押哪（押甲／押乙／留在轎邊）。
+   * 每個選項先寫明押中、押錯各會怎樣（選擇一律明講代價）。
+   */
+  private showBet(): void {
+    const f = this.plan.follow!;
+    const p = this.resetSide();
+    this.add2(txt(this, p.x + 24, p.y + 14, '行轎岔路', 30, C.gold, { serif: true }));
+    const intro = this.add2(txt(this, p.x + 24, p.y + 58, `轎子往哪走，只有媽祖知道。你能決定的是先鋒兵馬先押在哪條路等。\n${f.hint}`, 19, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    let y = intro.y + intro.height + 12;
+    // 兩條路上看得到什麼（哪邊有小妖、哪邊有人在等）
+    for (const rt of this.plan.routes) {
+      const list = rt.encounters.filter((e) => visible(run, e)).map((e) => summary(run, e).icon).join('');
+      const t = this.add2(txt(this, p.x + 24, y, `${rt.id}・${rt.name}：${list || '（看不出有什麼）'}`, 19, rt.color, { bold: true, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+      y = t.y + t.height + 6;
+    }
+    y += 6;
+    for (const c of betChoices(this.plan)) {
+      const stay = c.bet === 'stay';
+      y = this.optionRow(p, y, c.label, stay ? '先鋒留在轎邊' : `押中：${c.ifRight}`, stay ? '不賺不賠' : `押錯：${c.ifWrong}`, '', () => this.bet(c.bet), !stay);
+    }
+  }
+
+  private bet(choice: string): void {
+    if (this.busy) return;
+    const f = this.plan.follow!;
+    const before = run.hours;
+    const o = resolveBet(run, this.plan, choice);
+    const diff = run.hours - before;
+    this.refreshHeader();
+    const rt = this.plan.routes.find((x) => x.id === f.goes);
+    const res = o.result === 'hit'
+      ? `押中了。先鋒已經在${f.goes}路等著${o.cleared.length ? '，路上的牽路仔先清掉了' : ''}。時辰 ${diff >= 0 ? '+' : ''}${diff}。`
+      : o.result === 'miss' ? `押錯了。先鋒兵馬要從另一條路趕回來。時辰 ${diff}。` : '先鋒留在轎邊。不賺不賠。';
+    this.banter('fork');
+    this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${f.turn}\n\n${res}`, '跟上', () => {
+      this.queue = afterFork(this.plan, run);
+      this.idx = 0;
+      this.seg = f.goes;
+      this.busy = true;
+      this.band.walk(700, () => { this.busy = false; this.next(); });
+    });
+  }
+
+  /** 臨時轉進：甲乙都不是，轎子拐進第三個地方。沒得猜，事後才有解釋 */
+  private showDetour(): void {
+    const d = this.plan.follow!.detour!;
+    this.seg = 'detour';
+    this.stepPanel(`臨時轉進・${d.name}`, `${d.text}\n\n（這一次沒得猜，只能跟。）`, '跟進去', () => {
+      this.busy = true;
+      this.band.walk(700, () => { this.busy = false; this.next(); });
+    });
+  }
+
+  private showDetourWhy(): void {
+    const d = this.plan.follow!.detour!;
+    this.stepPanel('事後才知道', d.why, '繼續', () => this.next());
+  }
+
+  /** 停駕點：短暫休息（之後是會合後的事、駐駕） */
+  private showRest(): void {
+    const r = this.plan.follow!.rest;
+    this.seg = 'rest';
+    this.stepPanel(`停駕・${r.name}`, r.text, '繼續', () => {
+      this.busy = true;
+      this.band.walk(500, () => { this.busy = false; this.next(); });
+    });
+  }
+
+  /** 日落傳消息：讓跟轎台拍到哪一件事 → 明天的事件池換人（代價照例明講） */
+  private showBroadcast(p: { x: number; y: number; w: number; h: number }, y0: number): void {
+    let y = y0;
+    this.add2(txt(this, p.x + 24, y, '傳消息：讓跟轎台拍到哪一件？', 22, C.gold, { serif: true }));
+    y += 40;
+    for (const o of this.plan.broadcast ?? []) {
+      const none = !o.tags.length || o.chain === 0;
+      y = this.optionRow(p, y, none ? '不拍' : '讓他拍', `拍到：${o.label}・明天多來：${o.brings}`, `明天的代價：${o.cost}`, '', () => {
+        if (this.busy) return;
+        applyBroadcast(run, this.plan.day, o);
+        this.endDay();
+      }, !none);
+    }
+  }
+
   // ---------- 一天結束 ----------
   private endRoute(): void {
     run.hours = 0;
@@ -947,6 +1108,7 @@ export class DayScene extends Phaser.Scene {
   }
 
   private endDay(): void {
+    if (this.plan.follow) return this.endDayFollow();
     const p = this.resetSide();
     this.add2(txt(this, p.x + p.w / 2, p.y + 30, '日落・隊伍回廟', 32, C.gold, { serif: true }).setOrigin(0.5, 0));
     this.redraw = undefined;
@@ -962,6 +1124,35 @@ export class DayScene extends Phaser.Scene {
     const day = this.plan.day;
     if (day === 3) CH().endOfDay3(run);
     this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: `今晚審${CH().held.label}的鬼`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
+  }
+
+  /**
+   * 第四章日落：駐駕（過夜的地方）→ 傳消息（三選一，換明天的事件池）→ 入夜問歸處。
+   * 頭旗下帶著走的鬼（已決定歸處）也列出來：到了那裡才放下。
+   */
+  private endDayFollow(): void {
+    const f = this.plan.follow!;
+    const p = this.resetSide();
+    this.redraw = undefined;
+    this.add2(txt(this, p.x + p.w / 2, p.y + 24, `日落・駐駕${f.stay.name}`, 30, C.gold, { serif: true }).setOrigin(0.5, 0));
+    const held = run.held.length
+      ? `頭旗下 ${run.held.length}／${run.slots}：${run.held.map((h) => `${CH().cases[h.id].dayName}${h.dest ? `（往${CH().guihu?.dests[h.dest]?.name ?? h.dest}）` : ''}`).join('、')}`
+      : '頭旗下沒有跟著的鬼。';
+    const t = this.add2(txt(this, p.x + 24, p.y + 76, `${f.stay.text}\n${held}`, 20, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.band.setHour(18);
+    const day = this.plan.day;
+    const chosen = followOf(run).broadcast[day];
+    if (this.plan.broadcast?.length && !chosen) {
+      this.showBroadcast(p, t.y + t.height + 18);
+      return;
+    }
+    this.banter('dusk');
+    if (chosen) {
+      const o = this.plan.broadcast?.find((b) => b.id === chosen);
+      if (o) this.add2(txt(this, p.x + 24, t.y + t.height + 18, `跟轎台拍到：${o.label}\n明天多來：${o.brings}\n明天的代價：${o.cost}`, 20, 0xffd76a, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    }
+    if (day === 3) CH().endOfDay3(run);
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・問歸處', () => go(this, 'cut', { kind: 'dusk', title: '日落・駐駕', sub: `今晚問${CH().held.label}的鬼要去哪裡`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
   }
 
   /** 第三章收工頁：營旗下五格各押著誰、今晚能審幾案 */

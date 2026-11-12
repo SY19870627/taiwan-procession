@@ -4,6 +4,7 @@
  */
 
 import { CUTSCENES3 } from './ch3/story';
+import { CUTSCENES4 } from './ch4/story';
 
 export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun'
   | 'taizi' | 'zhangjiang' | 'xiaojiang' | 'liujiang' | 'lianjiang' | 'jiao' | 'jiaoCalm' | 'zhizha' | 'xiabing' | 'bingbo' | 'hebo'
@@ -273,6 +274,8 @@ export const CUTSCENES: Record<string, Cutscene> = {
   },
   // ---------- 第三章：新瀛・太子出營（ch3/story.ts） ----------
   ...CUTSCENES3,
+  // ---------- 第四章：白砂墩・媽祖徒步進香（ch4/story.ts，暫代） ----------
+  ...CUTSCENES4,
   retreat: {
     mood: 'demon',
     place: '芝嶺巖・天亮',
