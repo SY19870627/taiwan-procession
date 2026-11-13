@@ -1,6 +1,7 @@
 // 台詞：第四章試玩段落文字 v0.1（全部【待定】，作者尚未定稿）
 /**
- * 第四章（白砂墩・媽祖徒步進香）的演出腳本：qijia4（拱辰宮起駕）、zhuanjin4（臨時轉進賢仔車行）。
+ * 第四章（白砂墩・媽祖徒步進香）的演出腳本：qijia4（拱辰宮起駕）、zhuanjin4（臨時轉進賢仔車行）；
+ * 第 A 輪（台詞【待定】）：sanjin4（入廟三進三退）、qiaotou4（橋頭頓三下下堤防）、huigong4（回宮・八人大轎）、kailu4（開爐）。
  * 台詞照抄 content/ch4/story.ts（src 標第幾句）；走位照 _agent/ch4-text-day1.md 的（演出：……），沒有補寫的拍子。
  *
  * 媽祖全章不露臉：畫面上只有轎子（四人小轎 st_jiao4_carry，落地換 st_jiao4），沒有旨意、沒有神明說話。
@@ -139,6 +140,126 @@ export const STAGES4: Record<string, StageScript> = {
       { at: 'arui', who: 'arui', text: '聊天室整個炸掉。大家都在問，為什麼是修車的？', src: 7 },
       { at: 'qianshao', who: 'qianshao', text: '這間？這間是修車的欸。旁邊就有廟。', src: 8, moves: [{ id: 'qianshao', x: 160, hop: true, ms: 400 }] },
       { at: 'yawei', who: 'yawei', text: '跟。', src: 9 },
+    ],
+  },
+  // ---------- 第 A 輪（台詞全部【待定】，照 ch4/story.ts 的 src；換字只改 story.ts 與這裡的 text，走位不用動） ----------
+  // 第二天・入廟三進三退（北津朝聖宮廟埕；轎往右衝向廟門又退回，三次，第三次衝進去）。轎只用 st_jiao4_carry（衝）／st_jiao4_pause（退、頓）
+  sanjin4: {
+    id: 'sanjin4',
+    place: '北津朝聖宮・入廟',
+    mood: 'temple',
+    sky: [0x0a0c22, 0x3a2a40],
+    far: 'seaFarN',
+    temple: 'temple_chaosheng',
+    ground: 0x2a2632,
+    fore: 'temple',
+    actors: [
+      { id: 'jiao', tex: 'st_jiao4_carry', x: 170, y: 40, scale: 0.5 },
+      { id: 'xd0', tex: 'st_xiangdeng_a', x: 540, y: 120, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_c', x: 640, y: 125, scale: 0.3 },
+      { id: 'xd2', tex: 'st_xiangdeng_d', x: 80, y: 130, scale: 0.3 },
+      { id: 'xd3', tex: 'st_xiangdeng_b', x: 440, y: 135, scale: 0.3 },
+    ],
+    beats: [
+      { who: 'narrator', text: '【待定】北津朝聖宮廟埕，人擠到看不見地面。轎子要入廟了。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 1500 } },
+      // 一進
+      { at: 'xd0', who: 'xiangdeng', text: '【待定】進喔！', src: 1, moves: [{ id: 'jiao', x: 300, tex: 'st_jiao4_carry', hop: true, ms: 900 }], sfx: { text: '進喔！', at: 'jiao', color: 0xffd76a } },
+      // 一退（頓住的轎）
+      { who: 'narrator', text: '【待定】轎子衝到廟門前，又退回來。', src: 2, moves: [{ id: 'jiao', x: 190, tex: 'st_jiao4_pause', ms: 900 }] },
+      // 二進
+      { at: 'xd3', who: 'xiangdeng', text: '【待定】進喔！進喔！', src: 3, moves: [{ id: 'jiao', x: 310, tex: 'st_jiao4_carry', hop: true, ms: 900 }], sfx: { text: '進喔！', at: 'jiao', color: 0xffd76a } },
+      // 二退
+      { who: 'narrator', text: '【待定】第二次，又退回來。', src: 4, moves: [{ id: 'jiao', x: 200, tex: 'st_jiao4_pause', ms: 900 }] },
+      // 三進
+      { at: 'xd0', who: 'xiangdeng', text: '【待定】進喔——！', src: 5, cam: { x: 330, y: -100, zoom: 1.08, ms: 600 }, moves: [{ id: 'jiao', x: 330, tex: 'st_jiao4_carry', hop: true, ms: 800 }], sfx: { text: '進喔——！', at: 'jiao', color: 0xffd76a } },
+      // 衝進廟門（淡出）
+      { who: 'narrator', text: '【待定】第三次，轎子衝進廟門。', src: 6, cam: { x: 360, y: -100, zoom: 1, ms: 800 }, moves: [{ id: 'jiao', x: 380, y: 20, alpha: 0, hop: true, ms: 1400 }] },
+    ],
+  },
+  // 第三天・渾水溪橋頭（回程：轎全程布幔放下 st_jiao4_carry_closed，不換頓住／轉彎圖；頓三下用上下跳表現），之後下堤防
+  qiaotou4: {
+    id: 'qiaotou4',
+    place: '渾水溪橋頭',
+    mood: 'dawn',
+    sky: [0x2a2a4a, 0xd88a5a],
+    far: 'seaFar',
+    ground: 0x4a4048,
+    fore: 'none',
+    actors: [
+      { id: 'jiao', tex: 'st_jiao4_carry_closed', x: 540, y: 20, scale: 0.5, flip: true },
+      { id: 'qianshao', tex: 'folk1', x: 120, y: 70, scale: 1.5 },
+      { id: 'yawei', tex: 'folk2', x: 660, y: 80, scale: 1.5 },
+      { id: 'xd0', tex: 'st_xiangdeng_e', x: 640, y: 120, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_a', x: 300, y: 125, scale: 0.3 },
+    ],
+    beats: [
+      { who: 'narrator', text: '【待定】渾水溪橋頭。橋上的車一台接一台，香燈腳排到看不到尾。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 1200 } },
+      { who: 'narrator', text: '【待定】轎子在橋頭停住，頓了一下。', src: 1, moves: [{ id: 'jiao', x: 430, hop: true, ms: 900 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { who: 'narrator', text: '【待定】又頓了一下。', src: 2, moves: [{ id: 'jiao', y: 30, hop: true, ms: 500 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { who: 'narrator', text: '【待定】第三下。轎班的腳轉向堤防。', src: 3, cam: { x: 380, y: -90, zoom: 1.1, ms: 600 }, moves: [{ id: 'jiao', y: 20, hop: true, ms: 500 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { at: 'qianshao', who: 'qianshao', text: '【待定】……不走橋？', src: 4, cam: { x: 300, y: -90, zoom: 1.05, ms: 600 }, moves: [{ id: 'qianshao', x: 170, hop: true, ms: 400 }] },
+      // 下堤防：往左下走（y 變大＝往畫面下方）
+      { who: 'narrator', text: '【待定】轎子下了堤防，往溪邊去了。', src: 5, cam: { x: 360, y: -100, zoom: 1, ms: 800 }, moves: [{ id: 'jiao', x: 220, y: 110, hop: true, ms: 2200 }, { id: 'xd1', x: 160, y: 140, hop: true, ms: 2400 }] },
+      { at: 'yawei', who: 'yawei', text: '【待定】跟。', src: 6 },
+    ],
+  },
+  // 回宮：通汐 → 白砂墩，換八人大轎（st_jiao8_carry，布幔放下）；頭旗、香擔先進廟
+  huigong4: {
+    id: 'huigong4',
+    place: '白砂墩拱辰宮・回宮',
+    mood: 'temple',
+    sky: [0x2a2a4a, 0xd88a5a],
+    far: 'seaFar',
+    temple: 'temple_gongchen',
+    ground: 0x2a2632,
+    fore: 'temple',
+    actors: [
+      { id: 'jiao8', tex: 'st_jiao8_carry', x: 600, y: 30, scale: 0.5, flip: true },
+      { id: 'touqi', tex: 'st_touqi', x: 470, y: 30, scale: 0.4 },
+      { id: 'xiangdan', tex: 'st_xiangdan', x: 540, y: 40, scale: 0.4 },
+      { id: 'yawei', tex: 'folk2', x: 670, y: 90, scale: 1.4 },
+      { id: 'xd0', tex: 'st_xiangdeng_c', x: 110, y: 125, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_d', x: 250, y: 130, scale: 0.3 },
+    ],
+    beats: [
+      { who: 'narrator', text: '【待定】通汐到白砂墩，飯擔擺滿路邊。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 1500 } },
+      // 頭旗、香擔先進廟（往廟門走、淡出）
+      {
+        who: 'narrator', text: '【待定】換了八人大轎。頭旗、香擔先進廟。', src: 1,
+        moves: [{ id: 'touqi', x: 370, y: 0, alpha: 0, hop: true, ms: 1500 }, { id: 'xiangdan', x: 390, y: 10, alpha: 0, hop: true, ms: 1800 }],
+      },
+      { at: 'xd0', who: 'xiangdeng', text: '【待定】回來了！', src: 2 },
+      { who: 'narrator', text: '【待定】大轎入廟。布幔還是放下的。', src: 3, moves: [{ id: 'jiao8', x: 380, y: 10, hop: true, ms: 2200 }] },
+      { at: 'yawei', who: 'yawei', text: '【待定】押尾的那句。', src: 4 },
+    ],
+  },
+  // 開爐（第 12 天）：布幔打開。鏡頭不拍神龕（沒有廟、沒有轎），只拍底下抬頭的臉——一排信徒，鏡頭一個一個拉近
+  kailu4: {
+    id: 'kailu4',
+    place: '白砂墩拱辰宮・開爐',
+    mood: 'dawn',
+    sky: [0x3a2a1a, 0xd8a86a],
+    far: 'seaFar',
+    ground: 0x3a2e28,
+    fore: 'none',
+    actors: [
+      { id: 'aman', tex: 'folk3', x: 140, y: 60, scale: 1.5 },
+      { id: 'xiuzhi', tex: 'folk4', x: 270, y: 70, scale: 1.5 },
+      { id: 'ahan', tex: 'folk1', x: 400, y: 65, scale: 1.5 },
+      { id: 'arui', tex: 'folk1', x: 530, y: 60, scale: 1.5, tint: 0xffe0b0 },
+      { id: 'yawei', tex: 'folk2', x: 650, y: 90, scale: 1.4 },
+      { id: 'xd0', tex: 'st_xiangdeng_f', x: 70, y: 120, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_b', x: 340, y: 125, scale: 0.3 },
+    ],
+    beats: [
+      { who: 'narrator', text: '【待定】回宮後第十二天，開爐。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
+      // 布幔打開：鏡頭往上抬到臉的高度（畫面裡沒有神龕）
+      { who: 'narrator', text: '【待定】布幔打開了。', src: 1, cam: { x: 360, y: -150, zoom: 1.1, ms: 1600 } },
+      { at: 'aman', who: 'aman', text: '【待定】湯圓多煮一碗，放那邊。', src: 2, cam: { x: 180, y: -140, zoom: 1.3, ms: 700 } },
+      { at: 'xiuzhi', who: 'xiuzhi', text: '【待定】秀枝的那句。', src: 3, cam: { x: 280, y: -140, zoom: 1.3, ms: 700 } },
+      { at: 'ahan', who: 'ahan', text: '【待定】阿翰的那句。', src: 4, cam: { x: 400, y: -140, zoom: 1.3, ms: 700 } },
+      { at: 'arui', who: 'arui', text: '【待定】阿睿的那句。', src: 5, cam: { x: 520, y: -140, zoom: 1.3, ms: 700 } },
+      { at: 'yawei', who: 'yawei', text: '【待定】押尾的那句。', src: 6, cam: { x: 360, y: -100, zoom: 1, ms: 900 } },
     ],
   },
 };

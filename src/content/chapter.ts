@@ -120,6 +120,13 @@ export interface FinaleDef {
   closeStory?: string;
   loseText: string;
   dawnText: string;
+  /**
+   * 第四章：收尾劇情（closeStory）之後、信徒錄之前再走的一頁（開爐：第 12 天的黃曆 → 開爐過場 → 信徒錄）。
+   * 沒寫就照舊直接到信徒錄。
+   */
+  afterClose?: { key: string; data?: object };
+  /** 第四章：打贏、選完判決之後（離開戰鬥前）把戰鬥結果記進進度（被帶到下游沙洲的人） */
+  onEnd?: (r: RunState, battle: import('../core/boss').BossBattle, kind: 'recall' | 'return' | 'slay') => void;
 }
 
 export interface ChapterDef {
@@ -204,6 +211,24 @@ export interface ChapterDef {
   openingStory?: string;
   /** 試玩版：最後一夜天亮之後、試玩結束畫面之前播的過場（第四章：tianliang4_1） */
   sliceStory?: string;
+  /** 第 n 夜開審之前播的過場（第四章：第二夜進火 jinhuo4） */
+  nightStory?: Record<number, string>;
+  /**
+   * 收尾的黃曆（第四章：開爐，第 12 天）。AlmanacScene 用 { epilogue: true } 打開：「昨日」欄照 run.yesterday
+   *（最後一戰被帶到下游沙洲的人），按鈕播 story，之後到信徒錄。
+   */
+  epilogue?: { title: string; area: string; almanac: (r: RunState) => Almanac; button: string; story: string };
+}
+
+/**
+ * 測試區用：網址加 &full=1 時不管 playableDays，整章走到底（BootScene 設定）。
+ * 分支上 playableDays 還是 1，試玩版照舊在第一夜天亮結束。
+ */
+export const playOverride = { full: false };
+
+/** 這一章試玩版做到第幾天（沒有限制，或網址 &full=1 時是 undefined） */
+export function playableDays(ch: ChapterDef = CH()): number | undefined {
+  return playOverride.full ? undefined : ch.playableDays;
 }
 
 /** 互嗆的一句（一行、不擋操作） */

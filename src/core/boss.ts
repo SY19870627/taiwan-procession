@@ -18,13 +18,22 @@
  * 魔王的大招都會預告：石駒刨地後衝鋒；黑潮浪頭升起後捲浪。之後有一段喘息（退潮）。
  * 陣前審問三次（石駒：煞氣 70%、40%、10%；黑潮：王船走到 1/3、2/3、快到岸邊）：
  * 不暫停，畫面自動出示手上的證據（或請人上前），結果用 answer() 告訴戰鬥。
+ *
+ * ford（第四章・渾水溪・茫渡）：轎子先過溪了，戰場上沒有轎、沒有香擔，只有還在水裡的隊伍（palanquin 欄位＝水裡的隊伍，
+ *   畫面上是人鏈）。茫渡不打人，牠是要留人：
+ *   - 拉住前排第一個（hold：那幾秒不能出手；換位可以掙開），前排沒人才把水裡的隊伍往回拉（隊伍的血）；
+ *   - 霧起（預告 2.5 秒）→ 霧蓋住前排 FOG_TIME 秒 → 現出渡船的樣子喘息（受到的傷害加倍）；
+ *   - 學人講話（lure）：霧起時、以及每 lureEvery 秒，叫走一個還在水裡的人；LURE_TIME 秒內沒拉回來，那個人被帶到下游沙洲（stranded）。
+ *     人鏈（setup.ford.chain 段：傳消息的 follow.chain＋幫過的信徒）每段自動拉住一次；法術「喊名」也能把人喊回來。
+ *   - 小妖是牽路仔（qianlu），照常打前排。
+ *   陣前審問照石駒的 70／40／10%。被帶到下游的人不會輸掉戰鬥：天亮在沙洲上找到，人沒事，但沒趕上回宮（記遺憾）。
  */
 import { ENEMIES, type EnemyId } from './units';
 
 export type Row = 'front' | 'back';
 export type Role = 'melee' | 'ranged' | 'support';
-/** jiao：第三章・疾水溪的蛟 */
-export type BattleMode = 'subdue' | 'escort' | 'jiao';
+/** jiao：第三章・疾水溪的蛟；ford：第四章・渾水溪・茫渡（顧人過溪） */
+export type BattleMode = 'subdue' | 'escort' | 'jiao' | 'ford';
 
 export interface MemberStats {
   key: string;
@@ -49,7 +58,7 @@ export interface MemberStats {
 }
 
 /** 主神的兩個法術（每一章的神明不同，法術也不同） */
-export type SpellId = 'smite' | 'bless' | 'wuhuo' | 'wangling' | 'qiankun' | 'chujiao';
+export type SpellId = 'smite' | 'bless' | 'wuhuo' | 'wangling' | 'qiankun' | 'chujiao' | 'huming' | 'huiqi';
 
 export const SPELLS: Record<SpellId, { name: string; cd: number; desc: string }> = {
   smite: { name: '天令', cd: 15, desc: '雷擊最前面的妖群' },
@@ -59,6 +68,9 @@ export const SPELLS: Record<SpellId, { name: string; cd: number; desc: string }>
   // 第三章
   qiankun: { name: '乾坤圈', cd: 12, desc: '打爆全場蝦兵，對蛟小傷' },
   chujiao: { name: '太子出轎', cd: 35, desc: '太子親自上前排 8 秒（不佔三格），站滿 5 秒插中營旗' },
+  // 第四章（媽祖不出手：這兩招是兵馬自己的）
+  huming: { name: '喊名', cd: 16, desc: '押尾喊出被霧叫走的人的名字，把他喊回來（霧裡有人被叫走時才能用）' },
+  huiqi: { name: '揮頭旗', cd: 22, desc: '前排被拉住的全部掙開、牽路仔往後退；霧剛要起時揮，霧就起不來' },
 };
 
 /** 超渡亡魂後增加的技能（劇情上是王爺的神威增長） */
@@ -100,6 +112,20 @@ export interface JiaoSetup {
   camps: Record<string, JiaoCamp>;
 }
 
+/** 第四章・渾水溪・茫渡的設定 */
+export interface FordSetup {
+  /** 霧起的間隔（秒，從上一次喘息結束算） */
+  fogEvery: number;
+  /** 除了霧起，每隔幾秒也學人講話叫走一個人 */
+  lureEvery: number;
+  /** 叫走一個人要幾秒（這段時間內喊名、人鏈拉得住） */
+  lureTime: number;
+  /** 人鏈幾段：每段自動拉住一個被叫走的人（傳消息 follow.chain＋幫過的信徒） */
+  chain: number;
+  /** 還在水裡、會被叫走的人（依序；叫完就不再叫） */
+  stragglers: string[];
+}
+
 export interface BossSetup {
   mode?: BattleMode;
   members: { stats: MemberStats; row: Row }[];
@@ -122,6 +148,8 @@ export interface BossSetup {
   escort?: { travel: number; tentacleEvery: number; tentacleHp: number; maxTentacles: number };
   /** 第三章・蛟 */
   jiao?: JiaoSetup;
+  /** 第四章・渾水溪・茫渡 */
+  ford?: FordSetup;
   duration: number;
   seed?: number;
 }
@@ -156,6 +184,8 @@ export interface Unit {
   sunk?: number;
   /** 第三章：連續站在前排幾秒（插營旗用） */
   stand?: number;
+  /** 第四章：被茫渡拉住，還要幾秒才掙得開（不能出手；換位可以掙開） */
+  hold?: number;
 }
 
 export interface Enemy {
@@ -214,6 +244,13 @@ export type BossEvent =
   | { type: 'combo'; x: number }
   | { type: 'duck' }
   | { type: 'fullpower'; sec: number }
+  // 第四章・茫渡
+  | { type: 'hold'; x: number; name: string }
+  | { type: 'lure'; name: string }
+  | { type: 'chainHold'; name: string; left: number }
+  | { type: 'called'; name: string }
+  | { type: 'stranded'; name: string }
+  | { type: 'huiqi' }
   | { type: 'end'; result: 'subdued' | 'lose' | 'dawn' };
 
 export const SMITE_CD = SPELLS.smite.cd;
@@ -245,6 +282,11 @@ export const FLAG_TIME = 5;
 export const SILENCE_TIME = 2;
 export const CUE_TIME = 6;
 const TRIAL_PROG = [0.33, 0.66, 0.92];
+/** 第四章：茫渡在霧裡的位置（霧起前退回這裡）；拉住前排一次幾秒；霧蓋住前排幾秒；人鏈幾秒拉住被叫走的人 */
+export const FORD_HOME = 1040;
+export const HOLD_TIME = 1.2;
+export const FOG_TIME = 3;
+export const CHAIN_TIME = 1.5;
 
 const CH1_WAVES: Wave[] = [
   [3, 'wang', 3, 1.6], [16, 'mei', 3, 1.0], [30, 'kui', 2, 3], [44, 'wang', 4, 1.4],
@@ -296,6 +338,17 @@ export class BossBattle {
   duckShield = false;
   /** 紙人替身還能吸收幾次拖人 */
   paperLeft = 0;
+  // ----- 第四章・茫渡 -----
+  /** 霧裡正被叫走的人 */
+  lure: { name: string; t: number } | null = null;
+  /** 人鏈還有幾段（每段拉住一次） */
+  chainLeft = 0;
+  /** 被帶到下游沙洲的人（遺憾：天亮找到，人沒事，沒趕上回宮） */
+  stranded: string[] = [];
+  /** 被拉回來的人（人鏈或喊名） */
+  saved: string[] = [];
+  private lureTimer = 0;
+  private strIdx = 0;
   private dragTimer = 0;
   private coverCd = 0;
   private chuTimer = 8;
@@ -325,15 +378,19 @@ export class BossBattle {
     }
     this.layout();
     // 魔王
-    const bid: EnemyId = this.mode === 'escort' ? 'tide' : this.mode === 'jiao' ? 'jiao' : 'boss';
+    const bid: EnemyId = this.mode === 'escort' ? 'tide' : this.mode === 'jiao' ? 'jiao' : this.mode === 'ford' ? 'mangdu' : 'boss';
     const bd = ENEMIES[bid];
     this.boss = this.makeEnemy(bid);
     this.boss.hp = this.boss.maxHp = Math.round(bd.hp * setup.boss.hpMul);
     this.boss.atk = bd.atk * setup.boss.atkMul;
-    this.boss.x = this.mode === 'escort' ? TIDE_X : this.mode === 'jiao' ? JIAO_HOME : 1340;
+    this.boss.x = this.mode === 'escort' ? TIDE_X : this.mode === 'jiao' ? JIAO_HOME : this.mode === 'ford' ? FORD_HOME : 1340;
     if (this.mode === 'jiao') {
       this.dragTimer = setup.jiao!.dragEvery;
       this.paperLeft = this.units.filter((u) => u.trait === 'paper').length;
+    }
+    if (this.mode === 'ford') {
+      this.chainLeft = Math.max(0, setup.ford!.chain);
+      this.lureTimer = setup.ford!.lureEvery;
     }
     this.mods.skip = setup.boss.skipCharges;
     this.enemies.push(this.boss);
@@ -396,6 +453,8 @@ export class BossBattle {
     const u = this.units.find((x) => x.uid === uid)!;
     u.targetRow = u.row === 'front' ? 'back' : 'front';
     u.moving = MOVE_TIME;
+    // 第四章：換位就掙開茫渡的手
+    u.hold = 0;
     if (u.targetRow === 'front') u.slot = 50 + this.t; // 排到前排最後面
     return true;
   }
@@ -413,6 +472,7 @@ export class BossBattle {
     }
     if (this.mode === 'escort') this.stepEscort(dt);
     if (this.mode === 'jiao') this.stepJiaoField(dt);
+    if (this.mode === 'ford') this.stepFordField(dt);
     // 換位走路
     for (const u of this.units) {
       u.flash = Math.max(0, u.flash - dt * 4);
@@ -434,6 +494,11 @@ export class BossBattle {
         u.sunk = Math.max(0, u.sunk! - dt);
         continue;
       }
+      if ((u.hold ?? 0) > 0) {
+        // 第四章：被茫渡拉住，掙開之前不能出手
+        u.hold = Math.max(0, u.hold! - dt);
+        continue;
+      }
       this.stepUnit(u, dt);
     }
     for (const e of this.enemies) {
@@ -442,6 +507,7 @@ export class BossBattle {
       if (e === this.boss) {
         if (this.mode === 'escort') this.stepTide(e, dt);
         else if (this.mode === 'jiao') this.stepJiao(e, dt);
+        else if (this.mode === 'ford') this.stepMangdu(e, dt);
         else this.stepBoss(e, dt);
       } else this.stepEnemy(e, dt);
     }
@@ -577,6 +643,8 @@ export class BossBattle {
       if (round === 2) { this.mods.skip++; this.mods.atk *= 0.85; }
       // 第三章：太子沉默、五將齊喊之後全開（戰鬥不停，CUE_TIME 秒後開始）
       if (round === 3 && this.mode === 'jiao') this.cueT = 0;
+      // 第四章：問出牠是以前擺渡的，牠的霧薄了一層
+      if (round === 3 && this.mode === 'ford') this.mods.armor *= 1.1;
     } else {
       this.mods.atk *= 1.1;
     }
@@ -598,6 +666,9 @@ export class BossBattle {
   private finish(r: 'subdued' | 'lose' | 'dawn'): void {
     this.result = r;
     this.wave = null;
+    // 第四章：霧散了，正被叫走的那個人自己走回來
+    if (this.lure && r === 'subdued') this.saved.push(this.lure.name);
+    this.lure = null;
     this.events.push({ type: 'end', result: r });
   }
 
@@ -904,6 +975,7 @@ export class BossBattle {
     const id = this.spells[i];
     if (id === 'smite' || id === 'wangling') return this.enemies.some((e) => this.targetable(e));
     if (id === 'chujiao') return this.taiziT <= 0;
+    if (id === 'huming') return !!this.lure;
     return true;
   }
 
@@ -911,7 +983,8 @@ export class BossBattle {
     if (!this.canSpell(i)) return false;
     const id = this.spells[i];
     const ok = id === 'smite' ? this.doSmite() : id === 'bless' ? this.doBless() : id === 'wuhuo' ? this.doFire()
-      : id === 'qiankun' ? this.doQiankun() : id === 'chujiao' ? this.doChujiao() : this.doDecree();
+      : id === 'qiankun' ? this.doQiankun() : id === 'chujiao' ? this.doChujiao()
+        : id === 'huming' ? this.doHuming() : id === 'huiqi' ? this.doHuiqi() : this.doDecree();
     if (ok) this.spellCd[i] = SPELLS[id].cd;
     return ok;
   }
@@ -1289,6 +1362,145 @@ export class BossBattle {
     });
     this.taiziT = js.chujiaoTime;
     this.events.push({ type: 'chujiao' });
+    return true;
+  }
+
+  // ---------- 第四章・渾水溪・茫渡 ----------
+  /** 霧裡學人講話：叫走下一個還在水裡的人（已經有人正被叫走、或都叫完了就不叫） */
+  private startLure(): void {
+    const fs = this.setup.ford!;
+    if (this.lure || this.strIdx >= fs.stragglers.length) return;
+    const name = fs.stragglers[this.strIdx++];
+    this.lure = { name, t: 0 };
+    this.events.push({ type: 'lure', name });
+  }
+
+  /** 茫渡以外：每隔一段時間叫走一個人；人鏈自動拉住；沒拉住的被帶到下游沙洲 */
+  private stepFordField(dt: number): void {
+    const fs = this.setup.ford!;
+    this.lureTimer -= dt;
+    if (this.lureTimer <= 0) {
+      this.lureTimer = fs.lureEvery;
+      this.startLure();
+    }
+    const l = this.lure;
+    if (!l) return;
+    l.t += dt;
+    if (this.chainLeft > 0 && l.t >= CHAIN_TIME) {
+      // 前兩天幫過的人下水牽住他
+      this.chainLeft--;
+      this.lure = null;
+      this.saved.push(l.name);
+      this.events.push({ type: 'chainHold', name: l.name, left: this.chainLeft });
+    } else if (l.t >= fs.lureTime) {
+      this.lure = null;
+      this.stranded.push(l.name);
+      this.events.push({ type: 'stranded', name: l.name });
+    }
+  }
+
+  private toBreathFord(b: Enemy): void {
+    b.state = 'breath';
+    b.stateTime = 0;
+    b.x = (this.front[0]?.x ?? this.palanquin.x) + 55;
+    this.events.push({ type: 'breath' });
+  }
+
+  /**
+   * 茫渡：走到前排前面拉住第一個人（不打人）→ 退回霧裡、霧起（預告）→ 霧蓋住前排、叫走一個人
+   * → 現出渡船的樣子喘息（受到的傷害加倍）。前排沒人時才把水裡的隊伍往回拉。
+   */
+  private stepMangdu(b: Enemy, dt: number): void {
+    b.stateTime += dt;
+    const lineX = (this.front[0]?.x ?? this.palanquin.x) + 55;
+    switch (b.state) {
+      case 'walk':
+      case 'fight':
+        if (b.x > lineX + 2) {
+          b.state = 'walk';
+          b.x = Math.max(lineX, b.x - b.speed * 3 * dt);
+        } else {
+          b.state = 'fight';
+          b.x = lineX;
+          b.timer -= dt;
+          if (b.timer <= 0) {
+            b.timer = b.cd;
+            const t = this.front[0];
+            if (t) {
+              t.hold = Math.max(t.hold ?? 0, HOLD_TIME);
+              this.events.push({ type: 'hold', x: t.x, name: t.name });
+            } else this.hurtPalanquin(this.bossAtk());
+          }
+        }
+        if (b.stateTime >= this.setup.ford!.fogEvery) {
+          b.state = 'back';
+          b.stateTime = 0;
+        }
+        return;
+      case 'back':
+        b.x += 320 * dt;
+        if (b.x >= FORD_HOME) {
+          b.x = FORD_HOME;
+          b.state = 'paw';
+          b.stateTime = 0;
+          this.events.push({ type: 'paw' });
+        }
+        return;
+      case 'paw':
+        if (b.stateTime >= 2.5) {
+          if (this.mods.skip > 0) {
+            // 陣前審問說動了牠：霧起不來
+            this.mods.skip--;
+            this.events.push({ type: 'callout' });
+            this.toBreathFord(b);
+            return;
+          }
+          b.state = 'charge';
+          b.stateTime = 0;
+          this.events.push({ type: 'charge' });
+          this.startLure();
+        }
+        return;
+      case 'charge':
+        // 霧蓋住前排：一直被拉著
+        for (const u of this.front) u.hold = Math.max(u.hold ?? 0, 0.3);
+        if (b.stateTime >= FOG_TIME) this.toBreathFord(b);
+        return;
+      case 'breath':
+        if (b.stateTime >= 4) {
+          b.state = 'fight';
+          b.stateTime = 0;
+        }
+        return;
+    }
+  }
+
+  /** 霧現在蓋著（預告中或霧裡） */
+  get fogUp(): boolean {
+    return this.mode === 'ford' && (this.boss.state === 'paw' || this.boss.state === 'charge');
+  }
+
+  /** 喊名：把正被叫走的人喊回來 */
+  private doHuming(): boolean {
+    const l = this.lure;
+    if (!l) return false;
+    this.lure = null;
+    this.saved.push(l.name);
+    this.events.push({ type: 'called', name: l.name });
+    return true;
+  }
+
+  /** 揮頭旗：被拉住的兵馬全部掙開、牽路仔往後退；霧剛要起（預告中）就揮，霧起不來 */
+  private doHuiqi(): boolean {
+    for (const u of this.units) u.hold = 0;
+    for (const e of this.enemies) {
+      if (e === this.boss || !e.alive) continue;
+      e.x += 120;
+      e.stun = Math.max(e.stun, 1);
+      this.damage(e, 30);
+    }
+    if (this.boss.state === 'paw') this.toBreathFord(this.boss);
+    this.events.push({ type: 'huiqi' });
     return true;
   }
 

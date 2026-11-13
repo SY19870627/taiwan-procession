@@ -442,7 +442,7 @@ describe('威名關掉、只有茫渡可以斬', () => {
 });
 
 describe('試玩版：只到第一天', () => {
-  it('playableDays 1、試玩結束畫面有字；第二、三天是骨架', () => {
+  it('playableDays 1、試玩結束畫面有字；第二、三天的字是【待定】暫代（第 A 輪：引擎接好，網址 &full=1 整章走到底）', () => {
     expect(CHAPTER4.playableDays).toBe(1);
     expect(CHAPTER4.sliceEnd!.title).toContain('試玩');
     expect(CHAPTER4.days[2].title).toBe('第二天');
@@ -652,12 +652,14 @@ describe('第一天試玩段落：正式文字', () => {
     if (rule.mode === 'stray') for (const s of [rule.story, rule.entrustStory]) expect(stub(s)).toBe(false);
   });
 
-  it('第四章內容檔都有檔頭註解；遊戲裡的字沒有【待定】、沒有阿哲', () => {
+  it('第四章內容檔都有檔頭註解；【待定】只當暫代字的開頭（第 A 輪：第二天起的暫代都以【待定】開頭）、沒有阿哲', () => {
     expect(Object.keys(CH4_SRC).length).toBeGreaterThanOrEqual(8);
     for (const [f, src] of Object.entries(CH4_SRC)) {
       expect(src.replace(/^\uFEFF/, '').startsWith(HEADER), f).toBe(true);
       const code = stripComments(src);
-      expect(code.includes('【待定】'), f).toBe(false);
+      // 每個【待定】都緊接在引號後面（字串的開頭）：暫代字一眼看得出來，也不會混在正式字中間
+      //（多行的字：每一行開頭，也就是 \n 後面）
+      for (const m of code.matchAll(/【待定】/g)) expect(/(['"`]|\\n)$/.test(code.slice(Math.max(0, m.index! - 2), m.index!)), `${f}：${code.slice(Math.max(0, m.index! - 20), m.index! + 10)}`).toBe(true);
       expect(code.includes('阿哲'), f).toBe(false);
       expect(code.includes('azhe'), f).toBe(false);
     }
@@ -688,9 +690,11 @@ describe('第一天試玩段落：正式文字', () => {
     }
     const text = out.join('\n');
     expect(text.length).toBeGreaterThan(3000);
-    expect(text.includes('【待定】')).toBe(false);
+    // 實際產生的字：有【待定】的那一行一定是以【待定】開頭（暫代）
+    for (const line of text.split('\n')) if (line.includes('【待定】')) expect(line.startsWith('【待定】'), line).toBe(true);
     expect(text.includes('阿哲')).toBe(false);
     expect(text).toContain('阿睿');
+    // 第一天（試玩段落）的字沒有暫代：見上一個 it（第一天每件事、行程、黃曆、夜裡的字都不是【待定】）
   });
 
   it('三條線索都指向甲（防風林老路），轎子真的走甲；線索一必得、二要辦阿睿、三要問阿桑', () => {
@@ -712,7 +716,9 @@ describe('第一天試玩段落：正式文字', () => {
     // 第 3 輪：turn 第一行（停住、頓）自己一段（轎換 st_jiao4_pause），其餘＋押中／押錯／留在轎邊的話照舊（轎換 st_jiao4_turn）
     const day = raw('/scenes/DayScene.ts');
     expect(day).toContain("f.turn.split('\\n')");
-    expect(day).toContain('`${rest.join(\'\\n\')}\\n${f.results[o.result]}`');
+    // 第 A 輪：押完的話改由 betResultText 決定（押中但時辰已滿換成 results.hitFull），其他照舊
+    expect(day).toContain('const said = betResultText(f, o);');
+    expect(day).toContain('`${rest.join(\'\\n\')}\\n${said}`');
     expect(day).toMatch(/poseJiao\('st_jiao4_pause'\)[\s\S]*poseJiao\('st_jiao4_turn'\)/);
   });
 
@@ -778,7 +784,9 @@ describe('第一天試玩段落：正式文字', () => {
     for (const set of [...DAY_BANTER4, ...NIGHT_BANTER4]) expect(used.has(set), set[0].text).toBe(true);
     const day = raw('/scenes/DayScene.ts');
     const trial = raw('/scenes/TrialScene.ts');
-    const hooked = (k: string) => day.includes(`'${k}'`) || trial.includes(`'${k}'`)
+    // 第 A 輪：最後一戰的 b_* 接在 BossScene
+    const boss = raw('/scenes/BossScene.ts');
+    const hooked = (k: string) => day.includes(`'${k}'`) || trial.includes(`'${k}'`) || (k.startsWith('b_') && boss.includes(`'${k}'`))
       || (k.startsWith('walk') && day.includes('`walk${this.plan.day}`'))
       || (k.startsWith('bet_') && day.includes('`bet_${o.result}`'))
       || (k.startsWith('t_open_') && trial.includes('`t_open_${k.id}`'))

@@ -23,6 +23,16 @@ export interface Dest {
 
 export interface GuihuRules {
   dests: Record<string, Dest>;
+  /** 鬼到了歸處、放下時播的過場（鬼 id → 過場 id；第四章：草鞋丁第二夜到北津） */
+  releaseStory?: Record<string, string>;
+}
+
+/**
+ * 這個鬼「該去的地方」（要先查明才能選的那個判決）。最後一戰：判對了、而且有帶著走或在原地放下的鬼才會來幫忙
+ *（帶錯歸處、不帶的不會來）。
+ */
+export function rightVerdict(k: GhostCase): Verdict | undefined {
+  return k.verdicts.find((v) => v.needs)?.verdict;
 }
 
 /** 還沒決定歸處、今晚可以問的鬼 */

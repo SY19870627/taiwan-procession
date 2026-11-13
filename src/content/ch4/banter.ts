@@ -68,6 +68,23 @@ export const NIGHT_BANTER4: BanterLine[][] = [
   [L('草鞋丁', '我走旗後面就好，你們不用管我。'), L('押尾', '你走我前面。我才看得到你。')],
 ];
 
+/**
+ * 第 A 輪：最後一戰（渾水溪・茫渡）的互嗆，接在 BossScene（b_*）。字全部【待定】，下一輪換成作者的字。
+ * 每個場合先放一組；說話的是兵馬（前哨、押尾），媽祖不說話。
+ */
+export const FORD_BANTER4: Record<string, BanterLine[][]> = {
+  b_start: [[L('前哨', '【待定】開打前哨的那句'), L('押尾', '【待定】押尾的那句')]],
+  b_fog: [[L('押尾', '【待定】霧要起了')]],
+  b_lure: [[L('前哨', '【待定】有人被叫走了')]],
+  b_chainHold: [[L('押尾', '【待定】人鏈拉住了')]],
+  b_called: [[L('押尾', '【待定】喊回來了')]],
+  b_stranded: [[L('前哨', '【待定】沒拉住')]],
+  b_boat: [[L('前哨', '【待定】牠現出渡船了')]],
+  b_trial: [[L('押尾', '【待定】說動牠了')]],
+  b_trialMiss: [[L('前哨', '【待定】沒說動')]],
+  b_down: [[L('押尾', '【待定】有人倒下')]],
+};
+
 const D = DAY_BANTER4;
 const N = NIGHT_BANTER4;
 
@@ -90,4 +107,5 @@ export const BANTER4: Record<string, BanterLine[][]> = {
   t_verdicts: [N[10]],
   t_tobeijin: [N[11]],
   t_tohome: [N[11]],
+  ...FORD_BANTER4,
 };

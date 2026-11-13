@@ -48,7 +48,7 @@ export const UNITS: Record<UnitId, UnitDef> = {
   },
 };
 
-export type EnemyId = 'wang' | 'mei' | 'kui' | 'boss' | 'yi' | 'sha' | 'chu' | 'tide' | 'xia' | 'jiao';
+export type EnemyId = 'wang' | 'mei' | 'kui' | 'boss' | 'yi' | 'sha' | 'chu' | 'tide' | 'xia' | 'jiao' | 'qianlu' | 'mangdu';
 
 export interface EnemyDef {
   id: EnemyId;
@@ -83,4 +83,9 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
   xia: { id: 'xia', name: '蝦兵', hp: 90, atk: 6, speed: 48, cd: 1.0, range: 26, armor: 1, quakeWeak: 1, capturable: true },
   /** 蛟：身子在水裡，頭伸上岸咬人；會翻江、會拖人 */
   jiao: { id: 'jiao', name: '蛟', hp: 8500, atk: 30, speed: 60, cd: 1.7, range: 60, armor: 0.5, quakeWeak: 1, capturable: false },
+  // 第四章（白砂墩・渾水溪）
+  /** 牽路仔：霧裡招手的人影，扯住兵馬（會打人，但很弱） */
+  qianlu: { id: 'qianlu', name: '牽路仔', hp: 80, atk: 5, speed: 50, cd: 1.0, range: 26, armor: 1, quakeWeak: 1, capturable: true },
+  /** 茫渡：不打人，牠是要留人（拉住前排、起霧學人講話把人帶往下游）。atk 只在前排沒人時把水裡的隊伍往回拉 */
+  mangdu: { id: 'mangdu', name: '茫渡', hp: 2200, atk: 20, speed: 60, cd: 1.8, range: 60, armor: 0.7, quakeWeak: 1, capturable: false },
 };

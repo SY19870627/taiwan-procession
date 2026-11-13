@@ -20,7 +20,7 @@ import { flashback } from '../ui/talk';
 import { banter } from '../ui/banter';
 import type { GhostCase } from '../content/cases';
 import {
-  REPORT_NOTE, afterFork, applyBroadcast, beforeFork, betChoices, followOf, optionWhy, report, resolveBet, resolveStray,
+  REPORT_NOTE, afterFork, applyBroadcast, beforeFork, betChoices, betResultText, followOf, optionWhy, report, resolveBet, resolveStray,
   skipStray, strayChoices, useStall, type Step,
 } from '../core/procession';
 import { SPEAKER_TEX } from '../content/story';
@@ -83,6 +83,8 @@ export class DayScene extends Phaser.Scene {
   private busy = false;
   /** 第四章：日落傳消息前的對話播過了 */
   private broadcastHeard = false;
+  /** 第四章：駐駕前的過場（stay.story）播過了 */
+  private stayStoryPlayed = false;
   /** 互嗆台詞輪到第幾組 */
   private banterN: Record<string, number> = {};
   /** 走近第幾件事（第三章：每走三件事冒一組走路的互嗆） */
@@ -109,6 +111,7 @@ export class DayScene extends Phaser.Scene {
     this.redraw = undefined;
     this.busy = false;
     this.broadcastHeard = false;
+    this.stayStoryPlayed = false;
     // 第四章跟轎：出發後的事依前一天傳消息的標籤加（core/procession.ts）；其他章照舊
     this.queue = this.plan.follow ? beforeFork(this.plan, run) : [...this.plan.pre, 'fork'];
     this.seg = 'pre';
@@ -1133,7 +1136,7 @@ export class DayScene extends Phaser.Scene {
     this.refreshHeader();
     const rt = this.plan.routes.find((x) => x.id === f.goes);
     const res = o.result === 'hit'
-      ? `押中了。先鋒已經在${f.goes}路等著${o.cleared.length ? '，路上的牽路仔先清掉了' : ''}。時辰 ${diff >= 0 ? '+' : ''}${diff}。`
+      ? `押中了。先鋒已經在${f.goes}路等著${o.cleared.length ? '，路上的牽路仔先清掉了' : ''}。${o.full ? '時辰本來就是滿的，沒有多出來' : `時辰 ${diff >= 0 ? '+' : ''}${diff}`}。`
       : o.result === 'miss' ? `押錯了。先鋒兵馬要從另一條路趕回來。時辰 ${diff}。` : '先鋒留在轎邊。不賺不賠。';
     const go2 = () => {
       this.band.poseJiao('st_jiao4_carry');
@@ -1151,17 +1154,19 @@ export class DayScene extends Phaser.Scene {
     // 第四章：行轎演出（三個選項都播）→ 押中／押錯／留在轎邊的對話 → 實際時辰變化
     // 第 3 輪：隊伍裡的轎第一句（路口停住、頓）換 st_jiao4_pause，之後（往小路踩）換 st_jiao4_turn，「跟上」換回扛著走。
     // 字不動：同一段字在 turn 第一行之後切成兩段播（第一行「停住、頓」自己一個框，其餘照舊）
+    // 作者定案 A：押中但時辰已滿 → 不加，最後一行系統句換成 results.hitFull（betResultText）
     this.busy = true;
+    const said = betResultText(f, o);
     const [stop, ...rest] = f.turn.split('\n');
     const first = say(stop);
-    const lines = [...first, ...say(`${rest.join('\n')}\n${f.results[o.result]}`)];
+    const lines = [...first, ...say(`${rest.join('\n')}\n${said}`)];
     const cut = first.length;
     this.band.poseJiao('st_jiao4_pause');
     const after = () => {
       this.busy = false;
       this.banter(`bet_${o.result}`);
       const real = `時辰 ${diff >= 0 ? '+' : ''}${diff}（剩 ${run.hours}）`;
-      this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${f.results![o.result].split('\n').pop()}\n${real}`, '跟上', go2);
+      this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${said.split('\n').pop()}\n${real}`, '跟上', go2);
     };
     talk(this, lines.slice(0, cut), () => {
       this.band.poseJiao('st_jiao4_turn');
@@ -1192,10 +1197,23 @@ export class DayScene extends Phaser.Scene {
     const r = this.plan.follow!.rest;
     this.seg = 'rest';
     if (r.art || r.theme) this.band.setScene(r.theme ?? this.plan.theme, r.art, this.hourNow());
-    this.stepPanel(`停駕・${r.name}`, r.text, '繼續', () => {
+    const go2 = () => {
       this.busy = true;
       this.band.walk(500, () => { this.busy = false; this.next(); });
-    });
+    };
+    // 第二天・北津派出所：停駕等信徒集結（先看停駕，再看等人集結；有過場就蓋在畫面上播）
+    const g = r.gather;
+    if (g) {
+      this.stepPanel(`停駕・${r.name}`, r.text, '等人集結', () => {
+        this.stepPanel(g.title, g.text, '繼續', () => {
+          if (!g.story) return go2();
+          this.busy = true;
+          playStory(this, g.story, () => { this.busy = false; go2(); });
+        });
+      });
+      return;
+    }
+    this.stepPanel(`停駕・${r.name}`, r.text, '繼續', go2);
   }
 
   /** 日落傳消息：讓跟轎台拍到哪一件事 → 明天的事件池換人（代價照例明講） */
@@ -1253,6 +1271,14 @@ export class DayScene extends Phaser.Scene {
    */
   private endDayFollow(): void {
     const f = this.plan.follow!;
+    // 駐駕前的過場（第二天：入廟三進三退 sanjin4）：只播一次，播完再畫日落
+    const st = f.stay.story;
+    if (st && !this.stayStoryPlayed) {
+      this.stayStoryPlayed = true;
+      this.busy = true;
+      playStory(this, st, () => { this.busy = false; this.endDayFollow(); });
+      return;
+    }
     const p = this.resetSide();
     this.redraw = undefined;
     this.add2(txt(this, p.x + p.w / 2, p.y + 24, `日落・駐駕${f.stay.name}`, 30, C.gold, { serif: true }).setOrigin(0.5, 0));

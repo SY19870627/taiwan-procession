@@ -23,11 +23,13 @@ export class AlmanacScene extends Phaser.Scene {
     super('almanac');
   }
 
-  create(data: { day?: number; prologue?: boolean }): void {
+  create(data: { day?: number; prologue?: boolean; epilogue?: boolean }): void {
     const prologue = !!data.prologue;
+    // 第四章：收尾的黃曆（開爐，第 12 天）。「昨日」欄寫最後一戰被帶到下游沙洲的人
+    const ep = data.epilogue ? CH().epilogue : undefined;
     const day = data.day ?? 1;
-    this.restartData = { day, prologue };
-    const a: Almanac = prologue ? CH().prologue : CH().days[day].almanac(run);
+    this.restartData = { day, prologue, epilogue: !!ep };
+    const a: Almanac = prologue ? CH().prologue : ep ? ep.almanac(run) : CH().days[day].almanac(run);
     const yesterday = prologue ? [] : run.yesterday;
     this.cameras.main.fadeIn(600, 10, 8, 18);
 
@@ -90,7 +92,10 @@ export class AlmanacScene extends Phaser.Scene {
 
     // 下方按鈕
     if (prologue) this.prologueJiao();
-    else {
+    else if (ep) {
+      txt(this, W / 2, H - 126, `${ep.title}・${ep.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
+      button(this, W / 2, H - 62, 280, 76, ep.button, () => go(this, 'story', { id: ep.story, next: { key: 'end' } }), { size: 30, fill: 0x8a1b14 });
+    } else {
       const plan = CH().days[day];
       txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
       button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: { key: 'day', data: { day } } }), { size: 32, fill: 0x8a1b14 });

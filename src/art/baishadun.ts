@@ -10,7 +10,7 @@
 import Phaser from 'phaser';
 import { DARK, SKIN, make, person, type G, type PersonOpt } from './figures';
 import { makeTemple } from './backdrop';
-import { CH4_STAGE_ART, QIANLU_VISITOR, type Ch4StageKey } from './baishadunSpec';
+import { CH4_BATTLE_ART, CH4_STAGE_ART, QIANLU_VISITOR, type Ch4StageKey } from './baishadunSpec';
 
 const PINK = 0xf29ab8;
 const PINK_DARK = 0xd0688e;
@@ -241,6 +241,87 @@ export function makeBaishadun(scene: Phaser.Scene): void {
   // 白天路上走近的牽路仔（和其他章小妖一樣大）
   make(scene, 'qianlu', QIANLU_VISITOR[0], QIANLU_VISITOR[1], (g, w, h) => qianlu(g, w, h, 1));
   makeTemple(scene, 'temple_gongchen', '拱辰宮');
+  // 第二天：北津朝聖宮（過場的廟，暫代）
+  makeTemple(scene, 'temple_chaosheng', '朝聖宮');
+  // 最後一戰（渾水溪・茫渡）的戰鬥圖暫代：520×420，腳底（水面）貼下緣
+  battle(scene, 'b4_mangdu', (g, w, h) => mangdu(g, w, h, false));
+  battle(scene, 'b4_mangdu_boat', (g, w, h) => mangdu(g, w, h, true));
+  battle(scene, 'b4_qianlu', (g, w, h) => {
+    // 牽路仔群：三個招手的人影
+    for (const [dx, s] of [[-120, 2.2], [0, 2.8], [120, 2.2]] as const) {
+      g.save();
+      g.translateCanvas(dx, 0);
+      qianlu(g, w, h, s);
+      g.restore();
+    }
+  });
+  battle(scene, 'b4_renlian', (g, w, h) => {
+    // 信徒人鏈：一排香燈腳手牽手、水淹到腰（左邊是岸，往右伸進水裡）
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const x = 50 + i * ((w - 100) / (n - 1));
+      const top = h - 300 + i * 12;
+      const o = PILGRIMS[i % PILGRIMS.length];
+      g.fillStyle(o.robe, 1);
+      g.fillRect(x - 22, top + 40, 44, 150);
+      g.fillStyle(SKIN, 1);
+      g.fillCircle(x, top + 22, 20);
+      g.fillStyle(o.hatColor ?? 0xd8c088, 1);
+      g.fillRect(x - 24, top - 2, 48, 10);
+      // 手牽手
+      if (i < n - 1) {
+        g.lineStyle(10, SKIN, 1);
+        g.lineBetween(x + 20, top + 90, x + (w - 100) / (n - 1) - 20, top + 102);
+      }
+    }
+    // 水面（腰以下）
+    g.fillStyle(0x3a5a6a, 0.85);
+    g.fillRect(0, h - 140, w, 140);
+    g.lineStyle(3, 0xbfe0f0, 0.7);
+    for (let x = 10; x < w; x += 70) g.lineBetween(x, h - 140, x + 40, h - 140);
+  });
+}
+
+/** 第四章戰鬥圖（520×420）的暫代 */
+function battle(scene: Phaser.Scene, key: keyof typeof CH4_BATTLE_ART, draw: (g: G, w: number, h: number) => void): void {
+  const [w, h] = CH4_BATTLE_ART[key];
+  make(scene, key, w, h, draw);
+}
+
+/** 茫渡：霧裡戴斗笠、撐竹篙的灰影（面向左）；boat：現出渡船的樣子（腳下一艘舊渡船） */
+function mangdu(g: G, w: number, h: number, boat: boolean): void {
+  const cx = w / 2;
+  // 霧
+  g.fillStyle(0xc8d0d8, 0.25);
+  for (const [dx, dy, rx, ry] of [[-150, -60, 140, 50], [120, -100, 160, 60], [0, -20, 220, 50]] as const) g.fillEllipse(cx + dx, h + dy, rx * 2, ry * 2);
+  const base = boat ? h - 70 : h - 10;
+  if (boat) {
+    // 舊渡船
+    g.fillStyle(0x4a3a2a, 1);
+    g.beginPath();
+    g.moveTo(cx - 220, base - 20);
+    g.lineTo(cx + 220, base - 20);
+    g.lineTo(cx + 170, base + 50);
+    g.lineTo(cx - 170, base + 50);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(3, 0x2a1a10, 1);
+    g.strokePath();
+  }
+  // 身體（半透明灰）
+  g.fillStyle(0x7a8290, boat ? 0.95 : 0.75);
+  g.fillEllipse(cx, base - 130, 120, 230);
+  g.fillCircle(cx - 6, base - 270, 34);
+  // 斗笠
+  g.fillStyle(0xb8a070, boat ? 1 : 0.8);
+  g.fillTriangle(cx - 80, base - 280, cx + 70, base - 280, cx - 5, base - 330);
+  // 竹篙（往左斜進水裡）
+  g.lineStyle(8, 0x8a7a4a, boat ? 1 : 0.8);
+  g.lineBetween(cx + 60, base - 330, cx - 150, base + 10);
+  // 眼睛
+  g.fillStyle(0xffe08a, 0.9);
+  g.fillCircle(cx - 20, base - 272, 4);
+  g.fillCircle(cx + 2, base - 272, 4);
 }
 
 /** 牽路仔：路邊招手的灰色人影（半透明、手舉起來） */

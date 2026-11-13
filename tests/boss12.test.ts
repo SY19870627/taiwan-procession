@@ -114,7 +114,8 @@ describe('三章整條路線（從標題到結尾，三種結局各一次）', (
     for (const id of ['wanjia', 'dongjin', 'xinying']) for (const kind of ['recall', 'return', 'slay'] as const) for (const s of route(id, kind)) all.add(s);
     for (const k of Object.values(CHAPTERS.xinying.cases)) if (k.kneelStory) all.add(k.kneelStory);
     expect(all.size).toBe(22);
-    // 第四章試玩段落另有兩段演出（tests/ch4.test.ts）：拱辰宮起駕、臨時轉進賢仔車行
-    expect(Object.keys(STAGES).sort()).toEqual([...all, 'qijia4', 'zhuanjin4'].sort());
+    // 第四章試玩段落另有兩段演出（tests/ch4.test.ts）：拱辰宮起駕、臨時轉進賢仔車行；
+    // 第 A 輪再加四段（tests/ch4roundA.test.ts）：入廟三進三退、橋頭下堤防、回宮、開爐
+    expect(Object.keys(STAGES).sort()).toEqual([...all, 'qijia4', 'zhuanjin4', 'sanjin4', 'qiaotou4', 'huigong4', 'kailu4'].sort());
   });
 });

@@ -7,7 +7,7 @@
  *    Street 有圖就蓋掉程式畫的遠景／近景（art/backdrop.ts 的 useArtImages）。
  *  - 立繪：public/portraits/<id>_<表情>.webp（420×560）。照舊由 tools/portraits.py 產生 portraits.data.ts 的 SETS；
  *    稱呼 → 代號寫在 art/portraits.ts 的 ALIAS（阿睿 → arui；第一章的阿哲 azhe 不動）。
- *  - 戰鬥圖：public/battle/b4_*.webp（520×420）。最後一戰 ford 還沒做，程式還沒用到。
+ *  - 戰鬥圖：public/battle/b4_*.webp（520×420）。最後一戰 ford（BossScene）用；暫代在 art/baishadun.ts。
  *
  * 媽祖不露臉：畫面上只有轎子（四人小轎、粉紅遮雨布）和布幔。轎子、頭旗、香擔在畫面上都不是可以點的東西。
  */
@@ -42,17 +42,27 @@ export const QIANLU_VISITOR: readonly [number, number] = [80, 120];
 
 /** 背景主題（DayPlan.art） */
 export const CH4_BG_THEMES = ['coast', 'highway', 'garage', 'beijin', 'dike'] as const;
-/** 最後一戰整張夜景（1280×720）【ford 還沒做】 */
+/**
+ * 最後一戰整張夜景（1280×720，夜、霧、溪面、對岸一點粉紅）。AssetScene 載入（public/bg/bg_ford.webp）；
+ * 沒有檔案時 BossScene.drawFord 用程式畫的暫代，載到了就蓋在上面。
+ */
 export const CH4_FORD_BG = 'bg_ford';
 export const CH4_BG_FILES: string[] = CH4_BG_THEMES.flatMap((t) => [`bg_${t}_far`, `bg_${t}_near`]);
 
-/** 戰鬥圖（520×420）【ford 還沒做，程式還沒載】 */
+/**
+ * 戰鬥圖（520×420，public/battle/b4_*.webp）。BootScene 先畫同名暫代（art/baishadun.ts），AssetScene 載到就蓋掉；
+ * 最後一戰 ford 顯示時一律縮到指定高度（BossScene 的 fitFord），所以正式圖尺寸不同也對得齊。
+ *  - b4_mangdu：茫渡本體（霧裡的人影）；b4_mangdu_boat：喘息時現出渡船的樣子
+ *  - b4_qianlu：牽路仔（戰鬥裡的小妖，一隻一張）；b4_renlian：信徒人鏈（左邊、還在水裡的隊伍＝要顧的東西）
+ */
 export const CH4_BATTLE_ART = {
   b4_mangdu: [520, 420],
   b4_mangdu_boat: [520, 420],
   b4_qianlu: [520, 420],
   b4_renlian: [520, 420],
 } as const satisfies Record<string, readonly [number, number]>;
+export type Ch4BattleKey = keyof typeof CH4_BATTLE_ART;
+export const CH4_BATTLE_FILES = Object.keys(CH4_BATTLE_ART) as Ch4BattleKey[];
 
 /** 立繪（420×560 去背、朝右、底部對齊）：代號 → 表情。媽祖沒有立繪 */
 export const CH4_PORTRAITS: Record<string, string[]> = {

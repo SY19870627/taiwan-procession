@@ -11,7 +11,7 @@ export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCa
   | 'wupan' | 'qiye' | 'baye' | 'xunbu' | 'jiaoban'
   // 第四章（白砂墩）：媽祖全章不露臉、不講話，沒有說話者
   | 'qianshao' | 'yawei' | 'touqi' | 'arui' | 'aman' | 'xianzai' | 'xiuzhi' | 'ahan' | 'caoxie' | 'apo'
-  | 'xiangdeng' | 'xiangdengbo' | 'jiaoban4' | 'cunbo' | 'qianlu' | 'chashui' | 'oajian';
+  | 'xiangdeng' | 'xiangdengbo' | 'jiaoban4' | 'cunbo' | 'qianlu' | 'chashui' | 'oajian' | 'mangdu';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -65,6 +65,8 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   qianlu: { name: '牽路仔', tex: 'st_qianlu', side: 'right', scale: 0.5 },
   chashui: { name: '茶水攤的阿伯', tex: 'folk2', side: 'right', scale: 1.8 },
   oajian: { name: '賣蚵嗲的阿桑', tex: 'folk3', side: 'right', scale: 1.8 },
+  // 第四章魔王：立繪 mangdu 還沒到，先用戰鬥圖的暫代（b4_mangdu，520×420）
+  mangdu: { name: '茫渡', tex: 'b4_mangdu', side: 'right', scale: 0.45 },
 };
 
 /** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */
@@ -84,7 +86,7 @@ export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import
   // 第四章：立繪檔名見 docs/第四章_美術接點清單.md §3（沒到就用 SPEAKERS 的小人）
   qianshao: ['qianshao', 'normal'], yawei: ['yawei', 'normal'], touqi: ['touqi', 'normal'],
   arui: ['arui', 'normal'], aman: ['aman', 'normal'], xianzai: ['xianzai', 'normal'], xiuzhi: ['xiuzhi', 'normal'],
-  ahan: ['ahan', 'normal'], caoxie: ['caoxie', 'normal'], apo: ['apo', 'normal'],
+  ahan: ['ahan', 'normal'], caoxie: ['caoxie', 'normal'], apo: ['apo', 'normal'], mangdu: ['mangdu', 'normal'],
 };
 
 /** 說話的人的名字 → 程式畫的小人（白天的對話用「名字：「…」」寫，見 ui/split.ts） */

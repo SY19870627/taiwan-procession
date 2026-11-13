@@ -12,7 +12,7 @@
  */
 import type { FollowState, RunState } from '../state';
 import { newFollow } from '../state';
-import type { BroadcastOption, DayPlan, Encounter } from '../content/days';
+import type { BroadcastOption, DayPlan, Encounter, FollowPlan } from '../content/days';
 import type { Option } from '../content/believers';
 
 /** 留在轎邊 */
@@ -56,6 +56,10 @@ export interface BetOutcome {
   delta: number;
   /** 押中時先清掉的小妖（encounter id） */
   cleared: string[];
+  /** resolveBet 之後才有：實際加減了幾個時辰（上限是當天的時辰、下限 0） */
+  gained?: number;
+  /** resolveBet 之後才有：押中了，但時辰本來就是滿的（不加，改顯示「時辰已滿」那句） */
+  full?: boolean;
 }
 
 /** 只算結果，不改狀態 */
@@ -75,15 +79,35 @@ export function hoursAfter(hours: number, delta: number, max: number): number {
   return Math.max(0, Math.min(max, hours + delta));
 }
 
-/** 押先鋒：改時辰、記結果、把押中那條路的小妖標成已清掉 */
+/**
+ * 押先鋒：改時辰、記結果、把押中那條路的小妖標成已清掉。
+ * 時辰永遠不超過當天的上限（作者定案 A）：押中時已經是滿的就不加（full），畫面改播「時辰已滿」那句（betResultText）。
+ */
 export function resolveBet(r: RunState, plan: DayPlan, bet: string): BetOutcome {
   const o = betOutcome(plan, bet);
   const f = followOf(r);
   f.bet = bet;
   f.betResult = o.result;
-  r.hours = hoursAfter(r.hours, o.delta, plan.hours);
+  const before = r.hours;
+  const full = o.result === 'hit' && before >= plan.hours;
+  r.hours = hoursAfter(before, o.delta, plan.hours);
   for (const id of o.cleared) r.flags[`cleared_${id}`] = true;
-  return o;
+  return { ...o, gained: r.hours - before, full };
+}
+
+/** 押中但時辰已滿時的系統句（FollowPlan.results.hitFull 沒寫時用這句） */
+export const HIT_FULL_DEFAULT = '【待定】押中了。牽路仔已經清掉；時辰本來就是滿的，沒有多出來。';
+
+/**
+ * 押完之後播的話：押中／押錯／留在轎邊的那段；押中但時辰已滿時，最後一行（系統句「省 1 時辰」）
+ * 換成 results.hitFull（沒寫用 HIT_FULL_DEFAULT）。最後一行就是押兵結果頁上的那一句。
+ */
+export function betResultText(f: FollowPlan, o: Pick<BetOutcome, 'result' | 'full'>): string {
+  const res = f.results;
+  if (!res) return '';
+  if (o.result !== 'hit' || !o.full) return res[o.result];
+  const lines = res.hit.split('\n');
+  return [...lines.slice(0, -1), res.hitFull ?? HIT_FULL_DEFAULT].join('\n');
 }
 
 /** 這隻小妖是不是已經被押中的先鋒清掉了 */
@@ -178,9 +202,13 @@ export function resolveStray(r: RunState, e: Extract<Encounter, { kind: 'imp' }>
   return true;
 }
 
-/** 略過牽路仔：落隊的人被帶偏，記一位沒跟上（遺憾） */
+/** 略過牽路仔：落隊的人被帶偏，記一位沒跟上（遺憾）；也記是第幾天（天亮「昨日」寫當天的） */
 export function skipStray(r: RunState): void {
-  followOf(r).strayed++;
+  const f = followOf(r);
+  f.strayed++;
+  const byDay = f.strayedDay ?? {};
+  byDay[r.day] = (byDay[r.day] ?? 0) + 1;
+  f.strayedDay = byDay;
 }
 
 // ---------- 稟報 ----------

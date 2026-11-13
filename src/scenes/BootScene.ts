@@ -5,7 +5,7 @@ import { makeHarbor } from '../art/harbor';
 import { makeXinying } from '../art/xinying';
 import { makeStageArt } from '../art/stage';
 import { makeBaishadun } from '../art/baishadun';
-import { startChapter } from '../content/chapter';
+import { playOverride, startChapter } from '../content/chapter';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -27,6 +27,8 @@ export class BootScene extends Phaser.Scene {
     this.scene.launch('assets');
     // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）
     const q = new URLSearchParams(location.search);
+    // &full=1：不管試玩版只做到第幾天（playableDays），整章走到底（第四章第二、三天、最後一戰還是【待定】暫代字）
+    playOverride.full = q.get('full') === '1';
     // ?proto=stage&id=recall：原型的舊網址，現在等同 ?scene=story&id=recall（播正式演出，看完回標題）
     const jump = q.get('proto') === 'stage' ? 'story' : q.get('scene');
     if (jump) {
@@ -41,6 +43,8 @@ export class BootScene extends Phaser.Scene {
       this.scene.start(jump, {
         day: n, night: n, id: q.get('id') ?? (jump === 'story' && q.get('proto') ? 'recall' : 'dusk3'), prologue: q.get('prologue') === '1', kind, title: kind, next: { key: 'title' },
         text: q.get('text') === '1', beat,
+        // ?scene=almanac&ch=baishadun&epilogue=1：第四章開爐那頁黃曆（收尾）
+        epilogue: q.get('epilogue') === '1',
       });
       return;
     }

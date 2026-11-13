@@ -3,15 +3,13 @@
  * 第四章的信徒（_agent/ch4-baishatun-plan.md §7「信徒五位」）：阿滿姨、阿睿（跟轎台義工；第一章已有阿哲，代號改 arui）、
  * 賢仔、秀枝、阿翰。序章黃曆、擲筊、因果簿、信徒錄。
  *
- * 第一天的字照 _agent/ch4-text-day1.md 第 1、4、6 節（作者尚未定稿）。第二天事件池、結局的信徒錄還沒寫（「（待寫）」）。
+ * 第一天的字照 _agent/ch4-text-day1.md 第 1、4、6 節（作者尚未定稿）。第二、三天的卡、信徒錄是【待定】暫代（第 A 輪）。
  * 選項的花費（時辰、稟報、點心站）是規則，換字時不要動。
  */
 import type { RunState } from '../../state';
 import { gainEvidence } from '../../state';
 import type { Almanac, Card, Epitaph, LedgerLine, Option } from '../believers';
 
-/** 還沒寫的字（第二天之後；試玩版走不到） */
-const TBD = '（待寫）';
 
 export function newBelievers4(): Record<string, string> {
   return { aman: 'unmet', arui: 'unmet', xianzai: 'unmet', xiuzhi: 'unmet', ahan: 'unmet' };
@@ -58,13 +56,29 @@ function reportOpt(key: string, who: string, result: string): Option {
   };
 }
 
-/** 沒辦結果（略過那張卡之後，天亮「昨日」寫的事；見 days.ts 的 dawn4） */
+/** 第二、三天的稟報（暫代）：不改信徒的狀態（第一天的狀態留給因果簿、信徒錄），只記辦過 */
+function stubReport(key: string, result: string): Option {
+  return {
+    label: '稟報', hours: 0, result,
+    report: { key, stops: () => false, stop: REPORTED, pass: REPORTED },
+    apply: (s) => { s.flags[`done_${key}`] = true; return ''; },
+  };
+}
+
+/**
+ * 沒辦結果（略過那張卡之後，天亮「昨日」寫的事；見 days.ts 的 dawn4：卡片 id 尾巴的數字＝第幾天）。
+ * 第二、三天的是【待定】暫代。
+ */
 export const MISSED4: Record<string, string> = {
   aman1: '阿滿姨天黑才走到省道。她在一間雜貨店的騎樓坐了一夜。',
   arui1: '傍晚阿睿的手機剩百分之三。他蹲在車行牆邊，跟賢仔借延長線。',
   xianzai1: '賢仔搬椅子、接水管、指廁所，忙到半夜。扳手一直插在褲子後面的口袋。',
   xiuzhi1: '路燈下那台輪椅，天還沒亮就先出發了。她怕跟不上。',
   ahan1: '阿翰把襪子直接套回去，縮在騎樓的柱子邊。訊息還停在輸入框裡。',
+  ahan2: '【待定】沒陪阿翰的話，第二天晚上他怎麼了。',
+  aman2: '【待定】沒聽阿滿姨講的話，第二天晚上她怎麼了。',
+  xiuzhi2: '【待定】沒幫秀枝的話，第二天晚上她們怎麼了。',
+  xiuzhi3: '【待定】沒陪秀枝的話，第三天她們怎麼了。',
 };
 
 export const CARDS4: Record<string, (r: RunState) => Card | null> = {
@@ -201,13 +215,63 @@ export const CARDS4: Record<string, (r: RunState) => Card | null> = {
     ignore: '明天他的腳會更痛，中午前就想找車坐',
     missed: MISSED4.ahan1,
   } : null,
-  // ---------- 第二天傳消息的事件池（骨架；試玩版走不到，字還沒寫） ----------
-  shoes2: () => ({ who: '鞋子磨腳的年輕人', text: TBD, options: [{ label: '幫忙', hours: 1, result: TBD, apply: () => TBD }], ignore: TBD }),
-  heat2: () => ({ who: '中暑的年輕人', text: TBD, options: [{ label: '幫忙', hours: 1, result: TBD, apply: () => TBD }], ignore: TBD }),
-  sick2a: () => ({ who: '帶病人來求的家屬', text: TBD, options: [{ label: '幫忙', hours: 2, result: TBD, apply: () => TBD }], ignore: TBD }),
-  sick2b: () => ({ who: '帶病人來求的家屬', text: TBD, options: [{ label: '幫忙', hours: 2, result: TBD, apply: () => TBD }], ignore: TBD }),
-  ahan2: (r) => r.b.ahan === 'unmet' ? { who: '阿翰', text: TBD, options: [{ label: '陪他走', hours: 1, result: TBD, apply: (s) => { done(s, 'ahan', 'met'); return TBD; } }], ignore: TBD } : null,
+  // ---------- 第二天（第 A 輪：【待定】暫代；花費、稟報、給的證據是規則） ----------
+  /** 阿翰（pre・省道）：第一天想回家的那個；第二天走不走得下去 */
+  ahan2: stubCard('ahan2', '阿翰', 'ahan', [{ label: '【待定】陪他走一段', hours: 1 }], { report: '把阿翰的事報到轎前。' }),
+  /** 阿滿姨（甲路）：女兒當年沒跟她走成——沒走成的新娘的證詞 */
+  aman2: stubCard('aman2', '阿滿姨', 'aman', [{ label: '【待定】聽她講女兒的事', hours: 1, gives: ['aman_flag'] }], { report: '把阿滿姨的事報到轎前。' }),
+  /** 秀枝（post・北津街上的隊尾） */
+  xiuzhi2: stubCard('xiuzhi2', '秀枝', 'xiuzhi', [{ label: '【待定】幫她推一段', hours: 1 }], { report: '把秀枝和她阿母報到轎前。' }),
+  // 第一天拍車行 → 看熱鬧的年輕人：兩件小事（1 時辰）
+  shoes2: stubCard('shoes2', '鞋子磨腳的年輕人', '', [{ label: '【待定】幫他', hours: 1 }]),
+  heat2: stubCard('heat2', '中暑的年輕人', '', [{ label: '【待定】幫他', hours: 1 }]),
+  // 第一天拍秀枝 → 帶病人來求的家屬：兩件很難辦的事（2 時辰起，沒有點心站可以託）
+  sick2a: stubCard('sick2a', '帶病人來求的家屬', '', [{ label: '【待定】幫忙', hours: 2 }]),
+  sick2b: stubCard('sick2b', '帶病人來求的家屬', '', [{ label: '【待定】幫忙', hours: 2 }]),
+  // ---------- 第三天（回程・渾水溪；第 A 輪【待定】） ----------
+  /** 秀枝的那一段（pre・隊尾）：這天的主線 */
+  xiuzhi3: stubCard('xiuzhi3', '秀枝', 'xiuzhi', [{ label: '【待定】陪她們走到堤防', hours: 1 }, { label: '【待定】陪她們走，聽她講阿母', hours: 2 }], { report: '把秀枝和她阿母報到轎前。', deadline: '今天' }),
+  aman3: stubCard('aman3', '阿滿姨', 'aman', [{ label: '【待定】陪她走', hours: 1 }]),
+  /** 堤防邊的老人：記得渾水溪以前有擺渡（最後一戰陣前審問第 1 輪；知道茫渡是擺渡的，喘息時打得更痛） */
+  dukou3: stubCard('dukou3', '堤防邊的老人', '', [{ label: '【待定】問他溪的事', hours: 1, flag: 'ferry_heard' }]),
+  ahan3: stubCard('ahan3', '阿翰', 'ahan', [{ label: '【待定】陪他', hours: 1 }]),
+  arui3: stubCard('arui3', '阿睿', 'arui', [{ label: '【待定】幫他', hours: 1 }]),
+  // 第二天拍入廟 → 人更多；拍秀枝 → 帶病人來求的家屬
+  lost3: stubCard('lost3', '走散的孩子', '', [{ label: '【待定】幫他找家人', hours: 1 }]),
+  sick3: stubCard('sick3', '帶病人來求的家屬', '', [{ label: '【待定】幫忙', hours: 2 }]),
 };
+
+/**
+ * 第二、三天的暫代信徒卡：字都是【待定】，花費、給的證據、旗標是規則（換字時不要動）。
+ * 辦過一次就不再出現（flags.done_<卡>）；辦成記 flags.helped_<信徒>（最後一戰人鏈：幫過的信徒會下水牽人）。
+ * report：多一個「稟報」選項（第二、三天轎子停不停，之後的內容依 follow.reports 決定；暫代一律照常往前走）。
+ */
+function stubCard(
+  id: string, who: string, believer: string,
+  opts: { label: string; hours: number; gives?: string[]; flag?: string }[],
+  extra: { report?: string; deadline?: string } = {},
+): (r: RunState) => Card | null {
+  return (r) => r.flags[`done_${id}`] ? null : {
+    who,
+    text: `【待定】${who}（${id}）的卡片描述。`,
+    ...(extra.deadline ? { deadline: extra.deadline } : {}),
+    options: [
+      ...opts.map((o): Option => ({
+        label: o.label, hours: o.hours, result: '【待定】辦成的結果預告', ...(o.gives ? { gives: o.gives } : {}),
+        apply: (s) => {
+          s.flags[`done_${id}`] = true;
+          if (believer) s.flags[`helped_${believer}`] = true;
+          if (o.flag) s.flags[o.flag] = true;
+          for (const g of o.gives ?? []) gainEvidence(g);
+          return `【待定】${who}：辦成之後的那段話。`;
+        },
+      })),
+      ...(extra.report ? [stubReport(id, `【待定】${extra.report}媽祖會知道；轎子會不會為他停，不保證。`)] : []),
+    ],
+    ignore: '【待定】略過的預告',
+    missed: MISSED4[id],
+  };
+}
 
 /** 因果簿（第 4 節「因果簿」兩種寫法：辦成／沒辦） */
 const LEDGER4: [string, string, string[], string, string][] = [
@@ -228,18 +292,65 @@ export function ledger4(r: RunState): LedgerLine[] {
   return lines;
 }
 
+// ---------- 最後一戰（渾水溪）用到的：人鏈、還在水裡的人 ----------
+/** 五位信徒：代號 → 名字 */
+export const BELIEVER_NAMES4: Record<string, string> = { aman: '阿滿姨', arui: '阿睿', xianzai: '賢仔', xiuzhi: '秀枝', ahan: '阿翰' };
+
+/**
+ * 前兩天（含第三天）幫過的信徒：第一天辦成（因果簿的「辦成」狀態），或第二、三天的卡辦過（flags.helped_<代號>）。
+ * 計畫 §6：「前兩天被你幫過的信徒會下水牽人，幫過幾位就有幾段」。
+ */
+export function helped4(r: RunState): string[] {
+  return LEDGER4.filter(([, id, good]) => good.includes(r.b[id]) || !!r.flags[`helped_${id}`]).map(([, id]) => id);
+}
+
+/** 人鏈幾段＝傳消息加的（follow.chain）＋幫過的信徒 */
+export function chainSegments4(r: RunState): number {
+  return (r.follow?.chain ?? 0) + helped4(r).length;
+}
+
+/**
+ * 還在水裡、會被茫渡叫走的人（依序）。幫過的信徒在人鏈上牽人，不在這裡。
+ * 名字是暫代（金水伯是第一天被牽路仔帶偏的那位阿伯），【待定】作者可換。
+ */
+const STRAGGLERS4: [name: string, believer?: string][] = [
+  ['金水伯'], ['秀枝的阿母', 'xiuzhi'], ['阿滿姨', 'aman'], ['阿翰', 'ahan'], ['阿睿', 'arui'],
+  ['賣蚵嗲的阿桑'], ['揹小孩的香燈腳'], ['推車的香燈腳'],
+];
+
+export function stragglers4(r: RunState): string[] {
+  const h = new Set(helped4(r));
+  return STRAGGLERS4.filter(([, b]) => !b || !h.has(b)).map(([n]) => n);
+}
+
+/** 被帶到下游沙洲的人：開爐那頁黃曆「昨日」欄寫的（人沒事，沒趕上回宮） */
+export function sandbarLines4(names: string[]): string[] {
+  if (!names.length) return [];
+  return [`【待定】天亮，在渾水溪下游的沙洲上找到${names.join('、')}。人都沒事，沒趕上回宮。`];
+}
+
 export function bossEffects4(r: RunState): string[] {
-  return [`人鏈 ${r.follow?.chain ?? 0} 段（最後一戰「渾水溪」還沒做）`];
+  const f = r.follow;
+  const h = helped4(r).length;
+  return [
+    `人鏈 ${chainSegments4(r)} 段（傳消息 ${f?.chain ?? 0}＋幫過的信徒 ${h}）：每段在霧裡拉住一個被叫走的人`,
+    `還在水裡、會被叫走的人：${stragglers4(r).length} 位`,
+  ];
 }
 
-export function epitaphs4(_r: RunState): Epitaph[] {
-  return ['阿滿姨', '阿睿', '賢仔', '秀枝', '阿翰'].map((who) => ({ who, text: TBD, good: true }));
+export function epitaphs4(r: RunState): Epitaph[] {
+  const h = new Set(helped4(r));
+  return Object.entries(BELIEVER_NAMES4).map(([id, who]) => ({ who, text: `【待定】${who}回宮之後。`, good: h.has(id) }));
 }
 
-export function ghostEpitaphs4(_r: RunState): Epitaph[] {
-  return ['草鞋丁', '點心擔阿婆', '沒走成的新娘', '假香燈腳'].map((who) => ({ who, text: TBD, good: true }));
+export function ghostEpitaphs4(r: RunState): Epitaph[] {
+  // 判對歸處的才算圓滿（判決對錯的規則在 core/guihu.ts 的 rightVerdict；這裡照案子的 needs 判斷）
+  const right: Record<string, string> = { caoxie: 'tobeijin', apo: 'here', xinniang: 'tohome', jiajiao: 'leave' };
+  const names: Record<string, string> = { caoxie: '草鞋丁', apo: '點心擔阿婆', xinniang: '沒走成的新娘', jiajiao: '假香燈腳' };
+  return Object.entries(names).map(([id, who]) => ({ who, text: `【待定】${who}的結局。`, good: r.cases[id]?.verdict === right[id] }));
 }
 
 export function mangduEpitaph(r: RunState): Epitaph {
-  return { who: '茫渡', text: TBD, good: r.shijuEnd !== 'slay' };
+  const text = r.shijuEnd === 'recall' ? '【待定】茫渡・喚回：留在溪邊當引路的。' : r.shijuEnd === 'return' ? '【待定】茫渡・送回：送上對岸，了了。' : '【待定】茫渡・斬。';
+  return { who: '茫渡', text, good: r.shijuEnd !== 'slay' };
 }

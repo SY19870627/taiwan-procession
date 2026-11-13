@@ -1,7 +1,7 @@
 // 台詞：第四章試玩段落文字 v0.1（全部【待定】，作者尚未定稿）
 /**
  * 第四章的鬼案（問歸處，core/guihu.ts）。取材見 _agent/ch4-baishatun-plan.md §7「鬼案四個」。
- * 第一夜：草鞋丁（該去北津）、點心擔阿婆（就在這裡下）；第二夜：沒走成的新娘（白砂墩）、假香燈腳（不帶）——第二夜的還沒寫。
+ * 第一夜：草鞋丁（該去北津）、點心擔阿婆（就在這裡下）；第二夜：沒走成的新娘（白砂墩）、假香燈腳（不帶）——第二夜的是【待定】暫代（stubGhost）。
  *
  * 第一夜的字照 _agent/ch4-text-day1.md 第 3-2、3-8、8 節。問歸處沿用審問供詞的版面（一句一列，可以「再問」、可以「對照」證據）：
  *  - statements：開場陳述兩句＋一句白天／互嗆裡他說過的話（湊成三列，一列對一層真相）；
@@ -11,8 +11,6 @@
  * 對鬼不斬：判決只有帶去北津／帶回白砂墩／就在這裡下／不帶。
  */
 import type { Evidence, GhostCase, VerdictDef } from '../cases';
-
-const TBD = '（待寫）';
 
 /** 按鈕小字（四種歸處共用；第 8 節） */
 const SMALL: Record<'tobeijin' | 'tohome' | 'here' | 'leave', string> = {
@@ -41,11 +39,39 @@ export const EVIDENCE4: Record<string, Evidence> = {
   stove: { id: 'stove', kind: '物證', name: '車行後面的舊灶', text: '堆輪胎的角落留著一塊紅磚地，上面一口磚砌的舊灶。灶口朝著省道，灶台擦得很乾淨。', ghost: 'apo', where: '車行後面的線索，或賢仔帶去看（第一天・賢仔車行）' },
   xian_land: { id: 'xian_land', kind: '證詞', name: '賢仔的話（這塊地）', text: '「這塊地是我阿爸跟一個阿婆的後生買的。舊厝拆的時候，阿爸說後面那口灶不能打。」', ghost: 'apo', where: '賢仔（第一天・賢仔車行，幫他順好門口）' },
   xianzhou: { id: 'xianzhou', kind: '文獻', name: '海線舊聞・路邊的鹹粥', text: '省道還是牛車路的時候，路邊有一戶人家，年年煮一鍋鹹粥等進香的人。半夜才到的，也有得吃。', ghost: 'apo', where: '第一天的黃曆' },
-  // 沒走成的新娘（第二天，骨架）
-  veil: { id: 'veil', kind: '物證', name: '褪色的頭紗', text: TBD, ghost: 'xinniang', where: '第二天（待寫）' },
-  // 假香燈腳（第二天，骨架）
-  armband: { id: 'armband', kind: '物證', name: '撿來的臂章', text: TBD, ghost: 'jiajiao', where: '第二天（待寫）' },
+  // 沒走成的新娘（第二天，第 A 輪【待定】）
+  veil: { id: 'veil', kind: '物證', name: '褪色的頭紗', text: '【待定】頭紗的樣子。', ghost: 'xinniang', where: '第二天甲路的線索' },
+  aman_flag: { id: 'aman_flag', kind: '證詞', name: '阿滿姨的話（女兒的小旗）', text: '【待定】阿滿姨講女兒那支小旗的話。', ghost: 'xinniang', where: '阿滿姨（第二天甲路，聽她講）' },
+  // 假香燈腳（第二天，第 A 輪【待定】）
+  armband: { id: 'armband', kind: '物證', name: '撿來的臂章', text: '【待定】臂章的樣子。', ghost: 'jiajiao', where: '第二天北津派出所的線索' },
 };
+
+/** 第二天兩個鬼的暫代：三句話、三層真相，字全部【待定】；誰該去哪（needs）是規則 */
+function stubGhost(id: string, name: string, dayName: string, shortName: string, tex: string, affects: string, timid: number, innocent: boolean,
+  evidence: [string[], string[], string[]], right: VerdictDef['verdict']): GhostCase {
+  return {
+    id, name, dayName, shortName, tex,
+    daySight: `【待定】白天看到${dayName}的樣子。`,
+    harm: '【待定】不帶的話會怎樣。', affects, payoff: '【待定】問清楚的好處。',
+    timid, innocent,
+    meet: {
+      take: '【待定】帶在頭旗後面走', takeResult: '今晚可以問',
+      taken: `【待定】${dayName}跟到頭旗後面的那句。`,
+      skip: '先不帶', left: `【待定】沒帶${dayName}的那句。`,
+    },
+    statements: ['【待定】第一句。', '【待定】第二句。', '【待定】第三句。'],
+    pressQ: ['【待定】再問一', '【待定】再問二', '【待定】再問三'],
+    press: ['【待定】回答一。', '【待定】回答二。', '【待定】回答三。'],
+    truths: evidence.map((ev, i) => ({ stmt: i, evidence: ev, summary: `【待定】第 ${i + 1} 層真相。`, reveal: `【待定】揭開第 ${i + 1} 層時他說的話。` })),
+    wrong: '【待定】對照錯了的反應。',
+    verdicts: dests(right, [0], {
+      tobeijin: `【待定】${name}・帶去北津之後。`,
+      tohome: `【待定】${name}・帶回白砂墩之後。`,
+      here: `【待定】${name}・就在這裡下之後。`,
+      leave: `【待定】${name}・不帶之後。`,
+    }),
+  };
+}
 
 export const CASES4: Record<string, GhostCase> = {
   caoxie: {
@@ -137,24 +163,8 @@ export const CASES4: Record<string, GhostCase> = {
       tohome: '點心擔阿婆：「白砂墩？那是人家出門的地方，我又不住那裡。」\n她挑著擔子跟在最後面，每到一個路口就問，是不是到家了。\n阿婆佔旗下 1 格，一直佔到回宮。',
     }),
   },
-  xinniang: {
-    id: 'xinniang', name: '沒走成的新娘', dayName: '穿紅衣的女人', shortName: '新娘', tex: 'folk5',
-    daySight: TBD, harm: TBD, affects: '阿滿姨', payoff: TBD,
-    timid: 2, innocent: true,
-    statements: [TBD],
-    press: [TBD],
-    truths: [{ stmt: 0, evidence: ['veil'], summary: TBD, reveal: TBD }],
-    wrong: TBD,
-    verdicts: dests('tohome', [0], {}),
-  },
-  jiajiao: {
-    id: 'jiajiao', name: '假香燈腳', dayName: '戴臂章的男人', shortName: '臂章男', tex: 'folk4',
-    daySight: TBD, harm: TBD, affects: '', payoff: TBD,
-    timid: 1, innocent: false,
-    statements: [TBD],
-    press: [TBD],
-    truths: [{ stmt: 0, evidence: ['armband'], summary: TBD, reveal: TBD }],
-    wrong: TBD,
-    verdicts: dests('leave', [0], {}),
-  },
+  // 第二天（第 A 輪【待定】）：她要的是跟阿母走完一趟，阿母就是阿滿姨 → 帶回白砂墩
+  xinniang: stubGhost('xinniang', '沒走成的新娘', '穿紅衣的女人', '新娘', 'folk5', '阿滿姨', 2, true, [['veil'], ['aman_lukou', 'aman_flag'], ['veil', 'aman_flag']], 'tohome'),
+  // 臂章是撿的，他是跟著隊伍裡一個欠他的活人來的 → 不帶
+  jiajiao: stubGhost('jiajiao', '假香燈腳', '戴臂章的男人', '臂章男', 'folk4', '', 1, false, [['armband'], ['armband'], ['armband']], 'leave'),
 };

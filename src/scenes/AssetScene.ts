@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { loadPortraits } from '../art/portraits';
 import { BATTLE_FILES, BG_FILES } from '../art/xinyingSpec';
 import { STAGE_DIR, STAGE_FILES } from '../art/stageSpec';
-import { CH4_BG_FILES, CH4_STAGE_FILES } from '../art/baishadunSpec';
+import { CH4_BATTLE_FILES, CH4_BG_FILES, CH4_FORD_BG, CH4_STAGE_FILES } from '../art/baishadunSpec';
 
 /** 正式戰鬥圖先用這個暫時的名字載入，載完再換成正式的貼圖名稱 */
 const TMP = 'art:';
@@ -41,6 +41,12 @@ export class AssetScene extends Phaser.Scene {
       this.load.once(`filecomplete-image-${TMP}${k}`, () => this.replaceTexture(k));
     }
     for (const k of CH4_BG_FILES) this.load.image(k, `bg/${k}.webp`);
+    // 第四章最後一戰：戰鬥圖（同一套蓋掉暫代）、整張夜景（沒有暫代貼圖，BossScene 畫好之後載到才蓋上）
+    for (const k of CH4_BATTLE_FILES) {
+      this.load.image(TMP + k, `battle/${k}.webp`);
+      this.load.once(`filecomplete-image-${TMP}${k}`, () => this.replaceTexture(k));
+    }
+    this.load.image(CH4_FORD_BG, `bg/${CH4_FORD_BG}.webp`);
   }
 
   /**

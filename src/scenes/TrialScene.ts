@@ -11,7 +11,8 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { DEFECT_NEEDS, type GhostCase, type VerdictDef } from '../content/cases';
-import { CH, evidenceOf, verdictName } from '../content/chapter';
+import { CH, evidenceOf, playableDays, verdictName } from '../content/chapter';
+import { playStory } from './StoryScene';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { flashback, splitStory, talk } from '../ui/talk';
@@ -50,10 +51,17 @@ export class TrialScene extends Phaser.Scene {
     // 第三章每晚 2 案（其他章不限，trialsLeft 不設）
     beginNight(run, CH());
     if (T.style === 'dianjiang') this.time.delayedCall(700, () => chat(this, 'lobby'));
-    // 第四章問歸處：歸處到了的鬼，開審前放下（空出頭旗下的格子）
+    // 第四章問歸處：歸處到了的鬼，開審前放下（空出頭旗下的格子）；有放下的過場就排在開審前播
     const G = CH().guihu;
+    const before: string[] = [];
+    const ns = CH().nightStory?.[this.n];
+    if (ns) before.push(ns);
     if (T.style === 'guihu' && G) {
-      for (const a of arrive(run, this.n, G)) this.messages.push(`${CH().cases[a.id].name}到了${G.dests[a.dest]?.name ?? a.dest}，放下了。`);
+      for (const a of arrive(run, this.n, G)) {
+        this.messages.push(`${CH().cases[a.id].name}到了${G.dests[a.dest]?.name ?? a.dest}，放下了。`);
+        const rs = G.releaseStory?.[a.id];
+        if (rs) before.push(rs);
+      }
     }
     this.cameras.main.fadeIn(500, 10, 8, 18);
     const bg = this.add.graphics();
@@ -94,7 +102,14 @@ export class TrialScene extends Phaser.Scene {
     this.lobby();
     // 第四章：開審前的對話（車行半夜、前哨與押尾）
     const intro = T.intro?.(this.n);
-    if (intro) this.time.delayedCall(450, () => talk(this, splitStory(intro, undefined, SPEAKER_TEX), () => this.quip('t_open')));
+    const open = () => { if (intro) talk(this, splitStory(intro, undefined, SPEAKER_TEX), () => this.quip('t_open')); };
+    // 第四章：開審前的過場（第二夜：進火 jinhuo4 → 草鞋丁到北津放下），一段一段蓋在大廳上播，播完才開場對話
+    const playNext = (): void => {
+      const s = before.shift();
+      if (!s) return open();
+      playStory(this, s, playNext);
+    };
+    if (before.length || intro) this.time.delayedCall(450, playNext);
   }
 
   // ---------- 堂上：選要審哪一個 ----------
@@ -542,7 +557,7 @@ export class TrialScene extends Phaser.Scene {
     const out = dawnHeld(run, CH());
     const F = CH().finale;
     // 試玩版（第四章只做到第一天）：這一夜天亮之後接試玩結束畫面，不翻到下一天
-    const last = CH().playableDays;
+    const last = playableDays();
     if (last !== undefined && this.n >= last) {
       run.yesterday = [...out, ...CH().dawn(run, this.n)];
       // 第四章：雞啼 → 天亮過場（tianliang4_1）→ 試玩結束畫面

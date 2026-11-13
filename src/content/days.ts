@@ -83,14 +83,23 @@ export interface FollowPlan {
   hints?: string;
   /** 押兵按鈕的字與小字（key：路線 id 或 'stay'） */
   bets?: Record<string, { label: string; small: string }>;
-  /** 押完之後播的對話（押中／押錯／留在轎邊；轉向的 turn 先播） */
-  results?: { hit: string; miss: string; stay: string };
+  /**
+   * 押完之後播的對話（押中／押錯／留在轎邊；轉向的 turn 先播）。每段最後一行是系統句（押兵結果頁也顯示）。
+   * hitFull：押中但時辰本來就是滿的（時辰不超過上限，不加）——取代 hit 的最後一行（core/procession.ts 的 betResultText）
+   */
+  results?: { hit: string; miss: string; stay: string; hitFull?: string };
   /** 臨時轉進：甲乙都不是，轎子拐進第三個地方（沒得猜，事後才有解釋）。story：轉進的過場 id（有演出腳本就播演出） */
   detour?: { name: string; place: string; text: string; encounters: Encounter[]; why: string; story?: string };
-  /** 停駕點：短暫休息（art／theme：換街景，例如車行） */
-  rest: { name: string; place: string; text: string; encounters: Encounter[]; art?: string; theme?: StreetTheme };
-  /** 駐駕：過夜的地方（日落畫面） */
-  stay: { name: string; text: string };
+  /**
+   * 停駕點：短暫休息（art／theme：換街景，例如車行）。
+   * gather（第二天・北津派出所）：停駕等信徒集結——停駕畫面多一段「等人集結」的說明，story 有寫就蓋在畫面上播
+   */
+  rest: {
+    name: string; place: string; text: string; encounters: Encounter[]; art?: string; theme?: StreetTheme;
+    gather?: { title: string; text: string; story?: string };
+  };
+  /** 駐駕：過夜的地方（日落畫面）。story：日落前先播的過場（第二天：入廟三進三退 sanjin4） */
+  stay: { name: string; text: string; story?: string };
 }
 
 /** 依標籤加進當天的事 */
