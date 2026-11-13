@@ -466,6 +466,15 @@ describe('整章：沒有試玩版的天數限制（第 B2 輪）', () => {
     expect(CHAPTER4.days[2].title).toBe('第二天・到北津');
     expect(CHAPTER4.days[3].title).toBe('第三天・回程');
   });
+
+  it('開爐的黃曆有作者的字：宜、忌、出處、兩段舊聞都不是空的，也沒有【待定】', () => {
+    const a = CHAPTER4.epilogue!.almanac(r());
+    for (const k of ['lunar', 'yi', 'ji', 'source', 'text'] as const) {
+      expect(a[k].trim().length, k).toBeGreaterThan(0);
+      expect(a[k], k).not.toContain('【待定】');
+    }
+    expect(a.text.split('\n')).toHaveLength(2);
+  });
 });
 
 describe('第四章內容一致性', () => {

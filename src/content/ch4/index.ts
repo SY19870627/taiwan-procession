@@ -130,10 +130,13 @@ export const CHAPTER4: ChapterDef = {
     chatKey: fordChatKey4,
   },
   // 開爐（第 12 天）：收尾的黃曆，按鈕播開爐過場（kailu4），之後信徒錄。
-  // 劇本沒有這一頁的宜忌與舊聞：只寫日子（三月二十，回宮後第十二天）與「開爐」，其他欄空著
+  // 黃曆字照 _agent/ch4-text-kailu-almanac.md（第一段是舊聞口吻；第二段不提誰有沒有趕上，各結局通用）
   epilogue: {
     title: '開爐', area: '白砂墩拱辰宮・回宮後第十二天', button: '開　爐', story: 'kailu4',
-    almanac: () => ({ lunar: '三月二十', yi: '開爐', ji: '', source: '', text: '' }),
+    almanac: () => ({
+      lunar: '三月二十', yi: '開爐　搓圓', ji: '空腹', source: '白砂墩拱辰宮誌・卷三',
+      text: '進香回來，神龕的布幔先放著，香擔的封條也不撕，等十二天。第十二天開爐，庄裡家家搓湯圓挑到廟口，紅的白的倒在一起，煮成一大鍋。\n今天開爐。殿裡站不下的，站到廟埕。湯圓煮了很多，自己舀。',
+    }),
   },
   // 第二夜開審前：進火
   nightStory: { 2: 'jinhuo4' },
