@@ -980,7 +980,7 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
     ];
     for (const s of lines) expect(stub(s), String(s)).toBe(false);
     // 第 C2 輪：時辰不夠也能辦，說明卡「辦不完是正常的」說錯了 → 作者正式文字（_agent/ch4-text-shuang-A.md 10-1）
-    expect(CHAPTER4.unlocks![2].text).toBe('今天到北津，人比昨天多很多。時辰用完了，路上的事照樣可以辦，不用省。\n頭旗後面帶著的，判去北津的今晚到了就放下。旗下滿了也還能帶，往後多排一格。');
+    expect(CHAPTER4.unlocks![2].text).toBe('今天到北津，人比昨天多很多。時辰用完了，路上的事照樣可以辦，不用省著用。\n跟在頭旗後面走的，判了去北津的那幾位，今晚到了就放下。旗下滿了也還能帶，往後多排一格。');
     // 牽路仔：舊街死巷口有自己的兩種結果（美雲、圳邊的阿嬤）
     const s2 = imp(D2, 'stray2b');
     expect(s2.story).toContain('美雲');

@@ -253,7 +253,7 @@ export const STAGES4: Record<string, StageScript> = {
       // 第三退：退到畫面右邊，停一拍
       { who: 'narrator', text: '第三次，轎子退得很遠，停了一下。整個廟埕的人吸了一口氣。', src: 12, cam: { x: 520, y: -100, zoom: 1.05, ms: 900 }, moves: [{ id: 'jiao', x: 650, tex: 'st_jiao4_pause', ms: 1400 }] },
       // 秀枝稟報過才有的四句（有條件；不放轎的走位）
-      { who: 'narrator', text: '第三退，轎子退得比前兩次都遠，一直退到巷口。', src: 13, cam: { x: 600, y: -100, zoom: 1.12, ms: 700 } },
+      { who: 'narrator', text: '轎子又往後退，一直退到巷口。', src: 13, cam: { x: 600, y: -100, zoom: 1.12, ms: 700 } },
       { who: 'narrator', text: '轎子在輪椅前面三步的地方頓了一下，才往前衝。', src: 14, sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
       { at: 'xiuzhi', who: 'xiuzhi', text: '阿母，妳有沒有看到？就在前面。阿母。', src: 15 },
       { who: 'narrator', text: '大家都說，今年第三退退得特別遠。', src: 16, cam: { x: 420, y: -100, zoom: 1, ms: 700 } },
@@ -437,7 +437,7 @@ export const STAGES4: Record<string, StageScript> = {
       { who: 'narrator', text: '阿睿站在最後面。他的手機在口袋裡，今天沒有拿出來。', src: 7, cam: { x: 380, y: -150, zoom: 1.2, ms: 700 } },
       // 畫面下方一點火光，從右移到左（火光沒有圖：只拉遠鏡頭）
       { who: 'narrator', text: '香擔的封條撕開。帶回來的火，一勺一勺添進殿裡的爐。', src: 8, cam: { x: 360, y: -100, zoom: 1, ms: 1200 } },
-      { at: 'qianshao', who: 'qianshao', text: '火從北津一路顧回來，沒有熄。', src: 9 },
+      { at: 'qianshao', who: 'qianshao', text: '一路顧回來，真的沒有熄。', src: 9 },
       { at: 'yawei', who: 'yawei', text: '挑擔的那幾個，這幾天沒有好好睡。', src: 10 },
       { at: 'cunbo', who: 'cunbo', text: '湯圓好了！紅的白的都有，自己舀，吃了才圓滿！', src: 11 },
       // 阿滿姨把一碗湯圓放在廟埕的石階上
