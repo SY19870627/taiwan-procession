@@ -166,7 +166,7 @@ export class TrialScene extends Phaser.Scene {
         img.setScale(Math.min(96 / img.height, 70 / img.width));
       }
       this.add2(txt(this, p.x + 124, y + 12, k.dayName, 24, 0x9fd0ff));
-      this.add2(txt(this, p.x + 124, y + 52, `已查明 ${st.truths.length}／${k.truths.length}・怨氣 ${h.grudge}／3`, 20, C.muted, { bold: false }));
+      this.add2(txt(this, p.x + 124, y + 52, `已查明 ${st.truths.length}／${k.truths.length}${guihu ? '' : `・怨氣 ${h.grudge}／3`}`, 20, C.muted, { bold: false }));
       this.add2(button(this, p.x + p.w - 90, y + 54, 130, 56, guihu ? '問' : '升堂', () => this.open(k), { size: 22, fill: 0x8a1b14 }));
     });
     this.add2(button(this, W / 2, p.y + p.h - 60, 300, 64, '今夜不再審，天亮', () => this.finish(), { size: 20, fill: 0x3a3442 }));
@@ -210,7 +210,7 @@ export class TrialScene extends Phaser.Scene {
     const known = st.truths.length > 0;
     this.add2(txt(this, W / 2, 96, `${dossier ? '案卷：' : ''}${known ? `${k.name}（${k.dayName}）` : k.dayName}`, 26, 0x9fd0ff, { serif: true }).setOrigin(0.5, 0));
     const mute = held.grudge >= 3;
-    this.add2(txt(this, W / 2, 134, `已查明 ${st.truths.length}／${k.truths.length}　怨氣 ${held.grudge}／3`, 18, held.grudge >= 2 ? 0xff9a8a : C.muted, { bold: !!held.grudge }).setOrigin(0.5, 0).setFontSize(20));
+    this.add2(txt(this, W / 2, 134, `已查明 ${st.truths.length}／${k.truths.length}${T.style === 'guihu' ? '' : `　怨氣 ${held.grudge}／3`}`, 18, held.grudge >= 2 ? 0xff9a8a : C.muted, { bold: !!held.grudge }).setOrigin(0.5, 0).setFontSize(20));
     this.add2(txt(this, W / 2, 164, mute ? '怨氣衝天，牠不肯再開口：只能下判決，或押回去（天亮就會掙脫）' : T.rule, 18, mute ? 0xff9a8a : C.muted, { bold: false, align: 'center', wordWrap: { width: W - 120, useAdvancedWrap: true } }).setOrigin(0.5, 0));
 
     // 最新的回應
