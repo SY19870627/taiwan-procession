@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -19,4 +20,6 @@ export default defineConfig({
   base: './',
   build: { chunkSizeWarningLimit: 2000 },
   define: { __VERSION__: JSON.stringify(buildVersion()) },
+  // npm test 只跑 tests/；tools/aiPhrase.report.test.ts 只給 npm run check:ai（vitest.ai.config.ts）
+  test: { include: ['tests/**/*.test.ts'] },
 });
