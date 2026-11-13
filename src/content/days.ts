@@ -89,8 +89,9 @@ export interface FollowPlan {
    * 押完之後播的對話（押中／押錯／留在轎邊；轉向的 turn 先播）。每段最後一行是系統句（押兵結果頁也顯示）。
    * hitFull：押中但時辰本來就是滿的（時辰不超過上限，不加）——取代 hit 的最後一行（core/procession.ts 的 betResultText）
    * hitEmpty：押中了，但那條路的牽路仔今天本來就沒出現（第三天「什麼都不拍」：Encounter.unlessTag）——不省也不扣，取代 hit 的最後一行
+   * missNote：押錯之後的最後一行（押兵結果頁那一句；第四章第 C3 輪：押錯不扣時辰，miss 只留對話）
    */
-  results?: { hit: string; miss: string; stay: string; hitFull?: string; hitEmpty?: string };
+  results?: { hit: string; miss: string; stay: string; hitFull?: string; hitEmpty?: string; missNote?: string };
   /** 臨時轉進：甲乙都不是，轎子拐進第三個地方（沒得猜，事後才有解釋）。story：轉進的過場 id（有演出腳本就播演出） */
   detour?: { name: string; place: string; text: string; encounters: Encounter[]; why: string; story?: string };
   /**

@@ -62,14 +62,15 @@ describe('A. 押先鋒：時辰不超過當天上限', () => {
       expect(r().hours).toBe(p.hours);
     });
 
-    it(`${p.title}：押錯照舊 -1（不低於 0）`, () => {
+    it(`${p.title}：押錯（第 C3 輪）不扣時辰；押完的話是對話＋missNote`, () => {
       const wrong = p.routes.find((x) => x.id !== f.goes)!.id;
       r().hours = 3;
       const o = resolveBet(r(), p, wrong);
       expect(o.result).toBe('miss');
-      expect(o.gained).toBe(-1);
-      expect(r().hours).toBe(2);
-      expect(betResultText(f, o)).toBe(f.results!.miss);
+      expect(o.gained).toBe(0);
+      expect(r().hours).toBe(3);
+      expect(betResultText(f, o)).toBe(`${f.results!.miss}\n${f.results!.missNote}`);
+      expect(betResultText(f, o)).not.toContain('少 1 時辰');
       startChapter('baishadun');
       r().hours = 0;
       expect(resolveBet(r(), p, wrong).gained).toBe(0);
@@ -166,8 +167,8 @@ describe('B-1. 第二天（到北津）', () => {
     expect(r().follow!.chain).toBe(2);
     expect(r().follow!.broadcast).toEqual({ 1: 'garage', 2: opts[0].id });
     for (const o of opts) for (const t of o.tags) if (t !== 'quiet') expect(D3.tagged!.some((x) => x.tag === t), t).toBe(true);
-    // 第 B1 輪：三進三退 +1、賢仔的貨車 +0、什麼都不拍 −1（最低到 0）
-    expect(opts.map((o) => o.chain)).toEqual([1, 0, -1]);
+    // 第 B1 輪：三進三退 +1、賢仔的貨車 +0；第 C3 輪：什麼都不拍不再 −1（0）
+    expect(opts.map((o) => o.chain)).toEqual([1, 0, 0]);
     startChapter('baishadun');
     applyBroadcast(r(), 1, D1.broadcast![2]);
     applyBroadcast(r(), 2, opts[2]);
@@ -192,15 +193,16 @@ describe('B-1. 第二天（到北津）', () => {
     expect(CARDS4.ahan2(r())).toBeNull();
   });
 
-  it('天亮「昨日」：第二天略過的卡、第二天被牽路仔帶偏的人（不算第一天的）', () => {
+  it('天亮「昨日」（第 C3 輪）：略過的卡、略過的牽路仔都不寫（只寫好消息或不寫）', () => {
     r().day = 1;
     skipStray(r());
     r().day = 2;
     skipStray(r());
     skipStray(r());
     r().flags.missed_ahan2 = true;
-    expect(CHAPTER4.dawn(r(), 2)).toEqual([MISSED4.ahan2, '昨天有 2 位被牽路仔帶偏，沒跟上隊伍。']);
-    expect(CHAPTER4.dawn(r(), 1)).toEqual(['昨天有 1 位被牽路仔帶偏，沒跟上隊伍。']);
+    expect(CHAPTER4.dawn(r(), 2)).toEqual([]);
+    expect(CHAPTER4.dawn(r(), 1)).toEqual([]);
+    expect(MISSED4.ahan2.length).toBeGreaterThan(0);
   });
 });
 

@@ -2,7 +2,7 @@
  * 第四章「跟轎」的純邏輯（可測試；畫面在 scenes/DayScene.ts）。見 docs/白砂墩媽祖_第四章計畫書_v0.1.md §4 方案 A＋C。
  *
  *  - 行轎岔路：轎子走哪條由內容決定（DayPlan.follow.goes），玩家只決定先鋒押哪：
- *      押中：那條路的小妖已經清掉，省 1 時辰；押錯：兵馬要趕回來，少 1 時辰；留在轎邊：不賺不賠。
+ *      押中：那條路的小妖已經清掉，省 1 時辰；押錯（第 C3 輪）：不扣時辰；留在轎邊：不賺不賠。
  *  - 臨時轉進：甲乙都不是，轎子拐進第三個地方（沒得猜，事後才有解釋）。之後是停駕點、post、駐駕。
  *  - 牽路仔（ImpRule stray）：自己派兵回頭喊 1 時辰；附近有點心站就託人顧 0 時辰，但那一攤這一段不能再幫別的。
  *  - 稟報（取代神蹟）：用掉一次稟報；轎子停不停由內容決定（Option.report.stops），不是亂數。
@@ -17,9 +17,13 @@ import type { Option } from '../content/believers';
 
 /** 留在轎邊 */
 export const STAY = 'stay';
-/** 押中省幾個時辰、押錯少幾個時辰 */
+/**
+ * 押中省幾個時辰、押錯少幾個時辰。
+ * 第 C3 輪（爽Game：做了有獎勵、沒做故事照走）：押錯不扣時辰（BET_LOSS = 0）；押中照舊清掉那條路的牽路仔、省 1 時辰（上限照舊），
+ * 另外記 flags.bet_hit_<天>（回宮／開爐多一個人影，見 content/ch4/finale.ts 的 rewards4）。
+ */
 export const BET_GAIN = 1;
-export const BET_LOSS = 1;
+export const BET_LOSS = 0;
 
 /** 白天的段落：pre、路線 id（甲／乙）、detour 臨時轉進、rest 停駕點（含會合後的 post） */
 export type Segment = string;
@@ -44,7 +48,8 @@ export function betChoices(plan: DayPlan): BetChoice[] {
     bet: rt.id,
     label: `押${rt.id}`,
     ifRight: `轎子走${rt.id}：${rt.id}路的小妖先清掉，省 ${BET_GAIN} 時辰`,
-    ifWrong: `轎子走另一邊：兵馬要趕回來，少 ${BET_LOSS} 時辰`,
+    // 第 C3 輪：押錯不扣時辰
+    ifWrong: '【待定】轎子走另一邊：前哨趕回來，不扣時辰',
   }));
   out.push({ bet: STAY, label: '留在轎邊', ifRight: '不賺不賠', ifWrong: '不賺不賠' });
   return out;
@@ -73,7 +78,8 @@ export function betOutcome(plan: DayPlan, bet: string): BetOutcome {
     const cleared = (rt?.encounters ?? []).filter((e) => e.kind === 'imp').map((e) => e.id);
     return { result: 'hit', delta: BET_GAIN, cleared };
   }
-  return { result: 'miss', delta: -BET_LOSS, cleared: [] };
+  // 第 C3 輪：押錯不扣時辰（delta 0；寫成 0 而不是 -BET_LOSS，避免 -0）
+  return { result: 'miss', delta: 0, cleared: [] };
 }
 
 /** 押完之後的時辰（不超過當天的時辰、不低於 0） */
@@ -98,6 +104,8 @@ export function resolveBet(r: RunState, plan: DayPlan, bet: string): BetOutcome 
   const full = o.result === 'hit' && !empty && before >= plan.hours;
   r.hours = hoursAfter(before, o.delta, plan.hours);
   for (const id of o.cleared) r.flags[`cleared_${id}`] = true;
+  // 第 C3 輪：押中記一筆（回宮／開爐多一個人影）
+  if (o.result === 'hit') r.flags[`bet_hit_${r.day}`] = true;
   return { ...o, gained: r.hours - before, full, empty };
 }
 
@@ -121,6 +129,8 @@ export function betResultText(f: FollowPlan, o: Pick<BetOutcome, 'result' | 'ful
   if (!res) return '';
   // 押中、但那條路今天本來就沒有牽路仔（第三天「什麼都不拍」）：最後一行系統句換成 hitEmpty
   if (o.result === 'hit' && o.empty && res.hitEmpty) return [...res.hit.split('\n').slice(0, -1), res.hitEmpty].join('\n');
+  // 第 C3 輪：押錯不扣時辰——miss 只留對話，最後一行（押兵結果頁那一句）是 missNote
+  if (o.result === 'miss') return res.missNote ? [res.miss, res.missNote].join('\n') : res.miss;
   if (o.result !== 'hit' || !o.full) return res[o.result];
   if (res.hitFull?.includes('\n')) return res.hitFull;
   const lines = res.hit.split('\n');
@@ -232,13 +242,12 @@ export function resolveStray(r: RunState, e: Extract<Encounter, { kind: 'imp' }>
   return true;
 }
 
-/** 略過牽路仔：落隊的人被帶偏，記一位沒跟上（遺憾）；也記是第幾天（天亮「昨日」寫當天的） */
+/**
+ * 略過牽路仔。第 C3 輪（爽Game）：不記任何東西——沒有「沒跟上」的人數、沒有遺憾、最後一戰不多小妖。
+ * 落隊的人自己走回隊伍（故事照走）；有處理的才有獎勵（flags.stray_<id>：回宮／開爐多一個人影）。
+ */
 export function skipStray(r: RunState): void {
-  const f = followOf(r);
-  f.strayed++;
-  const byDay = f.strayedDay ?? {};
-  byDay[r.day] = (byDay[r.day] ?? 0) + 1;
-  f.strayedDay = byDay;
+  followOf(r);
 }
 
 // ---------- 稟報 ----------

@@ -35,6 +35,8 @@ export class TrialScene extends Phaser.Scene {
   private messages: string[] = [];
   /** 夜審互嗆（t_*）每個場合輪到第幾組 */
   private quipN: Record<string, number> = {};
+  /** 第四章問歸處：每個鬼對照錯了幾次（只用來輪流換反應句；不加怨氣） */
+  private wrongN: Record<string, number> = {};
   /** 現在下方面板的上緣（夜審互嗆字幕條貼在它上面） */
   private panelTop: number = TRIAL.panelY;
 
@@ -307,13 +309,17 @@ export class TrialScene extends Phaser.Scene {
       });
       return;
     }
-    // 出示錯了：鬼起疑，怨氣 +1；到 3 就不肯再開口
+    // 出示錯了：鬼起疑，怨氣 +1；到 3 就不肯再開口。
+    // 第四章（問歸處，第 C3 輪爽Game）：錯了不加怨氣，可以一直再試（只換一句反應）
     const held = this.heldOf(k);
-    held.grudge = Math.min(3, held.grudge + 1);
+    const calm = T.style === 'guihu';
+    if (calm) this.wrongN[k.id] = (this.wrongN[k.id] ?? 0) + 1;
+    else held.grudge = Math.min(3, held.grudge + 1);
+    const n = calm ? this.wrongN[k.id] : held.grudge;
     this.cameras.main.shake(200, 0.006);
     const tail = held.grudge >= 3 ? '牠怨氣衝天，不肯再開口了。' : T.wrongTail;
     // 第四章：出示錯的反應有幾句就輪流用（第一次錯用第一句）
-    const wrong = k.wrongs?.length ? k.wrongs[(held.grudge - 1) % k.wrongs.length] : k.wrong;
+    const wrong = k.wrongs?.length ? k.wrongs[(n - 1) % k.wrongs.length] : k.wrong;
     this.say(k, `【${CH().evidence[evId].name}】\n${wrong}\n（${tail}）`, 'angry');
     this.quip(held.grudge >= 3 ? 't_mute' : 't_miss');
   }

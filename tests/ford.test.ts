@@ -102,7 +102,7 @@ describe('渾水溪・茫渡：設定', () => {
     expect(strip(helped)).toBe(strip(lonely));
   });
 
-  it('判對歸處的鬼才會來（帶錯的不來）；假香燈腳判「不帶」是對的，但不會來', () => {
+  it('判對歸處的鬼才會來（第 C3 輪：只是畫面上的影子 ford.ghosts，不上場、戰鬥數值一樣）；假香燈腳判「不帶」是對的，但不會來', () => {
     expect(fordGhosts(ch4Run())).toEqual([]);
     const r = ch4Run((x) => {
       x.cases.caoxie = { truths: [1], verdict: 'tobeijin' };
@@ -111,7 +111,12 @@ describe('渾水溪・茫渡：設定', () => {
       x.cases.jiajiao = { truths: [0], verdict: 'leave' };
     });
     expect(fordGhosts(r)).toEqual(['caoxie', 'apo']);
-    expect(finaleSetup4(r).members.map((m) => m.stats.key)).toEqual(['qianshao', 'yawei', 'bingma', 'gongshou', 'caoxie', 'apo']);
+    const s = finaleSetup4(r);
+    expect(s.members.map((m) => m.stats.key)).toEqual(['qianshao', 'yawei', 'bingma', 'gongshou']);
+    expect(s.ford!.ghosts).toEqual(['caoxie', 'apo']);
+    const strip = (x: BossSetup) => JSON.stringify({ ...x, ford: { ...x.ford!, ghosts: [] } });
+    expect(strip(s)).toBe(strip(finaleSetup4(ch4Run())));
+    expect(raw('/scenes/BossScene.ts')).toContain('this.battle.setup.ford?.ghosts ?? []');
     expect(GHOST_MEMBERS4).not.toContain('jiajiao');
     expect(rightVerdict(CHAPTER4.cases.jiajiao)).toBe('leave');
     for (const k of GHOST_MEMBERS4) expect(MEMBER_STATS4[k], k).toBeDefined();
@@ -242,11 +247,11 @@ describe('渾水溪・茫渡：一定贏（沒有遺憾）', () => {
       expect(b.saved.length, `seed ${s}`).toBe(ev.lure ?? 0);
       expect(ev.stranded).toBeUndefined();
     }
-    // 開爐那頁黃曆「昨日」只寫第三天沒辦成的事，沒有沙洲
+    // 開爐那頁黃曆「昨日」沒有沙洲；第 C3 輪：第三天沒辦成的事也不寫（只寫好消息或不寫）
     const r = ch4Run((x) => { x.flags.missed_ahan3 = true; });
     fordEnd4(r);
     expect(r.yesterday.join('')).not.toContain('沙洲');
-    expect(r.yesterday).toContain(CHAPTER4.cards.ahan3(ch4Run())!.missed);
+    expect(r.yesterday).toEqual([]);
     expect('sandbar' in r.follow!).toBe(false);
   });
 

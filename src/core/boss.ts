@@ -124,6 +124,8 @@ export interface FordSetup {
   chain: number;
   /** 還在水裡、會被叫的人（依序；叫完就不再叫） */
   stragglers: string[];
+  /** 第 C3 輪：判對歸處、會來幫忙的鬼（只是畫面上的影子；戰鬥不讀這一欄） */
+  ghosts?: string[];
 }
 
 export interface BossSetup {
@@ -663,7 +665,8 @@ export class BossBattle {
           if (this.boss.state !== 'breath') this.toBreathFord(this.boss);
         }
       }
-    } else {
+    } else if (this.mode !== 'ford') {
+      // 第四章（第 C3 輪爽Game）：說不動茫渡不加懲罰（只是沒有那一輪的好處）
       this.mods.atk *= 1.1;
     }
     this.paused = false;

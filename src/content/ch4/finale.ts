@@ -6,7 +6,8 @@
  * 轎子先過去了（開場 st_jiao4_ford 過溪，之後只剩對岸一點粉紅），戰場上沒有轎、沒有香擔，只有還在水裡的隊伍。
  *  - 茫渡起霧、學人講話叫水裡的人。牠不打人，牠是要留人（拉住前排、叫人）；叫的人一定會回來（作者定案：爽Game，一定贏）。
  *  - 玩家照舊前後排換位、法術冷卻（兵馬自己的兩招：喊名、揮頭旗；媽祖不出手）。
- *  - 收編上場的鬼：判對歸處、而且有帶著走或在原地放下的鬼才會來（core/guihu.ts 的 rightVerdict；帶錯的、不帶的不會來）。
+ *  - 判對歸處、而且有帶著走或在原地放下的鬼會來幫忙（core/guihu.ts 的 rightVerdict）。第 C3 輪：只是畫面上的影子（ford.ghosts），
+ *    不上場、不影響任何戰鬥數值；帶到別處的、不帶的也有溫和的結局（信徒錄不寫遺憾）。
  *  - 人鏈：幫過的信徒下水牽人，段數＝傳消息加的（follow.chain）＋幫過的信徒（believers.ts 的 chainSegments4）；台詞 7-3（chainLines4）。
  *    人鏈只影響畫面（chainVisual4），不影響任何戰鬥數值。
  *  - 陣前審問三輪（70／40／10%）：牠把人帶去哪（渡頭）→ 牠以前是誰（擺渡的）→ 沒有人記得（有人記得／押尾記一個先頂著）。
@@ -45,7 +46,7 @@ export function fordGhosts(r: RunState): string[] {
   });
 }
 
-/** 牽路仔的波次（略過的牽路仔多幾波：最多 3） */
+/** 牽路仔的波次（第 C3 輪：略過的牽路仔不再多加波數） */
 export const WAVES4: Wave[] = [
   [5, 'qianlu', 3, 1.4], [20, 'qianlu', 3, 1.2], [36, 'qianlu', 4, 1.1], [52, 'qianlu', 4, 1.0],
   [70, 'qianlu', 4, 1.0], [88, 'qianlu', 5, 0.9], [106, 'qianlu', 4, 1.0], [124, 'qianlu', 5, 0.9],
@@ -55,8 +56,12 @@ export const WAVES4: Wave[] = [
 /** 白天拿到「茫渡以前是擺渡的」的證據（不算黃曆上的文獻）：現出渡船時打得更痛 */
 export const knowsFerry4 = (r: RunState): boolean => ['mooring', 'agong_call', 'amu_ferry'].some((id) => r.evidence.includes(id));
 
+/**
+ * 第 C3 輪（爽Game）：上場的只有兵馬四隊；判對歸處的鬼只是畫面上的幫手（ford.ghosts，BossScene 畫影子），
+ * 戰鬥數值和鬼、略過的牽路仔都無關（extraWaves 0）。
+ */
 export function finaleSetup4(r: RunState): BossSetup {
-  const keys = ['qianshao', 'yawei', 'bingma', 'gongshou', ...fordGhosts(r)];
+  const keys = ['qianshao', 'yawei', 'bingma', 'gongshou'];
   let front = 0;
   const members = keys.map((k) => {
     const st = { ...MEMBER_STATS4[k] };
@@ -73,19 +78,19 @@ export function finaleSetup4(r: RunState): BossSetup {
     boss: { hpMul: (1 + 0.04 * (members.length - 4)) * Math.pow(0.85, r.retries), atkMul: 1, chargeEvery: 0, skipCharges: 0 },
     // 白天找到繫船的石樁、聽過阿翰阿公或秀枝阿母講渡頭：知道牠是擺渡的，現出渡船時打得更痛
     bellyWound: knowsFerry4(r),
-    extraWaves: Math.min(3, r.follow?.strayed ?? 0),
+    extraWaves: 0,
     extraKinds: ['qianlu', 'qianlu'],
     skills: [],
     spells: ['huming', 'huiqi'],
     waves: WAVES4,
-    ford: { fogEvery: 14, lureEvery: 12, lureTime: 4, chain: chainSegments4(r), stragglers: stragglers4(r) },
+    ford: { fogEvery: 14, lureEvery: 12, lureTime: 4, chain: chainSegments4(r), stragglers: stragglers4(r), ghosts: fordGhosts(r) },
     duration: 210,
   };
 }
 
 /**
- * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆「昨日」列第三天沒辦成的信徒卡的「沒辦結果」。
- * 作者定案：沒有人被帶走（沒有沙洲的名字）。
+ * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆的「昨日」（dawn4）。第 C3 輪：「昨日」只寫好消息或不寫——
+ * 第三天沒辦成的事不再列出來。作者定案：沒有人被帶走（沒有沙洲的名字）。
  */
 export function fordEnd4(r: RunState): void {
   r.yesterday = [...dawn4(r, 3)];
@@ -183,8 +188,30 @@ export const FINALE_ROUNDS4: FinaleRound[] = [
   },
 ];
 
-/** 出示錯誤（三輪共用） */
-export const FINALE_WRONG4 = '茫渡：「聽不懂。要過溪的，這邊上船。」\n霧又厚了一層。';
+/**
+ * 出示錯誤（三輪共用）。第 C3 輪：說不動也不加懲罰（core/boss.ts 的 answer：ford 不加攻擊）；
+ * 舊字「茫渡：「聽不懂。要過溪的，這邊上船。」\n霧又厚了一層。」的「霧又厚了一層」說錯了 → 【待定】
+ */
+export const FINALE_WRONG4 = '【待定】茫渡：「聽不懂。要過溪的，這邊上船。」（霧沒有變）';
+
+/**
+ * 第 C3 輪（爽Game）：做了的事在回宮／開爐多一個人影（stage/ch4.ts 的 rewardCrowd4）——只加不減，沒做的不扣。
+ * 算的是：押中的天數、喊回來（或託點心站顧）的牽路仔、判對歸處的鬼、辦成的小事（不是五位信徒的卡；信徒走人鏈 chainSegments4）。
+ */
+const SIDE_CARDS4 = ['shoes2', 'heat2', 'sick2a', 'sick2b', 'flag2', 'rice2', 'kneel3', 'orange3', 'block3', 'count3'];
+const SMALL_GHOSTS4: [id: string, right: string][] = [['diantou', 'here'], ['guqi', 'tobeijin']];
+
+export function rewards4(r: RunState): number {
+  const f = r.flags;
+  const bets = [1, 2, 3].filter((d) => f[`bet_hit_${d}`]).length;
+  const strays = Object.keys(f).filter((k) => k.startsWith('stray_') && f[k]).length;
+  const ghosts = fordGhosts(r).length
+    + SMALL_GHOSTS4.filter(([id, v]) => r.cases[id]?.verdict === v).length
+    + (['dengchuan', 'tideng'] as const).filter((id) => carried3(r, id)).length
+    + (r.cases.jiajiao?.verdict === 'leave' ? 1 : 0);
+  const side = SIDE_CARDS4.filter((c) => f[`done_${c}`]).length + (f.clue_oajian ? 1 : 0);
+  return bets + strays + ghosts + side;
+}
 
 /**
  * 7-3 人鏈出現時的台詞：照順序，條件不成立就跳過那一句；一段都沒有就只播最後兩句。

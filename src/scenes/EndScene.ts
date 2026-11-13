@@ -47,7 +47,8 @@ export class EndScene extends Phaser.Scene {
     const ghosts = CH().ghostEpitaphs(run);
     const good = list.filter((e) => e.good).length;
     const eased = ghosts.filter((e) => e.good).length;
-    const shipped = ghosts.filter((e) => e.tag).length;
+    // 隨船（第二章）；第四章的「路過」標籤不算（第 C3 輪：不圓滿也不寫遺憾）
+    const shipped = ghosts.filter((e) => e.tag === '隨船').length;
     // 一人兩行：名字＋結局（字小一點，十個人才放得下）。每一列先畫在自己的容器裡量高度，
     // 一頁放不下就分頁（第三章 15 列；第一、二章 10 列一頁放得下，畫面不變）
     const items: { c: Phaser.GameObjects.Container; h: number; head: boolean }[] = [];
@@ -71,7 +72,8 @@ export class EndScene extends Phaser.Scene {
       items.push({ c, h: 30, head: true });
     };
     head('【信徒】');
-    for (const e of list) row(e.who, e.good, e.text);
+    // 第四章（第 C3 輪）信徒沒辦成的標「路過」（tag）；第一～三章信徒沒有 tag，畫面不變
+    for (const e of list) row(e.who, e.good, e.text, e.tag);
     head('【鬼】');
     for (const e of ghosts) row(e.who, e.good, e.text, e.tag, true);
     const sj = CH().finalEpitaph(run);

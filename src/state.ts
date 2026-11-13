@@ -72,7 +72,7 @@ export interface FollowState {
   bet?: string;
   /** 押兵的結果：hit 押中、miss 押錯、stay 留在轎邊 */
   betResult?: 'hit' | 'miss' | 'stay';
-  /** 被牽路仔帶偏、沒跟上的人（遺憾；最後一戰與黃曆「昨日」用） */
+  /** 被牽路仔帶偏、沒跟上的人。第 C3 輪（爽Game）起不再增加（略過牽路仔不記任何東西，core/procession.ts 的 skipStray）；欄位留著給舊進度 */
   strayed: number;
   /** 每天日落傳消息選了什麼（天數 → 選項 id） */
   broadcast: Record<number, string>;

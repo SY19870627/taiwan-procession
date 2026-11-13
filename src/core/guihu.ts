@@ -28,11 +28,19 @@ export interface GuihuRules {
 }
 
 /**
- * 這個鬼「該去的地方」（要先查明才能選的那個判決）。最後一戰：判對了、而且有帶著走或在原地放下的鬼才會來幫忙
- *（帶錯歸處、不帶的不會來）。
+ * 這個鬼「該去的地方」（要先查明才能選的那個判決）。最後一戰：判對了、而且有帶著走或在原地放下的鬼會來（第 C3 輪：
+ * 只是畫面上多一個幫忙的影子，不影響任何戰鬥數值；帶到別處的也有溫和的結局，不記遺憾）。
  */
 export function rightVerdict(k: GhostCase): Verdict | undefined {
   return k.verdicts.find((v) => v.needs)?.verdict;
+}
+
+/**
+ * 第 C3 輪（爽Game）：頭旗下滿了也帶得走——旗後面多排一格（slots 加 1）。
+ * 這樣判到別的歸處、跟著走佔格的鬼，不會害之後的鬼帶不走（判決不會減少任何東西）。
+ */
+export function makeRoom(r: RunState): void {
+  if (r.held.length >= r.slots) r.slots = r.held.length + 1;
 }
 
 /** 還沒決定歸處、今晚可以問的鬼 */

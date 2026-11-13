@@ -23,6 +23,7 @@ import {
   REPORT_NOTE, afterFork, applyBroadcast, beforeFork, betChoices, betResultText, followOf, optionWhy, report, resolveBet, resolveStray,
   skipStray, spendHours, strayChoices, useStall, type Step,
 } from '../core/procession';
+import { makeRoom } from '../core/guihu';
 import { SPEAKER_TEX } from '../content/story';
 import { fitCard as fitCardLayout } from '../core/layout';
 import { playStory } from './StoryScene';
@@ -791,7 +792,8 @@ export class DayScene extends Phaser.Scene {
     // 第四章的鬼不是「有冤情」：是沒地方去、要帶到歸處的
     const tag = k.meet ? { s: '沒地方去的', color: '#2b5aa8' } : { s: '有冤情的鬼', color: '#2b5aa8' };
     const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, tag, k.tex, true, k.id);
-    const full = run.held.length >= run.slots;
+    // 第四章（第 C3 輪）：頭旗下滿了也帶得走（core/guihu.ts 的 makeRoom：旗後面多排一格）
+    const full = run.held.length >= run.slots && !CH().guihu;
     const why = full ? `${CH().held.label}的格子滿了` : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));
     const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔 1 格（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
@@ -941,6 +943,7 @@ export class DayScene extends Phaser.Scene {
   }
 
   private collect(e: Extract<Encounter, { kind: 'ghost' }>, hours: number): void {
+    if (!this.busy && CH().guihu) makeRoom(run);
     if (this.busy || run.held.length >= run.slots || !this.spend(hours)) return;
     this.busy = true;
     const k = CH().cases[e.caseId];

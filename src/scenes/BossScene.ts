@@ -14,7 +14,7 @@ import { CH } from '../content/chapter';
 import { FULLPOWER_CUES3 } from '../content/ch3/finale';
 import { BOSS_NIGHT_BG, CAMP_COLORS } from '../art/xinyingSpec';
 import { CH4_FORD_BG } from '../art/baishadunSpec';
-import { chainVisual4 } from '../content/ch4/finale';
+import { MEMBER_STATS4, chainVisual4 } from '../content/ch4/finale';
 import { slayBoss } from '../core/renown';
 import { fitBattleArt } from '../art/xinyingBattle';
 import { run } from '../state';
@@ -349,6 +349,14 @@ export class BossScene extends Phaser.Scene {
         g.lineBetween(fx - 39, fy - 38, fx - 9, fy - 38);
       }
     }
+    // 第 C3 輪：判對歸處的鬼來幫忙——只是畫面上的影子（淡藍、會晃），不上場、不碰戰鬥數值（setup.ford.ghosts）
+    (this.battle.setup.ford?.ghosts ?? []).forEach((id, i) => {
+      const tex = MEMBER_STATS4[id]?.tex[0];
+      if (!tex || !this.textures.exists(tex)) return;
+      const img = this.add.image(FW * 0.5 - 90 - i * 110, GROUND_Y - 96, tex).setOrigin(0.5, 1).setDepth(16).setTint(0x9ad0ff).setAlpha(0.55);
+      img.setScale(Math.min(1.4, 150 / Math.max(1, img.height)));
+      this.tweens.add({ targets: img, alpha: 0.3, y: img.y - 6, duration: 1400 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    });
   }
 
   ft(x: number, y: number, s: string, color: number, size = 26): void {

@@ -14,7 +14,8 @@
  */
 import type { StageActor, StageScript } from './types';
 import { chainSegments4 } from '../ch4/believers';
-import { chainVisual4 } from '../ch4/finale';
+import { chainVisual4, rewards4 } from '../ch4/finale';
+import type { RunState } from '../../state';
 
 /**
  * 回宮／開爐的群眾：人鏈越長（幫過越多人），畫面後排多站幾個人、多幾點燈（回宮是手機的燈，開爐是燭火）。
@@ -38,6 +39,28 @@ export function chainCrowd4(chain: number, at: 'huigong4' | 'kailu4'): StageActo
   }
   return out;
 }
+
+/** 回宮／開爐多出來的人影最多幾個 */
+export const REWARD_CROWD_MAX4 = 12;
+
+/**
+ * 第 C3 輪（爽Game）：做了的事（押中、喊回來的牽路仔、判對歸處的鬼、辦成的小事：finale.ts 的 rewards4）
+ * 在回宮／開爐多站一個人影，站在人鏈的群眾前面一排。只加不減：什麼都沒做就沒有多的人，故事照走。
+ * 跟 chainCrowd4 一樣只是畫面：沒有字、腳本的走位不碰它們、位置用固定公式。
+ */
+export function rewardCrowd4(n: number, at: 'huigong4' | 'kailu4'): StageActor[] {
+  const out: StageActor[] = [];
+  for (let i = 0; i < Math.max(0, Math.min(REWARD_CROWD_MAX4, n)); i++) {
+    out.push({
+      id: `fan${i}`, tex: `folk${((i + 2) % 5) + 1}`, x: 30 + ((i * 197) % 660), y: 26 + (i % 2) * 8,
+      scale: 1.0 + (i % 3) * 0.06, tint: at === 'kailu4' ? 0xe8d8c0 : 0xc8c0d8, alpha: 0.85,
+    });
+  }
+  return out;
+}
+
+/** 回宮／開爐的群眾：人鏈（chainCrowd4）＋做了的事（rewardCrowd4） */
+const crowd4 = (at: 'huigong4' | 'kailu4') => (r: RunState): StageActor[] => [...chainCrowd4(chainSegments4(r), at), ...rewardCrowd4(rewards4(r), at)];
 
 export const STAGES4: Record<string, StageScript> = {
   // 2 開場：拱辰宮・起駕（廟門在中間，轎停在門內；頭旗手站門檻前；前哨左前、押尾最右；香燈腳排滿下方）
@@ -333,7 +356,8 @@ export const STAGES4: Record<string, StageScript> = {
       { id: 'xd1', tex: 'st_xiangdeng_d', x: 400, y: 130, scale: 0.3 },
     ],
     // 人鏈越長，路邊、廟埕後排的人越多、手機的燈越多（只是畫面）
-    crowd: (r) => chainCrowd4(chainSegments4(r), 'huigong4'),
+    // 第 C3 輪：做了的事再多站幾個人（rewardCrowd4）
+    crowd: crowd4('huigong4'),
     beats: [
       // 四人小轎從右邊進來，停在大轎旁邊
       { who: 'narrator', text: '三月初九，下午。隊伍回到通汐。防風林邊，八人大轎已經等在那裡了。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 }, moves: [{ id: 'jiao4', x: 640, hop: true, ms: 2000 }, { id: 'jiao8', alpha: 1, ms: 800 }] },
@@ -399,7 +423,8 @@ export const STAGES4: Record<string, StageScript> = {
       { id: 'xd1', tex: 'st_xiangdeng_b', x: 440, y: 35, scale: 0.3 },
     ],
     // 人鏈越長，殿裡後排抬頭的人越多、燭火越多（只是畫面）
-    crowd: (r) => chainCrowd4(chainSegments4(r), 'kailu4'),
+    // 第 C3 輪：做了的事再多站幾個人（rewardCrowd4）
+    crowd: crowd4('kailu4'),
     beats: [
       { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
       // 上緣的布往兩邊拉開，一道光由上往下照在人臉上：鏡頭往上抬到臉的高度（畫面裡沒有神龕）
