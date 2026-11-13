@@ -14,6 +14,8 @@ import { CH } from '../content/chapter';
 import { FULLPOWER_CUES3 } from '../content/ch3/finale';
 import { BOSS_NIGHT_BG, CAMP_COLORS } from '../art/xinyingSpec';
 import { CH4_FORD_BG } from '../art/baishadunSpec';
+import { chainVisual4 } from '../content/ch4/finale';
+import { slayBoss } from '../core/renown';
 import { fitBattleArt } from '../art/xinyingBattle';
 import { run } from '../state';
 import { banter } from '../ui/banter';
@@ -128,6 +130,7 @@ export class BossScene extends Phaser.Scene {
       this.palImg = this.add.image(this.battle.palanquin.x, GROUND_Y + 20, 'b4_renlian').setOrigin(0.5, 1).setDepth(18);
       fitFord(this.palImg, 240);
       this.fordCrossing();
+      this.fordChainVisual();
     } else if (this.escort) {
       this.palImg = this.add.image(this.battle.palanquin.x + 10, GROUND_Y + 14, 'wangchuan').setOrigin(0.5, 1).setScale(0.95).setDepth(18);
     } else {
@@ -318,6 +321,34 @@ export class BossScene extends Phaser.Scene {
         this.tweens.add({ targets: dot, alpha: 0.45, duration: 1100, yoyo: true, repeat: -1 });
       },
     });
+  }
+
+  /**
+   * 第四章：人鏈越長，畫面越熱鬧（作者定案：「越多人只是畫面特效越多而已」）——
+   * 堤防上多幾盞手機的燈、水裡多幾個牽手的人影。只是畫面，不碰戰鬥（content/ch4/finale.ts 的 chainVisual4）。
+   */
+  private fordChainVisual(): void {
+    const { figures, lights } = chainVisual4(this.battle.setup.ford?.chain ?? 0);
+    for (let i = 0; i < lights; i++) {
+      const lx = 30 + ((i * 97) % Math.round(FW * 0.5));
+      const ly = GROUND_Y - 184 + ((i * 7) % 12);
+      const l = this.add.circle(lx, ly, 3, 0xfff3c4, 0.85).setDepth(-61);
+      this.tweens.add({ targets: l, alpha: 0.3, duration: 700 + ((i * 131) % 900), yoyo: true, repeat: -1 });
+    }
+    // 人影排在兵馬後面（遠一點的水裡），不擋卡片和兵馬
+    const g = this.add.graphics().setDepth(15);
+    for (let i = 0; i < figures; i++) {
+      const fx = 60 + i * 48;
+      const fy = GROUND_Y - 110 + (i % 2) * 6;
+      g.fillStyle(0x1a2230, 0.8);
+      g.fillCircle(fx, fy - 62, 9);
+      g.fillRoundedRect(fx - 9, fy - 52, 18, 52, 6);
+      // 牽著旁邊的人
+      if (i > 0) {
+        g.lineStyle(3, 0x1a2230, 0.8);
+        g.lineBetween(fx - 39, fy - 38, fx - 9, fy - 38);
+      }
+    }
   }
 
   ft(x: number, y: number, s: string, color: number, size = 26): void {
@@ -829,9 +860,10 @@ export class BossScene extends Phaser.Scene {
         this.hud.toast(`押尾喊了「${e.name}」的名字。他回頭了`, 0x9fe8c0, 2400);
         this.hud.chat('b_called');
         return true;
-      case 'stranded':
-        this.hud.toast(`「${e.name}」被霧帶往下游了……`, 0xff9a8a, 2800);
-        this.hud.chat('b_stranded', true);
+      case 'returned':
+        // 沒有人鏈段數時：被叫的人自己走回來（一定回來）。提示字待作者補
+        this.ft(b.palanquin.x + 60, GROUND_Y - 260, `${e.name}回來了`, 0x9fe8c0, 24);
+        this.hud.toast(`【待定】「${e.name}」自己走回來了`, 0x9fe8c0, 2400);
         return true;
       case 'huiqi':
         this.cameras.main.flash(200, 255, 240, 200);
@@ -1243,10 +1275,10 @@ export class BossHud extends Phaser.Scene {
       this.updateCues();
     }
     if (b.mode === 'ford') {
-      // 第四章：人鏈還剩幾段、被帶到下游的有幾個、霧裡有沒有人正被叫走
+      // 第四章：人鏈還剩幾段（畫面計數）、霧裡有沒有人正被叫走
       const st = b.boss.state;
       const head = b.lure ? `「${b.lure.name}」正被叫走！` : st === 'paw' ? '霧要起了' : st === 'charge' ? '霧裡' : st === 'breath' ? '現出渡船・猛攻' : '';
-      this.goalTxt.setText(`${head ? `${head}　` : ''}人鏈 ${b.chainLeft} 段・下游 ${b.stranded.length} 人`).setColor(b.lure || st === 'charge' ? '#ff9a8a' : '#9fe8c0');
+      this.goalTxt.setText(`${head ? `${head}　` : ''}人鏈 ${b.chainLeft} 段`).setColor(b.lure || st === 'charge' ? '#ff9a8a' : '#9fe8c0');
     }
     if (esc) {
       const g = b.grabbing;
@@ -1453,22 +1485,7 @@ export class BossHud extends Phaser.Scene {
       if (judge) this.time.delayedCall(400, () => this.say(judge, 960));
       return;
     }
-    // 第四章：遺憾（被帶走的人太多、或天亮了霧還沒散）——可以重來，也可以接受結果照常回宮
-    if (F.regretStory && this.battle.mode === 'ford') {
-      m.add(panel(this, x, 300, pw, 560));
-      m.add(txt(this, W / 2, 336, F.loseTitle ?? '霧沒有散', 36, 0xff8a8a, { serif: true }).setOrigin(0.5, 0));
-      const lt = txt(this, x + 24, 400, `${F.loseText}\n下游的沙洲：${this.battle.stranded.join('、') || '（沒有）'}`, 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 48, useAdvancedWrap: true } });
-      m.add(lt);
-      let yy = lt.y + lt.height + 24;
-      const row = (label: string, note: string, fill: number, onPick: () => void) => {
-        m.add(button(this, x + 20 + 115, yy + 40, 230, 70, label, onPick, { size: 22, fill }));
-        m.add(txt(this, x + 270, yy + 8, note, 17, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 290, useAdvancedWrap: true } }));
-        yy += 120;
-      };
-      row(F.retryLabel ?? '再試一次', F.retryNote ?? '', 0x2f6f5a, () => { run.retries++; this.boss.leave('boss'); });
-      row(F.acceptLabel ?? '就這樣回宮', F.acceptNote ?? '', 0x7a3a2a, () => this.regretEnd());
-      return;
-    }
+    // 第四章（ford）一定贏，不會走到這裡（core/boss.ts 的 checkEnd）
     run.retries++;
     m.add(panel(this, x, 360, pw, 420));
     const lose = esc ? '王船被拖住了……' : this.battle.mode === 'ford' ? '水裡的隊伍被霧拉回去了……' : '神轎被衝破了……';
@@ -1480,33 +1497,15 @@ export class BossHud extends Phaser.Scene {
   private end(kind: 'recall' | 'return' | 'slay'): void {
     run.shijuEnd = kind;
     run.shijuJoined = kind === 'recall';
-    // 斬魔王：第一、二章戾氣 +1；第三章（看斬的是誰）蛟是真惡，不加戾氣、威名 +1
-    if (kind === 'slay') {
-      if (CH().slayRule === 'renown') run.weiming = Math.min(5, run.weiming + 1);
-      else run.liqi = Math.min(3, run.liqi + 1);
-    }
-    // 結局劇情 →（第三章：收營；第四章：回宮 → 開爐的黃曆 → 開爐）→ 信徒錄
+    // 斬魔王：第一、二章戾氣 +1；第三章（看斬的是誰）蛟是真惡，不加戾氣、威名 +1；第四章斬茫渡沒有懲罰（FinaleDef.slayFree）
     const F = CH().finale;
+    if (kind === 'slay') slayBoss(run, CH(), F.slayFree);
+    // 結局劇情 →（第三章：收營；第四章：回宮 → 開爐的黃曆 → 開爐）→ 信徒錄
     F.onEnd?.(run, this.battle, kind);
     const close = F.afterClose ?? { key: 'end' };
     const end = F.closeStory ? { key: 'story', data: { id: F.closeStory, next: close } } : close;
     const story = F.endStory?.[kind] ?? (kind === 'recall' ? F.recallStory : undefined);
     if (story) this.boss.leave('story', { id: story, next: end }, 800);
     else this.boss.leave(end.key, end.data, 800);
-  }
-
-  /**
-   * 第四章・遺憾：接受結果。被帶到下游沙洲的人天亮找到、人平安、沒趕上回宮；茫渡還在溪裡（不判決）。
-   * 遺憾的過場（regretStory）→ 照常回宮（closeStory，遺憾版的句子）→ 開爐的黃曆（昨日寫他們的名字）→ 開爐 → 信徒錄
-   */
-  private regretEnd(): void {
-    const F = CH().finale;
-    run.shijuEnd = undefined;
-    run.shijuJoined = false;
-    run.flags.ford_regret = true;
-    F.onEnd?.(run, this.battle, 'regret');
-    const close = F.afterClose ?? { key: 'end' };
-    const end = F.closeStory ? { key: 'story', data: { id: F.closeStory, next: close } } : close;
-    this.boss.leave('story', { id: F.regretStory!, next: end }, 800);
   }
 }

@@ -777,16 +777,6 @@ export function stragglers4(r: RunState): string[] {
   return out;
 }
 
-/**
- * 被帶到下游沙洲的人：開爐那頁黃曆「昨日」欄（7-10「黃曆『昨日』欄的寫法」）。
- * 三個以上只寫前三個名字＋人數；只有一個人用單人版。開頭的「昨日：」是黃曆上那一欄的【昨日】標題（AlmanacScene 自己會寫），字裡不重複。
- */
-export function sandbarLines4(names: string[]): string[] {
-  if (!names.length) return [];
-  if (names.length === 1) return [`渾水溪夜霧。${names[0]}被帶到下游沙洲，天亮尋獲，人平安。回宮未趕上。香擔的火一路沒有熄。`];
-  return [`渾水溪夜霧。${names.slice(0, 3).join('、')}等 ${names.length} 人被帶到下游沙洲，天亮尋獲，人平安。回宮未趕上。香擔的火一路沒有熄。`];
-}
-
 export function bossEffects4(r: RunState): string[] {
   const f = r.follow;
   const h = helped4(r).length;
@@ -860,10 +850,10 @@ export function ghostEpitaphs4(r: RunState): Epitaph[] {
   ];
 }
 
-/** 信徒錄・茫渡（10-4）：喚回／送回／斬／遺憾（被帶走的人太多，牠還在溪裡） */
+/** 信徒錄・茫渡（10-4）：喚回／送回／斬（沒有判決的舊進度：牠還在溪裡） */
 export function mangduEpitaph(r: RunState): Epitaph {
   // 劇本每句開頭的「茫渡：」是信徒錄那一欄的名字（EndScene 自己寫），字裡不重複
-  if (r.flags.ford_regret || !r.shijuEnd) return { who: '茫渡', good: false, text: '還在溪裡。橋上每天幾萬人過，沒有人下來。' };
+  if (!r.shijuEnd) return { who: '茫渡', good: false, text: '還在溪裡。橋上每天幾萬人過，沒有人下來。' };
   const text = r.shijuEnd === 'recall' ? '留在渾水溪。押尾的簿子上寫「渡頭撐船的」，名字那一格先空著，等牠想起來。'
     : r.shijuEnd === 'return' ? '最後一趟靠了岸。篙還插在對岸的芒草裡。' : '斬了。渾水溪不起霧了，溪底沒有東西。';
   return { who: '茫渡', text, good: r.shijuEnd !== 'slay' };

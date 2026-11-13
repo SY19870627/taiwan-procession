@@ -9,7 +9,7 @@
  * 對鬼不斬（只有魔王茫渡可以斬），這一章關掉威名（不設 slayRule）。
  *
  * 整章：序章 → 起駕 → 第一天 → 第一夜問歸處 → 天亮 → 第二天 → 第二夜（進火）→ 天亮 → 第三天（回程）→ 入夜直接過溪：
- * 最後一戰 ford（渾水溪・茫渡、人鏈）→ 結局（喚回／送回／斬，或遺憾）→ 回宮 → 開爐的黃曆 → 開爐 → 信徒錄。
+ * 最後一戰 ford（渾水溪・茫渡、人鏈；一定贏）→ 結局（喚回／送回／斬）→ 回宮 → 開爐的黃曆 → 開爐 → 信徒錄。
  * 第一天的字照 _agent/ch4-text-day1.md＋ch4-text-fixes.md、第二天照 ch4-text-day2.md、第三天以後照 ch4-text-day3.md（作者尚未定稿）。
  */
 import type { ChapterDef } from '../chapter';
@@ -95,7 +95,7 @@ export const CHAPTER4: ChapterDef = {
     // 7-1 戰鬥說明卡（開打前蓋在操作面板上，按了才開始）
     briefing: {
       title: '顧人過溪',
-      text: '茫渡不打人。牠學人講話，把人往下游的沙洲帶。被帶走的人太多，今晚就有人過不了溪。\n前哨守隊伍前段，押尾守隊尾，可以換位。前兩天你幫過的人會下水牽人，幫過幾位就有幾段人鏈。\n香擔和轎子已經在對岸。牠碰不到。',
+      text: '【待定】茫渡不打人，牠學人講話叫人（沒有人會被帶走）。\n前哨守隊伍前段，押尾守隊尾，可以換位。前兩天你幫過的人會下水牽人，幫過幾位就有幾段人鏈。\n香擔和轎子已經在對岸。牠碰不到。',
     },
     title: '最後一戰・渾水溪', place: '渾水溪', bossName: '茫渡', bossFrom: '茫渡在霧裡 ▶',
     setup: finaleSetup4,
@@ -114,19 +114,15 @@ export const CHAPTER4: ChapterDef = {
     judgeText: '霧停了。水裡的人還在過溪。茫渡站在水面上，等你們講話。',
     recallStory: 'mangduRecall4',
     endStory: { recall: 'mangduRecall4', return: 'mangduReturn4', slay: 'mangduSlay4' },
-    // 結局 → 回宮（換八人大轎）→ 開爐的黃曆（第 12 天，「昨日」寫被帶到下游的人）→ 開爐 → 信徒錄
+    // 結局 → 回宮（換八人大轎）→ 開爐的黃曆（第 12 天，「昨日」寫第三天沒辦成的事）→ 開爐 → 信徒錄
     closeStory: 'huigong4',
     afterClose: { key: 'almanac', data: { epilogue: true } },
-    onEnd: (r, b, kind) => fordEnd4(r, b, kind),
-    // 7-10 遺憾：被帶走的人超過上限（或天亮了霧還沒散）。可以再試一次，也可以就這樣回宮
-    loseTitle: '霧沒有散',
-    loseText: '有人被帶到下游的沙洲。天亮會找到，人沒事，可是趕不上回宮。香擔和轎子已經在對岸，火沒有事。',
-    dawnText: '有人被帶到下游的沙洲。天亮會找到，人沒事，可是趕不上回宮。香擔和轎子已經在對岸，火沒有事。',
-    regretStory: 'mangduRegret4',
-    retryLabel: '再試一次',
-    retryNote: '回到下水的時候，再顧一次。茫渡喊了一夜，聲音會小一點。',
-    acceptLabel: '就這樣回宮',
-    acceptNote: '接受這個結果。沒趕上的人，名字會寫在黃曆的昨日欄。',
+    onEnd: (r) => fordEnd4(r),
+    // 作者定案（爽Game）：這一戰一定贏（core/boss.ts），沒有遺憾、沒有人被帶走；斬茫渡不加戾氣
+    slayFree: true,
+    // 一定贏，下面兩句不會出現（FinaleDef 必填）
+    loseText: '',
+    dawnText: '',
     chainLines: chainLines4,
     chatKey: fordChatKey4,
   },

@@ -42,7 +42,7 @@ function storiesOf4(): string[] {
     if (C.nightStory?.[n]) ids.push(C.nightStory[n]);
   }
   ids.push(...Object.values(C.guihu?.releaseStory ?? {}));
-  ids.push(F.story, ...Object.values(F.endStory ?? {}), F.regretStory!, F.closeStory!, C.epilogue!.story);
+  ids.push(F.story, ...Object.values(F.endStory ?? {}), F.closeStory!, C.epilogue!.story);
   return ids;
 }
 
@@ -50,8 +50,9 @@ describe('第四章整章：過場', () => {
   it('從序章到開爐，每一段過場都存在；說話的人都登記過；媽祖不說話、沒有旨意', () => {
     const ids = storiesOf4();
     // 序章 2（qitou4、qijia4）＋第一天 1（zhuanjin4）＋第二天 6（天亮、出發、過圳、停駕、入廟、進火）
-    // ＋第三天 5（天亮、出發、上堤防、轎子回頭、橋頭）＋放下 1＋最後一戰 7（開戰、三結局、遺憾、回宮、開爐）＝22
-    expect(ids.length).toBeGreaterThanOrEqual(22);
+    // ＋第三天 5（天亮、出發、上堤防、轎子回頭、橋頭）＋放下 1＋最後一戰 6（開戰、三結局、回宮、開爐；沒有遺憾）＝21
+    expect(ids.length).toBeGreaterThanOrEqual(21);
+    expect(CUTSCENES.mangduRegret4).toBeUndefined();
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) {
       const cs = CUTSCENES[id];
@@ -80,7 +81,7 @@ describe('第四章整章：過場', () => {
     expect(add).toBeDefined();
     expect(add.when).toBeUndefined();
     expect(CHAPTER4.finale.closeStory).toBe('huigong4');
-    for (const s of [...Object.values(CHAPTER4.finale.endStory!), CHAPTER4.finale.regretStory!]) {
+    for (const s of Object.values(CHAPTER4.finale.endStory!)) {
       for (const l of CUTSCENES[s!].lines) expect(l.text.includes('火熄') || l.text.includes('火滅'), s).toBe(false);
     }
   });
@@ -195,6 +196,7 @@ describe('第四章整章：用規則走一局（不開畫面）', () => {
     }
     const b = new BossBattle({ ...setup, seed: 4 });
     CHAPTER4.finale.onEnd!(r(), b, 'recall');
+    expect(r().yesterday.join('')).not.toContain('沙洲');
     r().shijuEnd = 'recall';
     // 回宮、開爐的黃曆、開爐、信徒錄
     expect(CHAPTER4.epilogue!.almanac(r()).lunar).toBe('三月二十');
@@ -205,33 +207,27 @@ describe('第四章整章：用規則走一局（不開畫面）', () => {
     expect(CHAPTER4.finalEpitaph(r()).good).toBe(true);
   });
 
-  it('遺憾那一局：被帶到下游的人寫進開爐那頁的「昨日」；開爐那天三位信徒的那一小句，沒趕上回宮的拿掉', () => {
-    const b = new BossBattle({ ...CHAPTER4.finale.setup(r()), seed: 1 });
-    b.stranded.push('阿翰', '金水伯', '美雲', '宗翰');
-    r().flags.ford_regret = true;
-    CHAPTER4.finale.onEnd!(r(), b, 'regret');
-    expect(r().yesterday[0]).toContain('阿翰、金水伯、美雲等 4 人');
-    const ahan = CUTSCENES.kailu4.lines.find((l) => l.text === '阿翰把帽子拿在手上。')!;
-    expect(ahan.when!(r())).toBe(false);
-    const aman = CUTSCENES.kailu4.lines.find((l) => l.text === '阿滿姨抬著頭，嘴巴動了動。')!;
-    expect(aman.when!(r())).toBe(true);
-    // 遺憾：押尾那句換成「剛好。沒有多。」
+  it('沒有遺憾：開爐那天三位信徒的那一小句一定都播；斬了的話押尾那句是「剛好。沒有多。」', () => {
+    r().shijuEnd = 'slay';
+    fordEnd4(r());
+    for (const t of ['阿翰把帽子拿在手上。', '阿滿姨抬著頭，嘴巴動了動。', '賢仔站在門邊，褲子後面的口袋還插著那支扳手。']) {
+      const l = CUTSCENES.kailu4.lines.find((x) => x.text === t)!;
+      expect(l, t).toBeDefined();
+      expect(l.when, t).toBeUndefined();
+    }
     const said = CUTSCENES.kailu4.lines.filter((l) => !l.when || l.when(r())).map((l) => l.text);
     expect(said).toContain('剛好。沒有多。');
     expect(said).not.toContain('多一碗。');
-    // 茫渡還在溪裡
-    expect(CHAPTER4.finalEpitaph(r()).good).toBe(false);
-    // 遺憾：沒有人死
-    expect(r().yesterday[0]).toContain('人平安');
-    expect(fordEnd4).toBeTypeOf('function');
+    // 回宮沒有「沒趕上」的那兩句
+    expect(CUTSCENES.huigong4.lines.map((l) => l.text).join('\n')).not.toContain('沒趕上的那幾個');
   });
 
-  it('第一～三章不受影響：沒有 banterTag、briefing、regretStory', () => {
+  it('第一～三章不受影響：沒有 banterTag、briefing、slayFree', () => {
     for (const id of ['wanjia', 'dongjin', 'xinying']) {
       const C = CHAPTERS[id];
       expect(C.banterTag, id).toBeUndefined();
       expect(C.finale.briefing, id).toBeUndefined();
-      expect(C.finale.regretStory, id).toBeUndefined();
+      expect(C.finale.slayFree, id).toBeUndefined();
       for (const p of Object.values(C.days)) expect(p.follow, id).toBeUndefined();
     }
   });

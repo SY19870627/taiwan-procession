@@ -4,14 +4,14 @@
  * 字照 _agent/ch4-text-day3.md 第 7 節（第 B2 輪）。
  *
  * 轎子先過去了（開場 st_jiao4_ford 過溪，之後只剩對岸一點粉紅），戰場上沒有轎、沒有香擔，只有還在水裡的隊伍。
- *  - 茫渡起霧、學人講話，把人往下游的沙洲帶。牠不打人，牠是要留人（拉住前排、叫走水裡的人）。
+ *  - 茫渡起霧、學人講話叫水裡的人。牠不打人，牠是要留人（拉住前排、叫人）；叫的人一定會回來（作者定案：爽Game，一定贏）。
  *  - 玩家照舊前後排換位、法術冷卻（兵馬自己的兩招：喊名、揮頭旗；媽祖不出手）。
  *  - 收編上場的鬼：判對歸處、而且有帶著走或在原地放下的鬼才會來（core/guihu.ts 的 rightVerdict；帶錯的、不帶的不會來）。
  *  - 人鏈：幫過的信徒下水牽人，段數＝傳消息加的（follow.chain）＋幫過的信徒（believers.ts 的 chainSegments4）；台詞 7-3（chainLines4）。
+ *    人鏈只影響畫面（chainVisual4），不影響任何戰鬥數值。
  *  - 陣前審問三輪（70／40／10%）：牠把人帶去哪（渡頭）→ 牠以前是誰（擺渡的）→ 沒有人記得（有人記得／押尾記一個先頂著）。
  *  - 結局：喚回（問完三輪）／送回（問完第二輪）／斬（一開始就能選；只有茫渡可以斬）。
- *  - 遺憾：被帶走的人超過上限（maxStranded），戰鬥結束。沒有人死、沒有人受傷，火沒有事；天亮在沙洲找到，人平安，沒趕上回宮。
- *    可以重來，也可以接受（遺憾的過場 → 照常回宮，開爐那頁黃曆「昨日」寫他們的名字）。
+ *  - 沒有遺憾結局：一定打贏（天亮也算過溪），斬茫渡不加戾氣（FinaleDef.slayFree）。
  */
 import type { RunState } from '../../state';
 import type { BossBattle, BossSetup, MemberStats, Row, Wave } from '../../core/boss';
@@ -19,7 +19,7 @@ import type { FinaleRound } from '../finale';
 import type { BanterLine } from '../chapter';
 import { rightVerdict } from '../../core/guihu';
 import { CASES4, carried3 } from './cases';
-import { chainSegments4, done3, sandbarLines4, stragglers4, xinniangWith } from './believers';
+import { chainSegments4, done3, stragglers4, xinniangWith } from './believers';
 import { dawn4 } from './days';
 
 /** 兵馬四隊（前哨、押尾、兩隊旗下兵馬）＋會來幫忙的鬼。立繪、戰鬥圖還沒有，先用程式畫的小人。desc 是系統說明（不是劇本） */
@@ -52,9 +52,6 @@ export const WAVES4: Wave[] = [
   [142, 'qianlu', 5, 0.9], [160, 'qianlu', 5, 0.9], [178, 'qianlu', 5, 0.9],
 ];
 
-/** 被帶到下游的人超過這個數，霧沒有散（遺憾） */
-export const MAX_STRANDED4 = 3;
-
 /** 白天拿到「茫渡以前是擺渡的」的證據（不算黃曆上的文獻）：現出渡船時打得更痛 */
 export const knowsFerry4 = (r: RunState): boolean => ['mooring', 'agong_call', 'amu_ferry'].some((id) => r.evidence.includes(id));
 
@@ -81,20 +78,26 @@ export function finaleSetup4(r: RunState): BossSetup {
     skills: [],
     spells: ['huming', 'huiqi'],
     waves: WAVES4,
-    ford: { fogEvery: 14, lureEvery: 12, lureTime: 4, chain: chainSegments4(r), stragglers: stragglers4(r), maxStranded: MAX_STRANDED4 },
+    ford: { fogEvery: 14, lureEvery: 12, lureTime: 4, chain: chainSegments4(r), stragglers: stragglers4(r) },
     duration: 210,
   };
 }
 
 /**
- * 判決之後、或接受遺憾之後（FinaleDef.onEnd）：被帶到下游沙洲的人記進進度。
- * 遺憾：開爐那頁黃曆「昨日」寫他們的名字（7-10），再列第三天沒辦成的信徒卡的「沒辦結果」。
- * 打贏了：沙洲上的人押尾去帶回來了（到齊），「昨日」只列第三天沒辦成的事。
+ * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆「昨日」列第三天沒辦成的信徒卡的「沒辦結果」。
+ * 作者定案：沒有人被帶走（沒有沙洲的名字）。
  */
-export function fordEnd4(r: RunState, b: BossBattle, kind: 'recall' | 'return' | 'slay' | 'regret' = 'regret'): void {
-  const names = kind === 'regret' ? [...b.stranded] : [];
-  if (r.follow) r.follow.sandbar = names;
-  r.yesterday = [...sandbarLines4(names), ...dawn4(r, 3)];
+export function fordEnd4(r: RunState): void {
+  r.yesterday = [...dawn4(r, 3)];
+}
+
+/**
+ * 人鏈的畫面（作者定案：「越多人只是畫面特效越多而已」）：只決定畫面上多畫幾個人、幾盞燈，
+ * 不進 BossSetup 的任何數值（BossScene 用）。
+ */
+export function chainVisual4(chain: number): { figures: number; lights: number } {
+  const n = Math.max(0, Math.min(10, chain));
+  return { figures: n, lights: n * 3 };
 }
 
 const L = (who: string, text: string): BanterLine => ({ who, text });

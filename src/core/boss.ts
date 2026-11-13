@@ -23,10 +23,10 @@
  *   畫面上是人鏈）。茫渡不打人，牠是要留人：
  *   - 拉住前排第一個（hold：那幾秒不能出手；換位可以掙開），前排沒人才把水裡的隊伍往回拉（隊伍的血）；
  *   - 霧起（預告 2.5 秒）→ 霧蓋住前排 FOG_TIME 秒 → 現出渡船的樣子喘息（受到的傷害加倍）；
- *   - 學人講話（lure）：霧起時、以及每 lureEvery 秒，叫走一個還在水裡的人；LURE_TIME 秒內沒拉回來，那個人被帶到下游沙洲（stranded）。
- *     人鏈（setup.ford.chain 段：傳消息的 follow.chain＋幫過的信徒）每段自動拉住一次；法術「喊名」也能把人喊回來。
+ *   - 學人講話（lure）：霧起時、以及每 lureEvery 秒，叫一個還在水裡的人（只是氣氛）：lureTime 秒後他一定回來，
+ *     法術「喊名」可以提早喊回來。人鏈（setup.ford.chain 段）只影響畫面（牽回來的是人鏈還是自己走回來），不影響任何數值。
  *   - 小妖是牽路仔（qianlu），照常打前排。
- *   陣前審問照石駒的 70／40／10%。被帶到下游的人不會輸掉戰鬥：天亮在沙洲上找到，人沒事，但沒趕上回宮（記遺憾）。
+ *   陣前審問照石駒的 70／40／10%。作者定案（爽Game）：這一戰一定贏——沒有人被帶走、水裡的隊伍不會被拉垮、天亮霧也會散（算過溪）。
  */
 import { ENEMIES, type EnemyId } from './units';
 
@@ -118,14 +118,12 @@ export interface FordSetup {
   fogEvery: number;
   /** 除了霧起，每隔幾秒也學人講話叫走一個人 */
   lureEvery: number;
-  /** 叫走一個人要幾秒（這段時間內喊名、人鏈拉得住） */
+  /** 被叫的人幾秒後一定回來（這段時間內可以喊名提早喊回來） */
   lureTime: number;
-  /** 人鏈幾段：每段自動拉住一個被叫走的人（傳消息 follow.chain＋幫過的信徒） */
+  /** 人鏈幾段（傳消息 follow.chain＋幫過的信徒）：只影響畫面，不影響任何數值 */
   chain: number;
-  /** 還在水裡、會被叫走的人（依序；叫完就不再叫） */
+  /** 還在水裡、會被叫的人（依序；叫完就不再叫） */
   stragglers: string[];
-  /** 被帶到下游的人超過這個數，戰鬥結束（遺憾：天亮在沙洲找到，人平安，沒趕上回宮）；沒寫就不設上限 */
-  maxStranded?: number;
 }
 
 export interface BossSetup {
@@ -251,7 +249,8 @@ export type BossEvent =
   | { type: 'lure'; name: string }
   | { type: 'chainHold'; name: string; left: number }
   | { type: 'called'; name: string }
-  | { type: 'stranded'; name: string }
+  /** 被叫的人時間到自己走回來（沒有人鏈段數時；有段數時是 chainHold） */
+  | { type: 'returned'; name: string }
   | { type: 'huiqi' }
   | { type: 'end'; result: 'subdued' | 'lose' | 'dawn' };
 
@@ -284,11 +283,10 @@ export const FLAG_TIME = 5;
 export const SILENCE_TIME = 2;
 export const CUE_TIME = 6;
 const TRIAL_PROG = [0.33, 0.66, 0.92];
-/** 第四章：茫渡在霧裡的位置（霧起前退回這裡）；拉住前排一次幾秒；霧蓋住前排幾秒；人鏈幾秒拉住被叫走的人 */
+/** 第四章：茫渡在霧裡的位置（霧起前退回這裡）；拉住前排一次幾秒；霧蓋住前排幾秒 */
 export const FORD_HOME = 1040;
 export const HOLD_TIME = 1.2;
 export const FOG_TIME = 3;
-export const CHAIN_TIME = 1.5;
 
 const CH1_WAVES: Wave[] = [
   [3, 'wang', 3, 1.6], [16, 'mei', 3, 1.0], [30, 'kui', 2, 3], [44, 'wang', 4, 1.4],
@@ -343,11 +341,9 @@ export class BossBattle {
   // ----- 第四章・茫渡 -----
   /** 霧裡正被叫走的人 */
   lure: { name: string; t: number } | null = null;
-  /** 人鏈還有幾段（每段拉住一次） */
+  /** 人鏈還有幾段（畫面上的計數：每段畫一次牽回來；不影響數值） */
   chainLeft = 0;
-  /** 被帶到下游沙洲的人（遺憾：天亮找到，人沒事，沒趕上回宮） */
-  stranded: string[] = [];
-  /** 被拉回來的人（人鏈或喊名） */
+  /** 回來的人（人鏈、喊名或自己走回來；一定都會回來） */
   saved: string[] = [];
   /** 陣前審問第 3 輪說動了：霧不再往前，不會再有人被叫走 */
   noLure = false;
@@ -675,14 +671,19 @@ export class BossBattle {
 
   private checkEnd(): void {
     if (this.palanquin.hp <= 0) {
-      this.palanquin.hp = 0;
-      return this.finish('lose');
+      // 第四章（作者定案：爽Game）：水裡的隊伍只會被往回拉，不會輸
+      if (this.mode === 'ford') this.palanquin.hp = 1;
+      else {
+        this.palanquin.hp = 0;
+        return this.finish('lose');
+      }
     }
     if (this.mode === 'escort' ? this.shipProg >= 1 : this.boss.hp <= 0) {
       if (this.mode !== 'escort') this.boss.hp = 0;
       return this.finish('subdued');
     }
-    if (this.t >= this.setup.duration) this.finish('dawn');
+    // 第四章：天亮霧就散了，一樣是過溪（一定贏；判決照陣前審問說動幾輪）
+    if (this.t >= this.setup.duration) this.finish(this.mode === 'ford' ? 'subdued' : 'dawn');
   }
 
   private finish(r: 'subdued' | 'lose' | 'dawn'): void {
@@ -1397,7 +1398,11 @@ export class BossBattle {
     this.events.push({ type: 'lure', name });
   }
 
-  /** 茫渡以外：每隔一段時間叫走一個人；人鏈自動拉住；沒拉住的被帶到下游沙洲 */
+  /**
+   * 茫渡以外：每隔一段時間叫走一個人（只是氣氛）。作者定案：沒有人會被帶走、不會輸；
+   * 人鏈只影響畫面——不管有沒有人鏈，被叫走的人都在同一個時間點回來（人鏈有段數就畫成人鏈牽回來，沒有就自己走回來），
+   * 戰鬥的數值、節奏和人鏈長短無關。
+   */
   private stepFordField(dt: number): void {
     const fs = this.setup.ford!;
     this.lureTimer -= dt;
@@ -1408,25 +1413,14 @@ export class BossBattle {
     const l = this.lure;
     if (!l) return;
     l.t += dt;
-    if (this.chainLeft > 0 && l.t >= CHAIN_TIME) {
-      // 前兩天幫過的人下水牽住他
+    if (l.t < fs.lureTime * this.lureSlow) return;
+    this.lure = null;
+    this.saved.push(l.name);
+    if (this.chainLeft > 0) {
+      // 畫面：前兩天幫過的人下水牽住他（段數只是畫面上的計數）
       this.chainLeft--;
-      this.lure = null;
-      this.saved.push(l.name);
       this.events.push({ type: 'chainHold', name: l.name, left: this.chainLeft });
-    } else if (l.t >= fs.lureTime * this.lureSlow) {
-      this.lure = null;
-      this.stranded.push(l.name);
-      this.events.push({ type: 'stranded', name: l.name });
-      // 遺憾：被帶走的人超過上限，霧沒有散（天亮在沙洲找到，人平安，沒趕上回宮）
-      if (fs.maxStranded !== undefined && this.stranded.length > fs.maxStranded) this.finish('lose');
-    }
-  }
-
-  /** 第四章：被帶走的人超過上限而結束（遺憾） */
-  get regret(): boolean {
-    const m = this.setup.ford?.maxStranded;
-    return this.mode === 'ford' && m !== undefined && this.stranded.length > m;
+    } else this.events.push({ type: 'returned', name: l.name });
   }
 
   private toBreathFord(b: Enemy): void {

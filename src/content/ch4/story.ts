@@ -22,7 +22,7 @@
  *  - huitou4：稟報過秀枝，停駕點的事辦完、轎子起馬的時候（rest.leaveStory）
  *  - qiaotou4：第三天日落前・橋頭頓三下、下堤防（stay.story；演出，轎全程 st_jiao4_carry_closed）
  *  - mangdu4：第三天入夜（不問歸處，直接過溪；FinaleDef.story）
- *  - mangduRecall4／mangduReturn4／mangduSlay4：最後一戰的三種結局（斬只對茫渡）；mangduRegret4：遺憾（FinaleDef.regretStory）
+ *  - mangduRecall4／mangduReturn4／mangduSlay4：最後一戰的三種結局（斬只對茫渡；作者定案：沒有遺憾結局）
  *  - huigong4：回宮（四人小轎 → 換八人大轎 st_jiao8_carry，演出）
  *  - kailu4：開爐（第 12 天的黃曆之後；演出：鏡頭不拍神龕，只拍底下抬頭的臉）
  */
@@ -38,12 +38,8 @@ const caoxieHome = (r: RunState): boolean => r.cases.caoxie?.verdict === 'tohome
 const xiuzhiReported = (r: RunState): boolean => r.follow?.reports.xiuzhi2 !== undefined;
 /** 第二夜判新娘「帶回白砂墩」：第三天跟著走、回宮時放下（同 believers.ts 的 xinniangWith） */
 const brideWith = (r: RunState): boolean => r.cases.xinniang?.verdict === 'tohome';
-/** 最後一戰是遺憾（被帶走的人太多；BossScene 的 regretEnd 記的） */
-const fordRegret = (r: RunState): boolean => !!r.flags.ford_regret;
 /** 茫渡還在、而且有了去處（喚回、送回）：開爐那天供桌上多一碗 */
-const mangduStays = (r: RunState): boolean => !r.flags.ford_regret && (r.shijuEnd === 'recall' || r.shijuEnd === 'return');
-/** 這個人有趕上回宮（沒有被帶到下游沙洲） */
-const madeIt = (r: RunState, name: string): boolean => !(r.follow?.sandbar ?? []).includes(name);
+const mangduStays = (r: RunState): boolean => r.shijuEnd === 'recall' || r.shijuEnd === 'return';
 
 export const CUTSCENES4: Record<string, Cutscene> = {
   // 1-3 放頭旗與兵馬點名、1-4 犒軍、1-5 深夜起駕
@@ -399,25 +395,8 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'narrator', text: '茫渡斬了。渾水溪的霧散了。溪底沒有了。' },
     ],
   },
-  // 7-10 遺憾（被帶走的人超過上限；沒有人死、沒有人受傷，火沒有事，茫渡還在溪裡）。之後照常接回宮（遺憾版那兩句）
-  mangduRegret4: {
-    mood: 'dawn', place: '渾水溪・下游的沙洲', temple: 'temple_gongchen',
-    lines: [
-      { who: 'narrator', text: '霧太厚了。喊回來一個，後面又走掉兩個。' },
-      { who: 'yawei', text: '領隊，我點不到人。少了。' },
-      { who: 'narrator', text: '天亮，霧自己散了。下游的沙洲上坐著一排人，鞋都還穿著，旗子抱在胸前。' },
-      { who: 'jinshui', text: '我聽到我太太叫我。我就一直走，走到這裡她說坐一下。……然後天就亮了。' },
-      { who: 'yijing4', text: '人都在！沒有受傷！毯子拿過來，一個一個上船！' },
-      { who: 'dengchuan', text: '到對岸了。我用走的到的。他那一趟，不用回頭接我了。', when: (r) => carried3(r, 'dengchuan') },
-      { who: 'narrator', text: '對岸的路是空的。香擔和轎子天沒亮就起馬了，回宮的時辰不能等。' },
-      { who: 'qianshao', text: '火有顧到，轎子也過去了。人都平安。……可是他們趕不上了。' },
-      { who: 'yawei', text: '他們的名字我有。回去我念給廟裡聽。' },
-      { who: 'narrator', text: '溪面很平。下游那邊，還有一點霧沒有散。' },
-      { who: 'narrator', text: '有人被帶到下游的沙洲，天亮找到，人都平安。他們沒有趕上回宮。茫渡還在溪裡。' },
-    ],
-  },
   // 8 回宮（結局之後；FinaleDef.closeStory；演出見 stage/ch4.ts：前半四人小轎、換轎以後八人大轎 st_jiao8_carry，布幔放下）
-  // 後面幾段依狀態接上（新娘放下、其他版本、遺憾版）；媽祖不出現
+  // 後面幾段依狀態接上（新娘放下、其他版本）；媽祖不出現
   huigong4: {
     mood: 'temple', place: '通汐 → 白砂墩拱辰宮・回宮', temple: 'temple_gongchen',
     lines: [
@@ -449,23 +428,20 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。北津那一趟，他明年還要再想辦法。', when: caoxieHome },
       { who: 'apo', text: '這裡不是我家。……你們吃飽沒有？沒有的話我在這邊煮也可以。', when: (r) => r.cases.apo?.verdict === 'tohome' },
       { who: 'narrator', text: '假香燈腳站在廟埕邊，看那個揹紅背包的男人進廟。這次他沒有跟進去。', when: (r) => r.cases.jiajiao?.verdict === 'tohome' },
-      // 遺憾結局
-      { who: 'narrator', text: '進廟的時候，廟埕邊空了幾個位置。旁邊的人把他們的進香旗先請進去，插在供桌邊等。', when: fordRegret },
-      { who: 'yawei', text: '沒趕上的那幾個，傍晚會坐車到。我在廟口等。', when: fordRegret },
     ],
   },
   // 9 開爐（第 12 天；回宮之後的黃曆 → 這段 → 信徒錄）。鏡頭在神龕的位置往外看：整段不拍神龕、不拍神像，只拍底下一排一排抬頭的臉
-  // （演出見 stage/ch4.ts）。三位信徒各一小句：沒趕上回宮（被帶到下游沙洲）的就拿掉那一句。
-  // 最後兩句只在茫渡喚回或送回時播；斬和遺憾換成「剛好。沒有多。」
+  // （演出見 stage/ch4.ts）。三位信徒各一小句（作者定案：沒有人被帶走，都趕上了）。
+  // 最後兩句只在茫渡喚回或送回時播；斬換成「剛好。沒有多。」
   kailu4: {
     mood: 'dawn', place: '白砂墩拱辰宮・開爐',
     lines: [
       { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等。' },
       { who: 'narrator', text: '時辰到。神龕的布幔往兩邊拉開。' },
       { who: 'narrator', text: '殿裡的人一起抬頭。沒有人講話。' },
-      { who: 'narrator', text: '阿滿姨抬著頭，嘴巴動了動。', when: (r) => madeIt(r, '阿滿姨') },
-      { who: 'narrator', text: '阿翰把帽子拿在手上。', when: (r) => madeIt(r, '阿翰') },
-      { who: 'narrator', text: '賢仔站在門邊，褲子後面的口袋還插著那支扳手。', when: (r) => madeIt(r, '賢仔') },
+      { who: 'narrator', text: '阿滿姨抬著頭，嘴巴動了動。' },
+      { who: 'narrator', text: '阿翰把帽子拿在手上。' },
+      { who: 'narrator', text: '賢仔站在門邊，褲子後面的口袋還插著那支扳手。' },
       { who: 'narrator', text: '秀枝把輪椅的椅背搖高。她阿母看了很久，手上的旗沒有放下來。' },
       { who: 'narrator', text: '阿睿站在最後面。他的手機在口袋裡，今天沒有拿出來。' },
       { who: 'narrator', text: '香擔的封條撕開。帶回來的火，一勺一勺添進殿裡的爐。' },

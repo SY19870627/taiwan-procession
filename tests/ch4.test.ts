@@ -25,7 +25,7 @@ import { STAGES } from '../src/content/stage';
 import { SPEAKERS, SPEAKER_TEX } from '../src/content/story';
 import { CUTSCENES4 } from '../src/content/ch4/story';
 import { BANTER4, DAY_BANTER4, NIGHT_BANTER4 } from '../src/content/ch4/banter';
-import { MISSED4, sandbarLines4 } from '../src/content/ch4/believers';
+import { MISSED4 } from '../src/content/ch4/believers';
 import { splitStory } from '../src/ui/split';
 
 const r = () => state.run;
@@ -510,7 +510,7 @@ describe('第四章內容一致性', () => {
 
   it('序章、天亮前、結局、收尾的劇情 id 都存在；旁白不替媽祖講話（第四章劇情裡沒有神明說話者）', () => {
     const F = CHAPTER4.finale;
-    for (const s of [CHAPTER4.prologueStory!, CHAPTER4.openingStory!, F.story, F.recallStory, ...Object.values(F.endStory ?? {}), F.regretStory!, F.closeStory!, D1.follow!.detour!.story!]) {
+    for (const s of [CHAPTER4.prologueStory!, CHAPTER4.openingStory!, F.story, F.recallStory, ...Object.values(F.endStory ?? {}), F.closeStory!, D1.follow!.detour!.story!]) {
       expect(CUTSCENES[s], s).toBeDefined();
       for (const l of CUTSCENES[s].lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who), s).toBe(false);
     }
@@ -669,7 +669,8 @@ describe('第一天試玩段落：正式文字', () => {
     expect(Object.keys(CH4_SRC).length).toBeGreaterThanOrEqual(8);
     for (const [f, src] of Object.entries(CH4_SRC)) {
       expect(src.replace(/^\uFEFF/, '').startsWith(HEADER), f).toBe(true);
-      const code = stripComments(src);
+      // 【待定】開頭的字串（作者定案後換掉的說明句，等作者補）不算
+      const code = stripComments(src).replace(/'【待定】[^']*'/g, "''");
       expect(code.includes('【待定】'), f).toBe(false);
       expect(code.includes('阿哲'), f).toBe(false);
       expect(code.includes('azhe'), f).toBe(false);
@@ -709,8 +710,10 @@ describe('第一天試玩段落：正式文字', () => {
       setup();
       walk([CHAPTER4.epitaphs(r()), CHAPTER4.ghostEpitaphs(r()), CHAPTER4.finalEpitaph(r()), CHAPTER4.finale.chainLines!(r()), CHAPTER4.epilogue!.almanac(r())]);
     }
-    walk(sandbarLines4(['金水伯', '美雲', '宗翰', '阿翰']));
-    const text = out.join('\n');
+    // 作者定案（爽Game）以後說錯的說明句換成【待定】開頭的短句等作者補（列在 _agent/c1-report.md）：只有字串開頭的那幾個可以
+    const stubs = out.filter((s) => s.startsWith('【待定】'));
+    expect(stubs).toEqual([CHAPTER4.finale.briefing!.text]);
+    const text = out.filter((s) => !s.startsWith('【待定】')).join('\n');
     expect(text.length).toBeGreaterThan(3000);
     // 實際產生的字沒有【待定】；第 B2 輪：三天的字都到了，也沒有「（待寫）」
     expect(text.includes('【待定】')).toBe(false);

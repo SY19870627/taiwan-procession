@@ -191,7 +191,6 @@ export const FORD_BANTER4: Record<string, BanterLine[][]> = {
   b_huiqi: [[QS[3]]],
   b_called: [[YW[0]], [QS[1]], [YW[1]], F12[2]],
   b_chainHold: [F12[5], [YW[3]]],
-  b_stranded: [F12[9], [YW[2]]],
   b_boat: [F12[3]],
   b_trial: [F12[10]],
   b_judge: [F12[11]],

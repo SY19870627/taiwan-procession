@@ -29,6 +29,16 @@ export interface Rules {
 }
 
 /**
+ * 最後一戰斬魔王的結算（BossScene.end）：第一、二章戾氣 +1；第三章（renown）威名 +1；
+ * slayFree（第四章斬茫渡）沒有懲罰也沒有加成。
+ */
+export function slayBoss(r: Pick<RunState, 'liqi' | 'weiming'>, rules: Rules, slayFree = false): void {
+  if (slayFree) return;
+  if (rules.slayRule === 'renown') r.weiming = Math.min(WEIMING_MAX, r.weiming + 1);
+  else r.liqi = Math.min(3, r.liqi + 1);
+}
+
+/**
  * 鬼看到隊伍的反應：
  *  - normal：照常
  *  - hiding：戾氣讓牠躲起來（第一、二章：花 1 時辰勸出來；第三章：風火輪追，0 時辰、怨氣 +1）

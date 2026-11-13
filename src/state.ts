@@ -86,8 +86,6 @@ export interface FollowState {
   reports: Record<string, boolean>;
   /** 每天被牽路仔帶偏的人數（天數 → 人數；略過牽路仔時才建立） */
   strayedDay?: Record<number, number>;
-  /** 最後一戰被茫渡帶到下游沙洲的人（天亮找到，人沒事，沒趕上回宮；開爐那頁黃曆的「昨日」） */
-  sandbar?: string[];
 }
 
 export function newFollow(): FollowState {

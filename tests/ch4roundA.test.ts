@@ -324,7 +324,7 @@ describe('B-3. 回宮、開爐、整章接法', () => {
   it('過場都有：整章模式的天亮、第二夜、回宮、開爐；說話的人都登記過，媽祖不說話', () => {
     const ids = [...Object.values(CHAPTER4.dawnStory ?? {}), ...Object.values(CHAPTER4.nightStory ?? {}), ...Object.values(CHAPTER4.guihu!.releaseStory ?? {}),
       D2.follow!.rest.gather!.story!, D2.follow!.stay.story!, D3.follow!.stay.story!, D3.follow!.rest.leaveStory!.id, CHAPTER4.departStory![3],
-      D3.routes.find((x) => x.id === D3.follow!.goes)!.endStory!, CHAPTER4.finale.regretStory!, CHAPTER4.epilogue!.story];
+      D3.routes.find((x) => x.id === D3.follow!.goes)!.endStory!, CHAPTER4.finale.closeStory!, CHAPTER4.epilogue!.story];
     for (const id of ids) {
       expect(CUTSCENES[id], id).toBeDefined();
       for (const l of CUTSCENES[id].lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who), id).toBe(false);
