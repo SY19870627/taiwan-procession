@@ -27,6 +27,21 @@ import { CUTSCENES4 } from '../src/content/ch4/story';
 import { BANTER4, DAY_BANTER4, NIGHT_BANTER4 } from '../src/content/ch4/banter';
 import { MISSED4 } from '../src/content/ch4/believers';
 import { splitStory } from '../src/ui/split';
+import { CHEER4, cheerLine4 } from '../src/content/ch4/finale';
+
+describe('第四章最後一戰：鬼影子喊頭旗加油（CHEER4）', () => {
+  it('四隻鬼各有自己那句、另有兩句共用；都不是空的、沒有【待定】', () => {
+    expect(Object.keys(CHEER4.byId).sort()).toEqual(['apo', 'caoxie', 'jiajiao', 'xinniang']);
+    expect(CHEER4.shared).toHaveLength(2);
+    for (const s of [...CHEER4.shared, ...Object.values(CHEER4.byId)]) {
+      expect(s.trim().length).toBeGreaterThan(0);
+      expect(s).not.toContain('【待定】');
+    }
+    expect(cheerLine4('apo', 0)).toBe(CHEER4.byId.apo);
+    expect(cheerLine4('other', 0)).toBe(CHEER4.shared[0]);
+    expect(cheerLine4('other', 1)).toBe(CHEER4.shared[1]);
+  });
+});
 
 const r = () => state.run;
 const D1 = CHAPTER4.days[1];

@@ -46,6 +46,25 @@ export function fordGhosts(r: RunState): string[] {
   });
 }
 
+/**
+ * v0.1【待定】最後一戰・鬼影子喊頭旗加油（字照 _agent/ch4-text-cheer.md）。
+ * BossScene 在每個鬼影子旁邊冒一句小字：有自己那句的用自己的，其他影子輪流用 shared 兩句。只是畫面，不碰戰鬥數值。
+ */
+export const CHEER4: { shared: string[]; byId: Record<string, string> } = {
+  shared: ['頭旗加油，我們在後面', '頭旗撐著，免驚啦'],
+  byId: {
+    caoxie: '加油，這趟我跟到底',
+    apo: '頭旗拚一下，粥我顧著',
+    xinniang: '頭旗加油，我陪阿母跟著',
+    jiajiao: '加油啦，這次我看前面',
+  },
+};
+
+/** 第 i 個鬼影子（id）要喊的那句：有自己的用自己的，沒有的輪流用共用兩句 */
+export function cheerLine4(id: string, sharedIdx: number): string {
+  return CHEER4.byId[id] ?? CHEER4.shared[sharedIdx % CHEER4.shared.length];
+}
+
 /** 牽路仔的波次（第 C3 輪：略過的牽路仔不再多加波數） */
 export const WAVES4: Wave[] = [
   [5, 'qianlu', 3, 1.4], [20, 'qianlu', 3, 1.2], [36, 'qianlu', 4, 1.1], [52, 'qianlu', 4, 1.0],
