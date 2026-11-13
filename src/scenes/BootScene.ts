@@ -40,9 +40,19 @@ export class BootScene extends Phaser.Scene {
       if (ch) startChapter(ch);
       // 第四章開發用（截圖）：&preset=missed —— 前幾天當成什麼都沒做（信徒卡全略過、鬼沒帶），「昨日」寫漏掉的化解版
       // 開爐那頁（&epilogue=1）算三天都沒做；其他場景算第 1～n-1 天
-      if (ch === 'baishadun' && q.get('preset') === 'missed') {
-        applyMissedPreset4(run, q.get('epilogue') === '1' ? 3 : n - 1);
+      // 截圖用（只有加網址參數才會觸發）：
+      //  ?scene=day&ch=baishadun&n=1&preset=missed&sunset=1：第 n 天也當成什麼都沒做，直接跳到那天日落（日落的搞笑版 dayEndMissed 馬上播）
+      //  ?scene=trial&n=1&ch=baishadun&preset=missed&fun=1：第一夜頭旗下帶著草鞋丁、真相一句都沒對，自動判一個錯的歸處（判決頁接 N1-2 搞笑）
+      const missed = ch === 'baishadun' && q.get('preset') === 'missed';
+      const sunset = missed && jump === 'day' && q.get('sunset') === '1';
+      const fun = missed && jump === 'trial' && q.get('fun') === '1';
+      if (missed) {
+        applyMissedPreset4(run, q.get('epilogue') === '1' ? 3 : n - 1, sunset ? n : undefined);
         run.day = n;
+      }
+      if (fun && !run.held.some((h) => h.id === 'caoxie')) {
+        run.held.push({ id: 'caoxie', grudge: 0 });
+        run.cases.caoxie ??= { truths: [] };
       }
       // ?scene=cut&kind=boss 看過場（depart／dusk／dawn／boss），看完回標題
       const kind = q.get('kind') ?? 'depart';
@@ -58,7 +68,7 @@ export class BootScene extends Phaser.Scene {
         return;
       }
       this.scene.start(jump, {
-        scare,
+        scare, sunset, fun,
         day: n, night: n, id: q.get('id') ?? (jump === 'story' && q.get('proto') ? 'recall' : 'dusk3'), prologue: q.get('prologue') === '1', kind, title: kind, next: { key: 'title' },
         text: q.get('text') === '1', beat,
         // ?scene=almanac&ch=baishadun&epilogue=1：第四章開爐那頁黃曆（收尾）

@@ -104,7 +104,7 @@ export class DayScene extends Phaser.Scene {
     super('day');
   }
 
-  create(data: { day: number }): void {
+  create(data: { day: number; sunset?: boolean }): void {
     const day = data.day ?? 1;
     this.plan = CH().days[day];
     run.day = day;
@@ -152,6 +152,11 @@ export class DayScene extends Phaser.Scene {
     this.time.delayedCall(300, () => {
       this.scene.bringToTop();
       for (const [i, id] of docs.entries()) floatText(this, W / 2, BAND_Y + 120 + i * 40, `證物袋：${CH().evidence[id].name}`, 0x9fe8c0, 24);
+      // 開發用（截圖）：&preset=missed&sunset=1 直接跳到日落（跳過駐駕前的過場），日落的搞笑版馬上播
+      if (data.sunset && this.plan.follow) {
+        this.stayStoryPlayed = true;
+        return this.endRoute();
+      }
       this.band.walk(900, () => this.next());
       this.banter('depart');
     });

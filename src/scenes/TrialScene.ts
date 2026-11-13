@@ -23,7 +23,7 @@ import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
 import { banterStrip } from '../ui/banter';
 import { TRIAL } from '../core/layout';
 import { isBorrowedPortrait, portraitKey, portraitThumb, type Expr } from '../art/portraits';
-import { arrive, carrying, judgeGuihu, pending } from '../core/guihu';
+import { arrive, carrying, judgeGuihu, pending, rightVerdict } from '../core/guihu';
 import { APO_SCARE_LINE4, SCARE_FLAG4, shouldScareApo4 } from '../content/ch4/missed';
 import { scareApo4 } from '../ui/scare4';
 
@@ -46,7 +46,7 @@ export class TrialScene extends Phaser.Scene {
     super('trial');
   }
 
-  create(data: { night: number; scare?: boolean }): void {
+  create(data: { night: number; scare?: boolean; fun?: boolean }): void {
     this.n = data.night ?? 1;
     this.watch = 0;
     this.messages = [];
@@ -117,6 +117,8 @@ export class TrialScene extends Phaser.Scene {
     };
     // 開發用（截圖）：&scare=1 跳過開審前的對話，直接播 N1-4 阿婆的 jump scare（立繪在背景載入，等一下再播）
     if (data.scare && run.chapter === 'baishadun' && T.style === 'guihu') this.time.delayedCall(900, () => this.scareApo());
+    // 開發用（截圖）：&preset=missed&fun=1 跳過開審前的對話，草鞋丁直接判一個錯的歸處（判決頁接 N1-2 搞笑）
+    else if (data.fun && run.chapter === 'baishadun' && T.style === 'guihu') this.time.delayedCall(900, () => this.funCaoxie());
     else if (before.length || intro) this.time.delayedCall(450, playNext);
   }
 
@@ -480,6 +482,15 @@ export class TrialScene extends Phaser.Scene {
   private backToLobby(k: GhostCase): void {
     this.lobby();
     if (run.chapter === 'baishadun' && CH().trial.style === 'guihu' && shouldScareApo4(run, k.id, run.cases[k.id], this.n)) this.scareApo();
+  }
+
+  /** &fun=1 開發用：草鞋丁判一個不是正解、也不缺真相就能判的歸處（找不到就停在列表） */
+  private funCaoxie(): void {
+    const k = CH().cases.caoxie;
+    if (!k || !run.held.some((h) => h.id === 'caoxie')) return;
+    const right = rightVerdict(k);
+    const v = k.verdicts.find((x) => x.verdict !== right && !this.why(k, x));
+    if (v) this.judge(k, v);
   }
 
   /** N1-4 的畫面＋台詞（&scare=1 開發用直接叫這個） */

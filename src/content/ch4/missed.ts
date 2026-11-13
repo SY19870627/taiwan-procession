@@ -176,17 +176,13 @@ export function missedLines4(r: RunState, n: number, cap = MISSED_CAP4): string[
  * 信徒卡全部略過、鬼都沒帶、押兵留在轎邊、沒稟報、日落什麼都不拍（之後的事件池照「什麼都不拍」）。
  * 只改 run（不碰數值規則）；「昨日」寫第 upTo 天的。
  */
-export function applyMissedPreset4(r: RunState, upTo: number): void {
+export function applyMissedPreset4(r: RunState, upTo: number, today?: number): void {
   const f = r.follow;
   const none = ['none', 'none2'];
   for (let d = 1; d <= Math.min(3, upTo); d++) {
-    const plan = DAY_PLANS4[d];
-    const pool = poolFor(plan, f?.tags ?? []);
-    const rt = plan.routes.find((x) => x.id === plan.follow?.goes);
-    const all: Encounter[] = [...pool.pre, ...(rt?.encounters ?? []), ...(plan.follow?.rest.encounters ?? []), ...pool.post];
-    for (const e of all) if (e.kind === 'person' && CARDS4[e.card]?.(r)?.missed) r.flags[`missed_${e.card}`] = true;
+    skipDay4(r, d);
     if (f && d <= 2) {
-      const opt = plan.broadcast!.find((o) => o.id === none[d - 1])!;
+      const opt = DAY_PLANS4[d].broadcast!.find((o) => o.id === none[d - 1])!;
       f.broadcast[d] = opt.id;
       f.tags = [...opt.tags];
       r.flags[`film_${opt.id}`] = true;
@@ -194,6 +190,20 @@ export function applyMissedPreset4(r: RunState, upTo: number): void {
     if (f) f.betResult = 'stay';
   }
   r.yesterday = upTo >= 1 ? missedLines4(r, Math.min(3, upTo)) : [];
+  // &sunset=1：今天（第 today 天）也當成什麼都沒做（傳消息還沒選，留給日落那頁；「昨日」不動）
+  if (today && today >= 1 && today <= 3) {
+    skipDay4(r, today);
+    if (f) f.betResult = 'stay';
+  }
+}
+
+/** 第 d 天的信徒卡全部記成略過（照那天的事件池；傳消息、「昨日」不在這裡） */
+function skipDay4(r: RunState, d: number): void {
+  const plan = DAY_PLANS4[d];
+  const pool = poolFor(plan, r.follow?.tags ?? []);
+  const rt = plan.routes.find((x) => x.id === plan.follow?.goes);
+  const all: Encounter[] = [...pool.pre, ...(rt?.encounters ?? []), ...(plan.follow?.rest.encounters ?? []), ...pool.post];
+  for (const e of all) if (e.kind === 'person' && CARDS4[e.card]?.(r)?.missed) r.flags[`missed_${e.card}`] = true;
 }
 
 // ======================================================================
