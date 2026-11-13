@@ -26,6 +26,7 @@ import { SPEAKERS, SPEAKER_TEX } from '../src/content/story';
 import { CUTSCENES4 } from '../src/content/ch4/story';
 import { BANTER4, DAY_BANTER4, NIGHT_BANTER4 } from '../src/content/ch4/banter';
 import { MISSED4 } from '../src/content/ch4/believers';
+import { MISSED_END4 } from '../src/content/ch4/missed';
 import { splitStory } from '../src/ui/split';
 import { CHEER4, cheerLine4 } from '../src/content/ch4/finale';
 
@@ -865,16 +866,19 @@ describe('第一天試玩段落：正式文字', () => {
     for (const k of Object.keys(BANTER4)) expect(hooked(k), k).toBe(true);
   });
 
-  it('天亮：舊灶那一句只在阿婆判「就在這裡下」時播；第 C3 輪：略過的信徒卡不寫進「昨日」（只寫好消息或不寫）', () => {
+  it('天亮：舊灶那一句只在阿婆判「就在這裡下」時播；略過的信徒卡在「昨日」寫漏掉的化解版（missed.ts）', () => {
     const line = CUTSCENES4.tianliang4_1.lines.find((l) => l.when)!;
     expect(line.text).toContain('舊灶');
     expect(line.when!(r())).toBe(false);
     r().cases.apo = { truths: [0], verdict: 'here' };
     expect(line.when!(r())).toBe(true);
-    expect(CHAPTER4.dawn(r(), 1)).toEqual([]);
+    expect(CHAPTER4.dawn(r(), 1)).not.toContain(MISSED_END4.aman1);
     r().flags.missed_aman1 = true;
     r().flags.missed_xiuzhi1 = true;
-    expect(CHAPTER4.dawn(r(), 1)).toEqual([]);
+    expect(CHAPTER4.dawn(r(), 1)).toContain(MISSED_END4.aman1);
+    expect(CHAPTER4.dawn(r(), 1)).toContain(MISSED_END4.xiuzhi1);
+    // 阿婆帶了：不寫「阿婆沒請」那句
+    expect(CHAPTER4.dawn(r(), 1)).not.toContain(MISSED_END4.apo1);
     for (const id of ['aman1', 'arui1', 'xianzai1', 'xiuzhi1', 'ahan1']) expect(CARDS4[id](r())!.missed, id).toBe(MISSED4[id]);
   });
 
@@ -1152,9 +1156,9 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
       expect(stub(MISSED4[id]), id).toBe(false);
       expect(CARDS4[id](r())!.missed, id).toBe(MISSED4[id]);
     }
-    // 第 C3 輪：「昨日」不寫沒辦的事；因果簿寫「路過」的那句，tone none（不算遺憾）
+    // 「昨日」寫漏掉的化解版（missed.ts）；因果簿寫「路過」的那句，tone none（不算遺憾）
     r().flags.missed_arui2 = true;
-    expect(CHAPTER4.dawn(r(), 2)).toEqual([]);
+    expect(CHAPTER4.dawn(r(), 2)).toContain(MISSED_END4.arui2);
     expect(CHAPTER4.ledger(r()).find((x) => x.state.startsWith('阿睿：三進三退拍得很清楚'))?.tone).toBe('none');
     // 辦成：因果簿換辦成的寫法、記幫過（人鏈）
     startChapter('baishadun');

@@ -108,8 +108,8 @@ export function finaleSetup4(r: RunState): BossSetup {
 }
 
 /**
- * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆的「昨日」（dawn4）。第 C3 輪：「昨日」只寫好消息或不寫——
- * 第三天沒辦成的事不再列出來。作者定案：沒有人被帶走（沒有沙洲的名字）。
+ * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆的「昨日」（dawn4）：第三天白天漏掉的事寫化解版（missed.ts）。
+ * 作者定案：沒有人被帶走（沒有沙洲的名字）。
  */
 export function fordEnd4(r: RunState): void {
   r.yesterday = [...dawn4(r, 3)];

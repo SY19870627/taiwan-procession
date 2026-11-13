@@ -11,6 +11,7 @@ import { CHAPTERS, playOverride, playableDays, startChapter } from '../src/conte
 import { CHAPTER4 } from '../src/content/ch4';
 import { CARDS4, MISSED4, chainSegments4, helped4, stragglers4 } from '../src/content/ch4/believers';
 import { CUTSCENES } from '../src/content/story';
+import { MISSED_END4 } from '../src/content/ch4/missed';
 import { STAGES } from '../src/content/stage';
 import type { DayPlan, Encounter, FollowPlan } from '../src/content/days';
 import * as state from '../src/state';
@@ -193,15 +194,18 @@ describe('B-1. 第二天（到北津）', () => {
     expect(CARDS4.ahan2(r())).toBeNull();
   });
 
-  it('天亮「昨日」（第 C3 輪）：略過的卡、略過的牽路仔都不寫（只寫好消息或不寫）', () => {
+  it('天亮「昨日」：略過的卡、略過的牽路仔寫漏掉的化解版（missed.ts），不記人數', () => {
     r().day = 1;
     skipStray(r());
     r().day = 2;
     skipStray(r());
     skipStray(r());
     r().flags.missed_ahan2 = true;
-    expect(CHAPTER4.dawn(r(), 2)).toEqual([]);
-    expect(CHAPTER4.dawn(r(), 1)).toEqual([]);
+    const d2 = CHAPTER4.dawn(r(), 2);
+    expect(d2[0]).toBe(MISSED_END4.ahan2);
+    expect(d2).toContain(MISSED_END4.stray2b);
+    expect(CHAPTER4.dawn(r(), 1)).toContain(MISSED_END4.stray1a);
+    expect(r().follow!.strayed).toBe(0);
     expect(MISSED4.ahan2.length).toBeGreaterThan(0);
   });
 });

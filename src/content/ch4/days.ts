@@ -11,6 +11,7 @@
  */
 import type { RunState } from '../../state';
 import type { DayPlan, Encounter } from '../days';
+import { missedLines4 } from './missed';
 
 const ghost = (id: string, place: string, caseId: string): Encounter => ({ kind: 'ghost', id, place, caseId });
 /** 牽路仔（第 5 節）：長得像路邊招手的人影，專找隊尾 */
@@ -435,11 +436,13 @@ export const UNLOCKS4: Record<number, { title: string; text: string }> = {
 };
 
 /**
- * 天亮：寫「昨日」。第 C3 輪（爽Game）：「昨日」只寫好消息或不寫——略過的信徒卡的「沒辦結果」（believers.ts 的 MISSED4，
- * 字留著給作者改寫成「路過」的版本）、被牽路仔帶偏的人數都不再寫進來（故事照走）。目前沒有好消息的字（等作者補），所以一律空的。
+ * 天亮：寫「昨日」（n＝剛走完的那一天；TrialScene 天亮時呼叫，第三天由 finale.ts 的 fordEnd4 寫進開爐那頁）。
+ * 作者定案（docs/白砂墩_漏掉收尾對照_v0.1.md 第 4 節第 3 點）：白天漏掉的事寫「漏掉・化解版」（missed.ts 的 MISSED_END4），
+ * 不扣分、不改數值。最多 MISSED_CAP4 句，信徒卡優先。好消息的字還沒有（等作者補），有了接在前面。
  */
-export function dawn4(_r: RunState, _n: number): string[] {
-  return [];
+export function dawn4(r: RunState, n: number): string[] {
+  const good: string[] = [];
+  return [...good, ...missedLines4(r, n)];
 }
 
 /** 第三天結束（入夜前）：沒有要改的狀態（被牽路仔帶偏、人鏈都在 follow 裡，最後一戰直接讀） */

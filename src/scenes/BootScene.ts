@@ -6,6 +6,8 @@ import { makeXinying } from '../art/xinying';
 import { makeStageArt } from '../art/stage';
 import { makeBaishadun } from '../art/baishadun';
 import { playOverride, startChapter } from '../content/chapter';
+import { applyMissedPreset4 } from '../content/ch4/missed';
+import { run } from '../state';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -36,6 +38,12 @@ export class BootScene extends Phaser.Scene {
       // ?ch=dongjin 指定章節
       const ch = q.get('ch');
       if (ch) startChapter(ch);
+      // 第四章開發用（截圖）：&preset=missed —— 前幾天當成什麼都沒做（信徒卡全略過、鬼沒帶），「昨日」寫漏掉的化解版
+      // 開爐那頁（&epilogue=1）算三天都沒做；其他場景算第 1～n-1 天
+      if (ch === 'baishadun' && q.get('preset') === 'missed') {
+        applyMissedPreset4(run, q.get('epilogue') === '1' ? 3 : n - 1);
+        run.day = n;
+      }
       // ?scene=cut&kind=boss 看過場（depart／dusk／dawn／boss），看完回標題
       const kind = q.get('kind') ?? 'depart';
       // ?scene=story&id=recall：&text=1 強制播文字版、&beat=3 演出直接停在第 4 拍（截圖、驗收用）

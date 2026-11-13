@@ -77,8 +77,10 @@ export class AlmanacScene extends Phaser.Scene {
       x -= 50;
     }
     x = this.vtext(x, top, a.text, 30, INK, colH);
+    // 第四章：「昨日」是漏掉的化解版（最多 6 句、每句七八十字），直書的紙放不下——改成蓋在黃曆上的橫書小卡（字太多可以上下拖動）
+    const card4 = CH().id === 'baishadun' && yesterday.length > 0;
     // 昨日
-    if (yesterday.length) {
+    if (yesterday.length && !card4) {
       // 分隔線放在上一欄的左邊緣外面，不壓到字
       x -= 28;
       const g2 = this.add.graphics();
@@ -106,9 +108,75 @@ export class AlmanacScene extends Phaser.Scene {
       const toDay = ds ? { key: 'story', data: { id: ds, next: { key: 'day', data: { day } } } } : { key: 'day', data: { day } };
       button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: toDay }), { size: 32, fill: 0x8a1b14 });
       const unlock = CH().unlocks?.[day];
-      if (unlock) this.time.delayedCall(700, () => this.unlockCard(unlock));
+      if (card4) this.time.delayedCall(700, () => this.yesterdayCard(yesterday, unlock ? () => this.unlockCard(unlock) : undefined));
+      else if (unlock) this.time.delayedCall(700, () => this.unlockCard(unlock));
     }
+    if (card4 && ep) this.time.delayedCall(700, () => this.yesterdayCard(yesterday));
     fullscreenButton(this);
+  }
+
+  /**
+   * 第四章的「昨日」小卡（橫書，蓋在黃曆上）：一句一段；放不下先縮字（22 → 18），還是放不下就上下拖動。
+   * 關掉之後接 then（今日說明卡）。
+   */
+  private yesterdayCard(lines: string[], then?: () => void): void {
+    const objs: Phaser.GameObjects.GameObject[] = [];
+    const pw = W - 64;
+    const x = 32;
+    const maxH = H - 260;
+    const pad = 32;
+    const head = 84;
+    const foot = 110;
+    const body = (size: number) => txt(this, x + pad, 0, lines.join('\n\n'), size, hex(0x4a2a1a), {
+      serif: true, bold: false, lineSpacing: Math.round(size * 0.45), wordWrap: { width: pw - pad * 2, useAdvancedWrap: true },
+    }).setDepth(902);
+    let size = 22;
+    let t = body(size);
+    while (t.height > maxH - head - foot && size > 18) {
+      t.destroy();
+      size -= 2;
+      t = body(size);
+    }
+    const viewH = Math.min(t.height, maxH - head - foot);
+    const ph = viewH + head + foot;
+    const y = (H - ph) / 2;
+    const top = y + head;
+    t.setY(top);
+    const scrim = this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setDepth(900).setInteractive();
+    objs.push(scrim);
+    const g = this.add.graphics().setDepth(901);
+    g.fillStyle(PAPER, 1);
+    g.fillRect(x, y, pw, ph);
+    g.lineStyle(3, RED, 0.85);
+    g.strokeRect(x + 10, y + 10, pw - 20, ph - 20);
+    objs.push(g);
+    objs.push(txt(this, x + pad, y + 28, '【昨日】', 30, hex(RED), { serif: true }).setDepth(902));
+    objs.push(t);
+    const overflow = Math.max(0, t.height - viewH);
+    if (overflow > 0) {
+      const maskG = this.make.graphics({}, false);
+      maskG.fillRect(x, top - 4, pw, viewH + 8);
+      t.setMask(maskG.createGeometryMask());
+      objs.push(maskG);
+      objs.push(txt(this, x + pw - pad, y + 36, '上下拖動看更多', 18, hex(0x8a6a4a), { bold: false }).setOrigin(1, 0).setDepth(902));
+      let lastY: number | null = null;
+      scrim.on('pointerdown', (p: Phaser.Input.Pointer) => { lastY = p.y; });
+      scrim.on('pointermove', (p: Phaser.Input.Pointer) => {
+        if (lastY === null || !p.isDown) return;
+        t.y = Phaser.Math.Clamp(t.y + (p.y - lastY), top - overflow, top);
+        lastY = p.y;
+      });
+      scrim.on('pointerup', () => { lastY = null; });
+      this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => {
+        if (t.active) t.y = Phaser.Math.Clamp(t.y - dy * 0.5, top - overflow, top);
+      });
+    }
+    const b = button(this, W / 2, y + ph - 56, 220, 64, '知道了', () => {
+      for (const o of objs) o.destroy();
+      then?.();
+    }, { size: 24, fill: 0x8a1b14 });
+    b.setDepth(903);
+    objs.push(b);
   }
 
   /** 黃曆之後的卡：第三章是成長解鎖（第一天各將一招、第二天合擊、第三天五營合陣）；第一、二章是今日陣頭（只說明，沒有營旗條與「成長」） */

@@ -14,6 +14,7 @@ import { chainSegments4, stragglers4 } from '../src/content/ch4/believers';
 import { CUTSCENES } from '../src/content/story';
 import { CHAPTER4 } from '../src/content/ch4';
 import { CHAPTERS } from '../src/content/chapter';
+import { MISSED_END4 } from '../src/content/ch4/missed';
 import { hasSlay, rightVerdict } from '../src/core/guihu';
 import { slayBoss } from '../src/core/renown';
 import { newRun, newFollow, type RunState } from '../src/state';
@@ -247,11 +248,11 @@ describe('渾水溪・茫渡：一定贏（沒有遺憾）', () => {
       expect(b.saved.length, `seed ${s}`).toBe(ev.lure ?? 0);
       expect(ev.stranded).toBeUndefined();
     }
-    // 開爐那頁黃曆「昨日」沒有沙洲；第 C3 輪：第三天沒辦成的事也不寫（只寫好消息或不寫）
+    // 開爐那頁黃曆「昨日」沒有沙洲；第三天略過的卡寫漏掉的化解版（missed.ts）
     const r = ch4Run((x) => { x.flags.missed_ahan3 = true; });
     fordEnd4(r);
     expect(r.yesterday.join('')).not.toContain('沙洲');
-    expect(r.yesterday).toEqual([]);
+    expect(r.yesterday[0]).toBe(MISSED_END4.ahan3);
     expect('sandbar' in r.follow!).toBe(false);
   });
 

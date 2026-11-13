@@ -11,6 +11,7 @@ import { CHAPTERS, startChapter } from '../src/content/chapter';
 import { CHAPTER4 } from '../src/content/ch4';
 import { CARDS4, chainSegments4, helped4 } from '../src/content/ch4/believers';
 import { CASES4 } from '../src/content/ch4/cases';
+import { MISSED_END4 } from '../src/content/ch4/missed';
 import { finaleSetup4, fordGhosts, rewards4 } from '../src/content/ch4/finale';
 import { REWARD_CROWD_MAX4, rewardCrowd4 } from '../src/content/stage/ch4';
 import { STAGES } from '../src/content/stage';
@@ -72,7 +73,12 @@ function expectNoRegret(x: RunState, what: string): void {
     expect(e.tag ?? '', what).not.toBe('遺憾');
     expect(e.text, what).not.toContain('遺憾');
   }
-  for (const d of [1, 2, 3]) expect(CHAPTER4.dawn(x, d), `${what}：昨日 ${d}`).toEqual([]);
+  // 「昨日」只寫漏掉的化解版（missed.ts），不寫遺憾
+  const ends = Object.values(MISSED_END4);
+  for (const d of [1, 2, 3]) for (const l of CHAPTER4.dawn(x, d)) {
+    expect(ends, `${what}：昨日 ${d}`).toContain(l);
+    expect(l, what).not.toContain('遺憾');
+  }
   expect(x.follow?.strayed ?? 0, what).toBe(0);
   expect(x.liqi, what).toBe(0);
   expect(x.bossAdds, what).toBe(0);
