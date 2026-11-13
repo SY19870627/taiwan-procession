@@ -8,13 +8,13 @@ import type { StreetTheme } from '../art/backdrop';
 
 export type Encounter =
   /** 信徒（人的事），用 believers.ts 的信徒卡 */
-  | { kind: 'person'; id: string; place: string; card: string; tex: string }
+  | { kind: 'person'; id: string; place: string; card: string; tex: string; peek?: string }
   /** 有冤情的鬼：收容回去晚上審 */
   | { kind: 'ghost'; id: string; place: string; caseId: string }
   /** 小妖：當場驅散，不用審（第四章牽路仔：stall＝附近的點心站，可以託人顧） */
   | { kind: 'imp'; id: string; place: string; text: string; tex: string; stall?: string }
   /** 線索：得到物證 */
-  | { kind: 'clue'; id: string; place: string; evidence: string; hours: number; text: string; needs?: string }
+  | { kind: 'clue'; id: string; place: string; evidence: string; hours: number; text: string; needs?: string; story?: string; peek?: string }
   /** 問話：得到證詞 */
   | { kind: 'talk'; id: string; place: string; who: string; evidence: string; hours: number; text: string; tex: string };
 
@@ -25,6 +25,10 @@ export interface RouteDef {
   encounters: Encounter[];
   /** 岔路後換街景（第三章：庄頭線進鴨母寮）；沒寫就沿用當天的 */
   theme?: StreetTheme;
+  /** 第四章：押兵畫面上這條路看得到的樣子（一句一行） */
+  preview?: string[];
+  /** 第四章：押兵畫面上這條路的小字 */
+  note?: string;
 }
 
 export interface DayPlan {
@@ -57,6 +61,10 @@ export interface DayPlan {
   broadcast?: BroadcastOption[];
   /** 正式背景圖的主題（public/bg/bg_<art>_far.webp、_near.webp；有圖用圖，沒圖用 theme 的程式畫街景） */
   art?: string;
+  /** 第四章：日落傳消息之前播的對話（一句一行，「名字：「…」」） */
+  broadcastIntro?: string;
+  /** 第四章：傳消息畫面上的說明 */
+  broadcastNote?: string;
 }
 
 /** 第四章：一天的跟轎行程 */
@@ -67,10 +75,20 @@ export interface FollowPlan {
   hint: string;
   /** 轎子轉向之後的說明（押中、押錯都會看到） */
   turn: string;
-  /** 臨時轉進：甲乙都不是，轎子拐進第三個地方（沒得猜，事後才有解釋） */
-  detour?: { name: string; place: string; text: string; encounters: Encounter[]; why: string };
-  /** 停駕點：短暫休息 */
-  rest: { name: string; place: string; text: string; encounters: Encounter[] };
+  /** 押兵畫面上的說明（沒寫用預設的字） */
+  intro?: string;
+  /** 押兵畫面上列出已經拿到的線索（got：有沒有拿到） */
+  clues?: { text: string; got: (r: RunState) => boolean }[];
+  /** 押兵畫面上的提示（一句一行） */
+  hints?: string;
+  /** 押兵按鈕的字與小字（key：路線 id 或 'stay'） */
+  bets?: Record<string, { label: string; small: string }>;
+  /** 押完之後播的對話（押中／押錯／留在轎邊；轉向的 turn 先播） */
+  results?: { hit: string; miss: string; stay: string };
+  /** 臨時轉進：甲乙都不是，轎子拐進第三個地方（沒得猜，事後才有解釋）。story：轉進的過場 id（有演出腳本就播演出） */
+  detour?: { name: string; place: string; text: string; encounters: Encounter[]; why: string; story?: string };
+  /** 停駕點：短暫休息（art／theme：換街景，例如車行） */
+  rest: { name: string; place: string; text: string; encounters: Encounter[]; art?: string; theme?: StreetTheme };
   /** 駐駕：過夜的地方（日落畫面） */
   stay: { name: string; text: string };
 }
@@ -96,6 +114,8 @@ export interface BroadcastOption {
   tags: string[];
   /** 最後一戰人鏈多幾段 */
   chain: number;
+  /** 選完播的對話 */
+  said?: string;
 }
 
 // ---------- 可以重複用的事 ----------

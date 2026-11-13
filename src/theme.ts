@@ -78,4 +78,6 @@ export const WHO_COLOR: Record<string, number> = {
   太子: 0xffb347, 章將軍: 0x6fd39a, 霄將軍: 0xff7a6a, 柳將軍: 0xf2efe6, 廉將軍: 0xa8a8c8,
   文判官: 0x5ccfc0, 武判官: 0xd9824a, 七爺: 0xf4f1ea, 八爺: 0x9db4d8, 報馬仔: 0xffb62e,
   中軍府: 0xf0cc58, 巡捕: 0x9fb2c8, 轎班: 0xff6f4f,
+  // 第四章：前哨碎念、押尾收尾；問歸處的兩個鬼
+  前哨: 0xff9a6a, 押尾: 0x9fd8c8, 草鞋丁: 0x9fd0ff, 點心擔阿婆: 0xffc8a0,
 };

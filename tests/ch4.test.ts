@@ -19,6 +19,12 @@ import { CARRY, arrive, carrying, hasSlay, judgeGuihu, pending } from '../src/co
 import { dawnHeld } from '../src/core/dianjiang';
 import { impsFlee, moodOf, slayPreview } from '../src/core/renown';
 import { CH4_STAGE_FILES, bandLine4, jiaoKey } from '../src/art/baishadunSpec';
+import { STAGES } from '../src/content/stage';
+import { SPEAKERS, SPEAKER_TEX } from '../src/content/story';
+import { CUTSCENES4 } from '../src/content/ch4/story';
+import { BANTER4, DAY_BANTER4, NIGHT_BANTER4 } from '../src/content/ch4/banter';
+import { MISSED4 } from '../src/content/ch4/believers';
+import { splitStory } from '../src/ui/split';
 
 const r = () => state.run;
 const D1 = CHAPTER4.days[1];
@@ -104,8 +110,8 @@ describe('行轎岔路：押先鋒', () => {
       expect(impCleared(r(), e)).toBe(true);
       expect(visible(r(), e)).toBe(false);
     }
-    // 別的段落的小妖不受影響
-    expect(visible(r(), imp(D1, 'stray1c'))).toBe(true);
+    // 別的路的小妖不受影響
+    expect(visible(r(), imp(D1, 'stray1b'))).toBe(true);
   });
 
   it('押錯：兵馬要趕回來，少 1 時辰；小妖都還在', () => {
@@ -169,50 +175,57 @@ describe('岔路之後：轎子那條路 → 臨時轉進 → 停駕點 → post
 
 describe('牽路仔（ImpRule stray）', () => {
   const rule = CHAPTER4.imp;
-  it('規則：派兵回頭喊 1 時辰；花費文字寫出託點心站 0', () => {
+  /** 沒有點心站的牽路仔（第一天兩隻都有點心站，這裡自己做一隻） */
+  const bare: Imp = { kind: 'imp', id: 'bare', place: '隊尾', text: '', tex: 'qianlu' };
+  it('規則：派押尾回頭喊 1 時辰；花費文字寫出託點心站 0', () => {
     expect(rule.mode).toBe('stray');
     if (rule.mode !== 'stray') return;
     expect(rule.hours).toBe(1);
-    expect(summary(r(), imp(D1, 'stray1a')).cost).toBe('派兵回頭喊 1 時辰／託點心站 0');
-    expect(summary(r(), imp(D1, 'stray1p')).cost).toBe('派兵回頭喊 1 時辰');
+    expect(rule.verb).toBe('派押尾回頭喊他');
+    expect(summary(r(), imp(D1, 'stray1a')).cost).toBe('派押尾回頭喊他 1 時辰／託點心站 0');
+    expect(summary(r(), bare).cost).toBe('派押尾回頭喊他 1 時辰');
   });
 
   it('沒有點心站：只能派兵回頭喊（1 時辰）', () => {
-    const cs = strayChoices(r(), imp(D1, 'stray1p'), 'pre', 1);
+    const cs = strayChoices(r(), bare, 'pre', 1);
     expect(cs.map((c) => c.how)).toEqual(['shout']);
     r().hours = 3;
-    expect(resolveStray(r(), imp(D1, 'stray1p'), 'pre', 'shout', 1)).toBe(true);
+    expect(resolveStray(r(), bare, 'pre', 'shout', 1)).toBe(true);
     expect(r().hours).toBe(2);
   });
 
   it('時辰不夠就不能喊', () => {
     r().hours = 0;
-    const c = strayChoices(r(), imp(D1, 'stray1p'), 'pre', 1)[0];
+    const c = strayChoices(r(), bare, 'pre', 1)[0];
     expect(c.why).toContain('時辰不夠');
-    expect(resolveStray(r(), imp(D1, 'stray1p'), 'pre', 'shout', 1)).toBe(false);
+    expect(resolveStray(r(), bare, 'pre', 'shout', 1)).toBe(false);
   });
 
-  it('附近有點心站：託人顧 0 時辰，但那一攤這一段不能再幫別的', () => {
+  it('附近有點心站：託人顧 0 時辰，但那一攤這一段不能再幫別的（按鈕：託茶水攤顧）', () => {
     r().hours = 3;
     const a = imp(D1, 'stray1a');
-    expect(a.stall).toBe('海線點心站');
-    expect(strayChoices(r(), a, '甲', 1).find((c) => c.how === 'entrust')!.hours).toBe(0);
+    expect(a.stall).toBe('茶水攤');
+    const entrust = strayChoices(r(), a, '甲', 1).find((c) => c.how === 'entrust')!;
+    expect(entrust.hours).toBe(0);
+    expect(entrust.label).toBe('託茶水攤顧');
+    expect(entrust.cost).toContain('這一攤這段路不能再幫別的事');
     expect(resolveStray(r(), a, '甲', 'entrust', 1)).toBe(true);
     expect(r().hours).toBe(3);
-    expect(stallFree(r(), '甲', '海線點心站')).toBe(false);
+    expect(stallFree(r(), '甲', '茶水攤')).toBe(false);
     // 同一段同一攤：不能再託
     expect(strayChoices(r(), a, '甲', 1).find((c) => c.how === 'entrust')!.why).toContain('這一段已經在幫別的事');
     // 換一段（停駕點）：這攤又可以幫忙了
-    const c = imp(D1, 'stray1c');
-    expect(strayChoices(r(), c, 'rest', 1).find((x) => x.how === 'entrust')!.why).toBe('');
+    expect(strayChoices(r(), a, 'rest', 1).find((x) => x.how === 'entrust')!.why).toBe('');
   });
 
-  it('點心站用掉之後，信徒卡上要用同一攤的選項也不能選（同一段）', () => {
-    const arui = CARDS4.arui1(r())!;
-    const o = arui.options.find((x) => x.stall)!;
-    expect(optionWhy(r(), o, 'rest')).toBe('');
-    useStall(r(), 'rest', o.stall!);
-    expect(optionWhy(r(), o, 'rest')).toContain('這一段已經在幫別的事');
+  it('點心站用掉之後，信徒卡上要用同一攤的選項也不能選（同一段：阿滿姨「託茶水攤留她坐一下」與牽路仔互斥）', () => {
+    const aman = CARDS4.aman1(r())!;
+    const o = aman.options.find((x) => x.stall)!;
+    expect(o.stall).toBe('茶水攤');
+    expect(o.hours).toBe(0);
+    expect(optionWhy(r(), o, '甲')).toBe('');
+    useStall(r(), '甲', o.stall!);
+    expect(optionWhy(r(), o, '甲')).toContain('這一段已經在幫別的事');
   });
 
   it('略過：有人沒跟上（記遺憾），不加最後一戰的小妖', () => {
@@ -223,11 +236,14 @@ describe('牽路仔（ImpRule stray）', () => {
     expect(r().bossAdds).toBe(adds);
   });
 
-  it('牽路仔只在隊尾：每隻都標在「隊尾」；轎、頭旗、香擔不是路上的事（牠碰不到、玩家也點不到）', () => {
+  it('牽路仔只在隊尾：卡片標「隊尾」、隊伍畫面上從隊伍後面冒出來；轎、頭旗、香擔不是路上的事（牠碰不到、玩家也點不到）', () => {
     const all = Object.values(CHAPTER4.days).flatMap(allEncounters);
     const strays = all.filter((e): e is Imp => e.kind === 'imp');
-    expect(strays.length).toBeGreaterThanOrEqual(4);
-    for (const e of strays) expect(e.place, e.id).toContain('隊尾');
+    expect(strays.length).toBeGreaterThanOrEqual(3);
+    const day = raw('/scenes/DayScene.ts');
+    expect(day).toContain("{ s: '隊尾', color: '#6a4a8a' }");
+    expect(day).toContain("{ tex: e.tex, kind: 'imp', count: 1, tail: true }");
+    expect(raw('/scenes/BandScene.ts')).toContain('if (v.tail) {');
     const forbidden = ['st_jiao4_carry', 'st_jiao4_carry_closed', 'st_jiao4', 'st_jiao8_carry', 'st_touqi', 'st_xiangdan'];
     for (const e of all) if ('tex' in e) expect(forbidden.includes(e.tex), e.id).toBe(false);
   });
@@ -274,9 +290,11 @@ describe('日落傳消息：隔天事件池切換', () => {
 
   it('三個選項照計畫 §4 的表（拍什麼、明天多來的人、代價）', () => {
     expect(opts.map((o) => o.id)).toEqual(['garage', 'xiuzhi', 'none']);
-    expect(opts[0]).toMatchObject({ label: '轎子在車行過夜', brings: '看熱鬧的年輕人', cost: '多 2 件小事（鞋子、中暑），多 1 攤點心站' });
-    expect(opts[1]).toMatchObject({ label: '秀枝推輪椅跟在隊尾', brings: '帶病人來求的家屬', cost: '多 2 件很難辦的事，沒有多的幫手' });
-    expect(opts[2]).toMatchObject({ label: '什麼都不拍', brings: '沒有多的人', cost: '明天清閒，但第三天過溪時少一批會牽人的手' });
+    // 字照 _agent/ch4-text-day1.md 第 7 節
+    expect(opts[0]).toMatchObject({ label: '轎子在車行過夜', brings: '看熱鬧的年輕人', cost: '多 2 件小事（鞋子磨腳、中暑）；多 1 攤點心站可以託' });
+    expect(opts[1]).toMatchObject({ label: '秀枝推輪椅跟在隊尾', brings: '帶病人來求的家屬', cost: '多 2 件很難辦的事；沒有多的幫手' });
+    expect(opts[2]).toMatchObject({ label: '什麼都不拍', brings: '沒有', cost: '明天清閒；第三天過溪的時候，少一批會下水牽人的手' });
+    for (const o of opts) expect(o.said?.length, o.id).toBeGreaterThan(0);
   });
 
   it('拍車行過夜：明天出發後多 2 件小事，多 1 攤點心站（牽路仔旁邊）；人鏈 +1', () => {
@@ -350,7 +368,8 @@ describe('夜審「問歸處」與跨天佔格', () => {
   });
 
   it('該去的地方要先查明（needs）；草鞋丁該去北津、點心擔阿婆就在這裡下', () => {
-    expect(v('caoxie', 'tobeijin').needs).toEqual([0]);
+    // 草鞋丁：查明第 2 層（入伍前在轎前許過願，對照「沒落過地的草鞋」）才能帶去北津；阿婆：查明第 1 層（家就是這裡）
+    expect(v('caoxie', 'tobeijin').needs).toEqual([1]);
     expect(v('apo', 'here').needs).toEqual([0]);
     expect(v('xinniang', 'tohome').needs).toEqual([0]);
     expect(v('jiajiao', 'leave').needs).toEqual([0]);
@@ -454,6 +473,9 @@ describe('第四章內容一致性', () => {
   it('第一天的兩個鬼案（草鞋丁、點心擔阿婆）的證據都拿得到', () => {
     const ev = new Set(allEncounters(D1).flatMap((e) => (e.kind === 'clue' || e.kind === 'talk' ? [e.evidence] : [])));
     for (const e of allEncounters(D1)) if (e.kind === 'person') for (const o of CARDS4[e.card](r())?.options ?? []) for (const g of o.gives ?? []) ev.add(g);
+    // 收容時一起拿到的（草鞋）、黃曆上的文獻（路邊的鹹粥）
+    for (const e of allEncounters(D1)) if (e.kind === 'ghost') for (const g of CHAPTER4.cases[e.caseId].onCollect ?? []) ev.add(g);
+    for (const d of D1.docs) ev.add(d);
     for (const id of ['caoxie', 'apo']) for (const t of CHAPTER4.cases[id].truths) expect(t.evidence.some((x) => ev.has(x)), id).toBe(true);
   });
 
@@ -477,7 +499,7 @@ describe('第四章內容一致性', () => {
 
   it('序章、天亮前、結局、收尾的劇情 id 都存在；旁白不替媽祖講話（第四章劇情裡沒有神明說話者）', () => {
     const F = CHAPTER4.finale;
-    for (const s of [CHAPTER4.prologueStory!, F.story, F.recallStory, ...Object.values(F.endStory ?? {}), F.closeStory!]) {
+    for (const s of [CHAPTER4.prologueStory!, CHAPTER4.openingStory!, CHAPTER4.sliceStory!, F.story, F.recallStory, ...Object.values(F.endStory ?? {}), F.closeStory!, D1.follow!.detour!.story!]) {
       expect(CUTSCENES[s], s).toBeDefined();
       for (const l of CUTSCENES[s].lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who), s).toBe(false);
     }
@@ -529,11 +551,235 @@ describe('第四章暫代美術與畫面接法', () => {
     for (const k of CH4_STAGE_FILES) expect(doc, k).toContain(k);
   });
 
+  it('停駕點換成車行的街景（garage 背景圖的接點）；序章之後接起駕、試玩版天亮接天亮過場', () => {
+    expect(D1.follow!.rest.art).toBe('garage');
+    expect(raw('/scenes/DayScene.ts')).toContain('this.band.setScene(');
+    expect(raw('/scenes/AlmanacScene.ts')).toContain('CH().openingStory');
+    expect(raw('/scenes/TrialScene.ts')).toContain('CH().sliceStory');
+    expect(CHAPTER4.openingStory).toBe('qijia4');
+    expect(CHAPTER4.sliceStory).toBe('tianliang4_1');
+  });
+
   it('DayScene：跟轎的天用押兵畫面（不是二選一）；試玩版天亮後接 sliceEnd', () => {
     const day = raw('/scenes/DayScene.ts');
     expect(day).toContain("if (e === 'fork') return this.plan.follow ? this.showBet() : this.showFork();");
     const trial = raw('/scenes/TrialScene.ts');
     expect(trial).toContain("next: { key: 'sliceEnd' }");
     expect(raw('/scenes/SliceEndScene.ts')).toContain("super('sliceEnd')");
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// 第 2 輪：試玩段落換成正式文字（_agent/ch4-text-day1.md v0.1，作者尚未定稿）
+// ---------------------------------------------------------------------------------------------------------------
+const CH4_SRC = import.meta.glob(['../src/content/ch4/*.ts', '../src/content/stage/ch4.ts'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"\\])\/\/[^\n]*/g, '$1');
+/** 空的、或還是暫代字 */
+const stub = (s: string | undefined) => !s || !s.trim() || /待寫|【待定】/.test(s);
+const HEADER = '// 台詞：第四章試玩段落文字 v0.1（全部【待定】，作者尚未定稿）';
+
+describe('第一天試玩段落：正式文字', () => {
+  it('第一天每件事都有劇本的字（信徒卡、鬼、牽路仔、線索），不是暫代', () => {
+    const kinds = new Set<string>();
+    for (const e of allEncounters(D1)) {
+      kinds.add(e.kind);
+      if (e.kind === 'person') {
+        const c = CARDS4[e.card](r())!;
+        expect(c, e.id).toBeTruthy();
+        for (const s of [c.who, c.text, c.ignore]) expect(stub(s), `${e.id}：${s}`).toBe(false);
+        for (const o of c.options) {
+          expect(stub(o.label), e.id).toBe(false);
+          expect(stub(o.result), `${e.id} ${o.label}`).toBe(false);
+          if (o.report) continue;
+          startChapter('baishadun');
+          expect(stub(o.apply(r())), `${e.id} ${o.label}`).toBe(false);
+        }
+      } else if (e.kind === 'ghost') {
+        const k = CHAPTER4.cases[e.caseId];
+        expect(k.meet, e.id).toBeDefined();
+        for (const s of [k.daySight, k.harm, k.meet!.take, k.meet!.takeResult, k.meet!.taken, k.meet!.skip, k.meet!.left]) expect(stub(s), `${e.id}：${s}`).toBe(false);
+      } else if (e.kind === 'imp') {
+        expect(stub(e.text), e.id).toBe(false);
+      } else if (e.kind === 'clue') {
+        expect(stub(e.text), e.id).toBe(false);
+        expect(stub(e.story), e.id).toBe(false);
+      } else {
+        expect(stub(e.text), e.id).toBe(false);
+      }
+    }
+    expect([...kinds].sort()).toEqual(['clue', 'ghost', 'imp', 'person']);
+    // 行程上的字：岔路、行轎、押兵按鈕與小字、轉進、停駕、駐駕、傳消息
+    const f = D1.follow!;
+    const lines = [
+      f.hint, f.intro, f.hints, f.turn, f.results!.hit, f.results!.miss, f.results!.stay,
+      ...Object.values(f.bets!).flatMap((b) => [b.label, b.small]),
+      f.detour!.name, f.detour!.text, f.detour!.why, f.rest.name, f.rest.text, f.stay.name, f.stay.text,
+      ...D1.routes.flatMap((rt) => [rt.name, rt.note, ...(rt.preview ?? [])]),
+      D1.broadcastIntro, D1.broadcastNote, ...D1.broadcast!.flatMap((o) => [o.label, o.brings, o.cost, o.said]),
+      ...Object.values(D1.almanac(r())), CHAPTER4.unlocks![1].text,
+    ];
+    for (const s of lines) expect(stub(s), String(s)).toBe(false);
+    // 序章黃曆、擲筊（三個聖筊各一句）、序章那句話、試玩結束卡
+    for (const s of [...Object.values(CHAPTER4.prologue), CHAPTER4.jiao.ask, CHAPTER4.jiao.done, CHAPTER4.jiao.allHoly.text, CHAPTER4.prologueLine, CHAPTER4.sliceEnd!.text]) expect(stub(s), s).toBe(false);
+    expect(CHAPTER4.jiao.lines).toHaveLength(CHAPTER4.jiao.times);
+    // 夜裡：開場對話、說明；牽路仔兩種結果
+    expect(stub(CHAPTER4.trial.intro?.(1))).toBe(false);
+    expect(stub(CHAPTER4.trial.note)).toBe(false);
+    const rule = CHAPTER4.imp;
+    if (rule.mode === 'stray') for (const s of [rule.story, rule.entrustStory]) expect(stub(s)).toBe(false);
+  });
+
+  it('第四章內容檔都有檔頭註解；遊戲裡的字沒有【待定】、沒有阿哲', () => {
+    expect(Object.keys(CH4_SRC).length).toBeGreaterThanOrEqual(8);
+    for (const [f, src] of Object.entries(CH4_SRC)) {
+      expect(src.replace(/^\uFEFF/, '').startsWith(HEADER), f).toBe(true);
+      const code = stripComments(src);
+      expect(code.includes('【待定】'), f).toBe(false);
+      expect(code.includes('阿哲'), f).toBe(false);
+      expect(code.includes('azhe'), f).toBe(false);
+    }
+    // 實際產生的字（卡片辦成的結果、稟報、劇情、互嗆）也一樣
+    const out: string[] = [];
+    const walk = (v: unknown, depth = 0): void => {
+      if (depth > 8 || v == null) return;
+      if (typeof v === 'string') out.push(v);
+      else if (Array.isArray(v)) v.forEach((x) => walk(x, depth + 1));
+      else if (typeof v === 'object') Object.values(v as object).forEach((x) => walk(x, depth + 1));
+    };
+    walk({ ...CHAPTER4, days: undefined, cards: undefined });
+    walk(CUTSCENES4);
+    walk(BANTER4);
+    for (const p of Object.values(CHAPTER4.days)) {
+      walk({ ...p, almanac: undefined });
+      walk(p.almanac(r()));
+    }
+    for (const f of Object.values(CARDS4)) {
+      startChapter('baishadun');
+      const c = f(r());
+      walk(c);
+      for (const o of c?.options ?? []) {
+        startChapter('baishadun');
+        out.push(o.apply(r()));
+        if (o.report) out.push(o.report.stop, o.report.pass);
+      }
+    }
+    const text = out.join('\n');
+    expect(text.length).toBeGreaterThan(3000);
+    expect(text.includes('【待定】')).toBe(false);
+    expect(text.includes('阿哲')).toBe(false);
+    expect(text).toContain('阿睿');
+  });
+
+  it('三條線索都指向甲（防風林老路），轎子真的走甲；線索一必得、二要辦阿睿、三要問阿桑', () => {
+    const f = D1.follow!;
+    expect(f.goes).toBe('甲');
+    expect(D1.routes.find((x) => x.id === '甲')!.name).toBe('防風林老路');
+    expect(f.clues).toHaveLength(3);
+    for (const c of f.clues!) expect(c.text, c.text).toContain('老路');
+    expect(f.clues!.map((c) => c.got(r()))).toEqual([true, false, false]);
+    CARDS4.arui1(r())!.options[0].apply(r());
+    expect(f.clues!.map((c) => c.got(r()))).toEqual([true, true, false]);
+    CARDS4.oajian1(r())!.options[0].apply(r());
+    expect(f.clues!.map((c) => c.got(r()))).toEqual([true, true, true]);
+    // 問過的阿桑不再出現
+    expect(CARDS4.oajian1(r())).toBeNull();
+    expect(betOutcome(D1, '甲').result).toBe('hit');
+    // 押兵按鈕照劇本（押甲、押乙、留在轎邊），三種都會播行轎演出
+    expect(Object.keys(f.bets!).sort()).toEqual(['stay', '乙', '甲'].sort());
+    expect(raw('/scenes/DayScene.ts')).toContain('`${f.turn}\\n${f.results[o.result]}`');
+  });
+
+  it('問歸處：兩個鬼都有四種歸處；草鞋丁該帶去北津、點心擔阿婆就在這裡下；每種判決都有劇本的話', () => {
+    const right: Record<string, string> = { caoxie: 'tobeijin', apo: 'here' };
+    for (const [id, want] of Object.entries(right)) {
+      const k = CHAPTER4.cases[id];
+      expect(k.verdicts.map((v) => v.verdict), id).toEqual(['tobeijin', 'tohome', 'here', 'leave']);
+      expect(k.verdicts.filter((v) => v.needs).map((v) => v.verdict), id).toEqual([want]);
+      for (const v of k.verdicts) {
+        expect(stub(v.result), `${id} ${v.verdict}`).toBe(false);
+        expect(stub(v.after), `${id} ${v.verdict}`).toBe(false);
+      }
+      // 三層真相、三句話，每句都可以再問
+      expect(k.truths, id).toHaveLength(3);
+      expect(k.statements, id).toHaveLength(3);
+      expect(k.press, id).toHaveLength(3);
+      expect(k.pressQ, id).toHaveLength(3);
+      for (const t of k.truths) for (const s of [t.summary, t.reveal]) expect(stub(s), id).toBe(false);
+      for (const s of [...k.statements, ...k.press, k.wrong, k.daySight]) expect(stub(s), id).toBe(false);
+    }
+    expect(CHAPTER4.verdictName.tobeijin).toBe('帶去北津');
+    expect(CHAPTER4.verdictName.here).toBe('就在這裡下');
+    // 判決之後播劇本的話（不再加系統的那兩行）
+    expect(raw('/scenes/TrialScene.ts')).toContain('v.after ? [v.after]');
+  });
+
+  it('演出腳本：起駕、轉進車行用程式畫的轎（扛轎 → 落地換 st_jiao4）；照抄每一句、沒有補寫；媽祖不說話、沒有旨意', () => {
+    for (const id of ['qijia4', 'zhuanjin4']) {
+      const sc = STAGES[id];
+      expect(sc, id).toBeDefined();
+      expect(sc.actors.find((a) => a.id === 'jiao')?.tex, id).toBe('st_jiao4_carry');
+      expect(sc.actors.some((a) => a.tex === 'decree'), id).toBe(false);
+      expect(sc.beats.map((b) => b.src), id).toEqual(CUTSCENES4[id].lines.map((_, i) => i));
+      expect(sc.beats.some((b) => b.draft), id).toBe(false);
+    }
+    expect(STAGES.zhuanjin4.beats.some((b) => b.moves?.some((m) => m.id === 'jiao' && m.tex === 'st_jiao4'))).toBe(true);
+    // 臨時轉進的過場由 DayScene 蓋在畫面上播
+    expect(D1.follow!.detour!.story).toBe('zhuanjin4');
+    expect(raw('/scenes/DayScene.ts')).toContain('playStory(this, d.story');
+    // 說話的人都在 SPEAKERS；沒有叫「媽祖」的說話者
+    for (const [id, cs] of Object.entries(CUTSCENES4)) for (const l of cs.lines) if (l.who !== 'narrator') expect(SPEAKERS[l.who], `${id} ${l.who}`).toBeDefined();
+    for (const s of Object.values(SPEAKERS)) expect(s.name.includes('媽祖'), s.name).toBe(false);
+    for (const n of ['前哨', '押尾', '頭旗手', '阿睿', '阿滿姨', '賢仔', '秀枝', '阿翰', '草鞋丁', '點心擔阿婆', '香燈腳們']) {
+      expect(Object.values(SPEAKERS).some((s) => s.name === n), n).toBe(true);
+    }
+  });
+
+  it('白天對話裡「名字：「……」」那句算那個人說的（有小人貼圖）', () => {
+    const lines = splitStory('押尾走回隊尾。\n押尾：「金水伯。隊伍在這邊。」\n牽路仔：「嘖。」', undefined, SPEAKER_TEX);
+    expect(lines.map((l) => l.name ?? '')).toEqual(['', '押尾', '牽路仔']);
+    expect(lines[1].tex).toBe(SPEAKER_TEX['押尾']);
+    // 沒給名字表：照舊（第一～三章不受影響）
+    expect(splitStory('押尾：「金水伯。」').map((l) => l.name)).toEqual([undefined, undefined]);
+  });
+
+  it('互嗆：白天 12 組、夜裡 12 組；每個場合都接到畫面上', () => {
+    expect(DAY_BANTER4.length).toBeGreaterThanOrEqual(12);
+    expect(NIGHT_BANTER4.length).toBeGreaterThanOrEqual(12);
+    expect(CHAPTER4.banter).toBe(BANTER4);
+    // 每一組都至少用在一個場合
+    const used = new Set(Object.values(BANTER4).flat());
+    for (const set of [...DAY_BANTER4, ...NIGHT_BANTER4]) expect(used.has(set), set[0].text).toBe(true);
+    const day = raw('/scenes/DayScene.ts');
+    const trial = raw('/scenes/TrialScene.ts');
+    const hooked = (k: string) => day.includes(`'${k}'`) || trial.includes(`'${k}'`)
+      || (k.startsWith('walk') && day.includes('`walk${this.plan.day}`'))
+      || (k.startsWith('bet_') && day.includes('`bet_${o.result}`'))
+      || (k.startsWith('t_open_') && trial.includes('`t_open_${k.id}`'))
+      || (/^t_(tobeijin|tohome|here|leave)$/.test(k) && trial.includes('`t_${v.verdict}`'));
+    for (const k of Object.keys(BANTER4)) expect(hooked(k), k).toBe(true);
+  });
+
+  it('天亮：舊灶那一句只在阿婆判「就在這裡下」時播；略過的信徒卡，天亮寫出沒辦的結果', () => {
+    const line = CUTSCENES4.tianliang4_1.lines.find((l) => l.when)!;
+    expect(line.text).toContain('舊灶');
+    expect(line.when!(r())).toBe(false);
+    r().cases.apo = { truths: [0], verdict: 'here' };
+    expect(line.when!(r())).toBe(true);
+    expect(CHAPTER4.dawn(r(), 1)).toEqual([]);
+    r().flags.missed_aman1 = true;
+    r().flags.missed_xiuzhi1 = true;
+    expect(CHAPTER4.dawn(r(), 1)).toEqual([MISSED4.aman1, MISSED4.xiuzhi1]);
+    for (const id of ['aman1', 'arui1', 'xianzai1', 'xiuzhi1', 'ahan1']) expect(CARDS4[id](r())!.missed, id).toBe(MISSED4[id]);
+  });
+
+  it('稟報：阿滿姨、秀枝、阿翰三張卡可以稟報，報了轎子照常往前走（第一天不停）', () => {
+    for (const id of ['aman1', 'xiuzhi1', 'ahan1']) {
+      startChapter('baishadun');
+      const o = CARDS4[id](r())!.options.find((x) => x.report)!;
+      expect(o.label, id).toBe('稟報');
+      const out = report(r(), o);
+      expect(out.stops, id).toBe(false);
+      expect(out.text).toContain('轎子照常往前走');
+    }
   });
 });

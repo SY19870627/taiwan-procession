@@ -32,6 +32,8 @@ export interface Visitor {
   kind: 'person' | 'ghost' | 'imp' | 'clue';
   /** 小妖一次出現幾隻 */
   count?: number;
+  /** 第四章牽路仔：從隊伍後面（隊尾）冒出來，不是從前方走近 */
+  tail?: boolean;
 }
 
 export class BandScene extends Phaser.Scene {
@@ -136,9 +138,37 @@ export class BandScene extends Phaser.Scene {
       c.addAt(glow, 0);
     }
     this.visitor = c;
+    if (v.tail) {
+      // 隊尾：從畫面左邊（隊伍後面）追上來，停在最後一個人旁邊；牠面向隊伍（朝右）
+      for (const o of c.list) if (o instanceof Phaser.GameObjects.Image) o.setFlipX(false);
+      const last = Math.min(...this.members.map((m) => m.img.x), 400);
+      c.setX(-160).setData('tailing', true);
+      this.arrive = undefined;
+      this.walking = true;
+      this.tweens.add({
+        targets: c, x: Math.max(80, last - 110), duration: 1400, ease: 'Sine.out',
+        onComplete: () => { c.setData('tailing', false); this.walking = false; done(); },
+      });
+      return;
+    }
     this.target = 1020;
     this.arrive = done;
     this.walking = true;
+  }
+
+  /** 換街景與正式背景圖（第四章停駕點：車行 garage）；畫面暗一下再換 */
+  setScene(theme: StreetTheme, art: string | undefined, hour: number, done?: () => void): void {
+    if (this.street.themeName === theme && this.art === art) return done?.();
+    this.art = art;
+    const cam = this.cameras.main;
+    cam.fadeOut(220, 10, 8, 18);
+    cam.once('camerafadeoutcomplete', () => {
+      this.street.destroy();
+      this.hour = hour;
+      this.street = new Street(this, { night: false, theme, hour, reverse: this.reverse, art });
+      cam.fadeIn(320, 10, 8, 18);
+      done?.();
+    });
   }
 
   /** 處理完（或略過）：隊伍繼續走，那個東西往後退出畫面 */
@@ -299,7 +329,7 @@ export class BandScene extends Phaser.Scene {
     if (!this.walking) this.street.idle(dt);
     if (this.walking) {
       this.street.update(dt, SPEED);
-      if (this.visitor) {
+      if (this.visitor && !this.visitor.getData('tailing')) {
         this.visitor.x -= SPEED * dt;
         if (this.arrive && this.visitor.x <= this.target) {
           this.visitor.x = this.target;

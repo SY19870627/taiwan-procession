@@ -161,7 +161,7 @@ export function strayChoices(r: RunState, e: Extract<Encounter, { kind: 'imp' }>
   }];
   if (e.stall) {
     out.push({
-      how: 'entrust', label: '託點心站', hours: 0, cost: `0 時辰・「${e.stall}」這一段不能再幫別的`,
+      how: 'entrust', label: `託${e.stall}顧`, hours: 0, cost: `0 時辰・這一攤這段路不能再幫別的事`,
       why: stallFree(r, seg, e.stall) ? '' : `「${e.stall}」這一段已經在幫別的事`,
     });
   }

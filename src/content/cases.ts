@@ -85,6 +85,8 @@ export interface VerdictDef {
   extra?: { test: (r: import('../state').RunState) => boolean; why: string };
   /** 判決選項上寫明的結果 */
   result: string;
+  /** 第四章：判決之後播的話（沒寫就用 result） */
+  after?: string;
 }
 
 // ---------- 第三章：點將問罪（見 docs/第三章_開發計畫.md §2.3） ----------
@@ -156,6 +158,10 @@ export interface GhostCase {
   dossier?: (Defect | null)[];
   /** 追問每一句時多說的話 */
   press: string[];
+  /** 第四章：追問時問的那一句（顯示在回答前面） */
+  pressQ?: string[];
+  /** 第四章：白天遇到時的按鈕字與結果（帶走／先不帶） */
+  meet?: { take: string; takeResult: string; taken: string; skip: string; left: string };
   truths: Truth[];
   /** 出示錯的證據時的反應 */
   wrong: string;

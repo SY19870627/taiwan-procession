@@ -6,6 +6,7 @@ import { fitBattleArt } from '../art/xinyingBattle';
 import { Dialogue } from '../ui/dialogue';
 import { StagePlayer } from '../ui/stage';
 import { button, go, txt } from '../ui/widgets';
+import { run } from '../state';
 
 export interface StoryData {
   id: string;
@@ -121,7 +122,8 @@ export class StoryScene extends Phaser.Scene {
         }
       }
     };
-    const dlg = new Dialogue(this, cs.lines, finish, fx);
+    // 有條件的句子（第四章天亮：阿婆判「就在這裡下」才有那一句）只在條件成立時播
+    const dlg = new Dialogue(this, cs.lines.filter((l) => !l.when || l.when(run)), finish, fx);
     button(this, W - 90, 40, 120, 50, '略過 ▶▶', () => dlg.skip(), { size: 18, fill: 0x2a2236 }).setDepth(700);
   }
 }

@@ -39,6 +39,8 @@ export class SliceEndScene extends Phaser.Scene {
       lines.push(`頭旗下跟著走的：${run.held.length}／${run.slots} 格`);
       if (f.strayed) lines.push(`沒跟上的人：${f.strayed} 位`);
     }
+    // 昨天沒辦的事（略過的信徒卡的「沒辦結果」）
+    if (run.yesterday?.length) lines.push('', ...run.yesterday);
     txt(this, x + 32, y + 110, lines.join('\n'), 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: pw - 64, useAdvancedWrap: true } });
     button(this, W / 2, H - 200, 300, 76, '回出巡圖', () => go(this, 'chapters'), { size: 28, fill: 0x8a1b14 });
     button(this, W / 2, H - 110, 300, 64, '回標題', () => go(this, 'title'), { size: 24, fill: 0x3a3442 });

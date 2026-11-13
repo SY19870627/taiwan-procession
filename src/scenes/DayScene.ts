@@ -23,6 +23,23 @@ import {
   REPORT_NOTE, afterFork, applyBroadcast, beforeFork, betChoices, followOf, optionWhy, report, resolveBet, resolveStray,
   skipStray, strayChoices, useStall, type Step,
 } from '../core/procession';
+import { SPEAKER_TEX } from '../content/story';
+import { playStory } from './StoryScene';
+
+/** 第四章：故事裡「名字：「……」」的那句算那個人說的（ui/split.ts）；前三章照舊 */
+const say = (story: string, who?: { name: string; tex?: string; ghost?: boolean }) => splitStory(story, who, CH().follow ? SPEAKER_TEX : undefined);
+
+/** 按鈕上的字太長就斷成兩行（逗號、冒號後面優先） */
+function twoLines(label: string): string {
+  if (label.length <= 7) return label;
+  const mid = Math.ceil(label.length / 2);
+  let at = -1;
+  for (let d = 0; d <= 4 && at < 0; d++) {
+    for (const i of [mid + d, mid - d]) if (/[，：、]/.test(label[i - 1] ?? '')) { at = i; break; }
+  }
+  if (at < 0) at = mid;
+  return `${label.slice(0, at)}\n${label.slice(at)}`;
+}
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -64,6 +81,8 @@ export class DayScene extends Phaser.Scene {
   /** 岔路換了街景時：會合後（queue 的這一格起）換回當天的街景 */
   private rejoinAt = -1;
   private busy = false;
+  /** 第四章：日落傳消息前的對話播過了 */
+  private broadcastHeard = false;
   /** 互嗆台詞輪到第幾組 */
   private banterN: Record<string, number> = {};
   /** 走近第幾件事（第三章：每走三件事冒一組走路的互嗆） */
@@ -89,6 +108,7 @@ export class DayScene extends Phaser.Scene {
     this.caught = undefined;
     this.redraw = undefined;
     this.busy = false;
+    this.broadcastHeard = false;
     // 第四章跟轎：出發後的事依前一天傳消息的標籤加（core/procession.ts）；其他章照舊
     this.queue = this.plan.follow ? beforeFork(this.plan, run) : [...this.plan.pre, 'fork'];
     this.seg = 'pre';
@@ -467,7 +487,12 @@ export class DayScene extends Phaser.Scene {
     if (e === 'rest') return this.showRest();
     // 走近的這段時間，面板上還是上一件事的卡片：先擋住，免得按到舊卡片的「略過」把走近的這件事一起略過
     this.busy = true;
-    if (this.walkN++ % 3 === 1) this.banter(`walk${this.plan.day}`);
+    // 第四章：走近時先看到的樣子（預覽）
+    const peek = 'peek' in e ? e.peek : undefined;
+    if (peek) this.panelMsg(e.place, peek);
+    const stray = e.kind === 'imp' && CH().imp.mode === 'stray';
+    if (stray) this.banter('stray');
+    else if (this.walkN++ % 3 === 1) this.banter(`walk${this.plan.day}`);
     this.band.approach(this.visitorOf(e), () => { this.busy = false; this.show(e); });
   }
 
@@ -476,7 +501,8 @@ export class DayScene extends Phaser.Scene {
       case 'person': return { tex: e.tex, kind: 'person' };
       case 'talk': return { tex: e.tex, kind: 'person' };
       case 'ghost': return { tex: CH().cases[e.caseId].tex, kind: 'ghost' };
-      case 'imp': return { tex: e.tex, kind: 'imp', count: 3 };
+      // 第四章牽路仔：只找隊尾落隊的人，從隊伍後面冒出來（一隻）
+      case 'imp': return CH().imp.mode === 'stray' ? { tex: e.tex, kind: 'imp', count: 1, tail: true } : { tex: e.tex, kind: 'imp', count: 3 };
       case 'clue': return { tex: 'spark', kind: 'clue' };
     }
   }
@@ -486,7 +512,7 @@ export class DayScene extends Phaser.Scene {
    * 播完如果拿到證據，面板列出來；沒有就直接繼續走。
    */
   private after(story: string, gained: string[], who?: { name: string; tex?: string; ghost?: boolean }): void {
-    talk(this, splitStory(story, who), () => {
+    talk(this, say(story, who), () => {
       if (!gained.length) {
         this.busy = true;
         this.band.pass(false, () => { this.busy = false; this.next(); });
@@ -575,16 +601,20 @@ export class DayScene extends Phaser.Scene {
     const optH = Math.max(96, resT.y + resT.height + 14 - y);
     g.fillStyle(gold ? 0x5a3a10 : 0x2f3a4a, why ? 0.35 : 0.8);
     g.fillRoundedRect(p.x + 16, y, p.w - 32, optH - 8, 10);
-    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, 52, label, onPick, { size: label.length > 9 ? 15 : label.length > 6 ? 18 : label.length > 4 ? 20 : 24, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
+    // 第四章的按鈕字比較長（例如「起一陣風，讓隔壁的阿伯看到他的腳」）：斷成兩行
+    const lab = this.plan.follow ? twoLines(label) : label;
+    const longest = Math.max(...lab.split('\n').map((s) => s.length));
+    const size = lab.includes('\n') ? (longest > 8 ? 15 : 17) : label.length > 9 ? 15 : label.length > 6 ? 18 : label.length > 4 ? 20 : 24;
+    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, lab.includes('\n') ? 64 : 52, lab, onPick, { size, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
     b.setEnabled(!why);
     return y + optH;
   }
 
-  private skipRow(p: { x: number; w: number }, y: number, ignore: string, onSkip: () => void): void {
+  private skipRow(p: { x: number; w: number }, y: number, ignore: string, onSkip: () => void, label = '略過'): void {
     const g = this.add2(this.add.graphics());
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 24, y + 2, p.x + p.w - 24, y + 2);
-    this.add2(button(this, p.x + 106, y + 40, 164, 52, '略過', onSkip, { size: 22, fill: 0x3a3442 }));
+    this.add2(button(this, p.x + 106, y + 40, 164, 52, label, onSkip, { size: 22, fill: 0x3a3442 }));
     this.add2(txt(this, p.x + 200, y + 18, `不處理：${ignore}`, 19, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
   }
 
@@ -639,7 +669,11 @@ export class DayScene extends Phaser.Scene {
     for (const o of card.options) {
       y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }), !!o.miracle || !!o.report);
     }
-    this.skipRow(p, y, card.ignore, () => this.skip());
+    this.skipRow(p, y, card.ignore, () => {
+      // 第四章：略過的事，天亮「昨日」寫出沒辦的結果
+      if (card.missed && !this.busy) run.flags[`missed_${e.card}`] = true;
+      this.skip();
+    });
   }
 
   private choosePerson(o: Option, who: { name: string; tex: string }): void {
@@ -682,17 +716,26 @@ export class DayScene extends Phaser.Scene {
     const later = laterSightings(k.id, this.plan.day);
     // 細節（審清楚的好處、缺哪些證據）收在令旗下的格子裡，點了看
     const info = [
-      `牽連：${k.affects}`,
+      ...(k.affects ? [`牽連：${k.affects}`] : []),
       `證據 ${have.length}／${evs.length}・${later.length ? `之後在${later[0]}還會遇到` : '今天不收，之後就遇不到了'}`,
     ].join('\n');
     const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
-    const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, { s: '有冤情的鬼', color: '#2b5aa8' }, k.tex, true, k.id);
+    // 第四章的鬼不是「有冤情」：是沒地方去、要帶到歸處的
+    const tag = k.meet ? { s: '沒地方去的', color: '#2b5aa8' } : { s: '有冤情的鬼', color: '#2b5aa8' };
+    const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, tag, k.tex, true, k.id);
     const full = run.held.length >= run.slots;
-    const why = full ? '收容格滿了' : this.hoursWhy(hours);
+    const why = full ? `${CH().held.label}的格子滿了` : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));
     const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔 1 格（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
-    const y = this.optionRow(p, y0, '收容', cost, `帶回${CH().held.label}，今晚夜審`, why, () => this.collect(e, hours));
-    this.skipRow(p, y, k.harm, () => this.skip());
+    const m = k.meet;
+    const y = this.optionRow(p, y0, m?.take ?? '收容', cost, m?.takeResult ?? `帶回${CH().held.label}，今晚夜審`, why, () => this.collect(e, hours));
+    this.skipRow(p, y, k.harm, () => {
+      if (!m) return this.skip();
+      // 第四章：先不帶，播他自己走開的樣子
+      if (this.busy) return;
+      this.busy = true;
+      talk(this, say(m.left), () => { this.busy = false; this.skip(); });
+    }, m?.skip);
   }
 
   /**
@@ -844,7 +887,7 @@ export class DayScene extends Phaser.Scene {
     this.band.collect(() => {
       this.busy = false;
       this.drawSlots(e.caseId);
-      this.after(CH().held.collect(k.dayName), gained);
+      this.after(k.meet?.taken ?? CH().held.collect(k.dayName), gained, k.meet ? { name: k.name, tex: k.tex, ghost: true } : undefined);
     });
   }
 
@@ -916,7 +959,7 @@ export class DayScene extends Phaser.Scene {
     let y = y0;
     for (const c of strayChoices(run, e, this.seg, rule.hours)) {
       const res = c.how === 'shout' ? rule.result : '點心站的人幫忙把人拉回來';
-      y = this.optionRow(p, y, c.label, c.cost, res, c.why, () => {
+      y = this.optionRow(p, y, c.how === 'shout' ? rule.verb : c.label, c.cost, res, c.why, () => {
         if (this.busy || !resolveStray(run, e, this.seg, c.how, rule.hours)) return;
         this.busy = true;
         this.refreshHeader();
@@ -935,7 +978,7 @@ export class DayScene extends Phaser.Scene {
       if (this.busy || !this.spend(e.hours)) return;
       this.busy = true;
       gainEvidence(e.evidence);
-      this.band.take(() => { this.busy = false; this.after(CH().evidence[e.evidence].text, [e.evidence]); });
+      this.band.take(() => { this.busy = false; this.after(e.story ?? CH().evidence[e.evidence].text, [e.evidence]); });
     });
     this.skipRow(p, y, '少一件證據', () => this.skip());
   }
@@ -1022,20 +1065,62 @@ export class DayScene extends Phaser.Scene {
    */
   private showBet(): void {
     const f = this.plan.follow!;
+    this.banter('bet');
+    // 第四章（有線索、路況的天）：先看路況與線索，再押兵（一頁放不下）
+    if (f.clues?.length || this.plan.routes.some((rt) => rt.preview)) return this.showBetInfo();
+    this.showBetPick();
+  }
+
+  /** 岔路口的路況：說明、已經拿到的線索、兵馬的提示、兩條路看得到的樣子 */
+  private showBetInfo(): void {
+    const f = this.plan.follow!;
     const p = this.resetSide();
+    const wrap = { bold: false, lineSpacing: 5, wordWrap: { width: p.w - 48, useAdvancedWrap: true } };
     this.add2(txt(this, p.x + 24, p.y + 14, '行轎岔路', 30, C.gold, { serif: true }));
-    const intro = this.add2(txt(this, p.x + 24, p.y + 58, `轎子往哪走，只有媽祖知道。你能決定的是先鋒兵馬先押在哪條路等。\n${f.hint}`, 19, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    const intro = this.add2(txt(this, p.x + 24, p.y + 58, `${f.hint}\n${f.intro ?? ''}`, 19, C.paper, wrap));
     let y = intro.y + intro.height + 12;
+    // 已經拿到的線索（拿到任何一條都指向轎子會走的那條）
+    if (f.clues?.length) {
+      const got = f.clues.filter((c) => c.got(run)).map((c) => `・${c.text}`);
+      const t = this.add2(txt(this, p.x + 24, y, `已經知道的（${got.length}／${f.clues.length}）：\n${got.join('\n')}`, 18, 0xffd76a, wrap));
+      y = t.y + t.height + 10;
+    }
+    if (f.hints) {
+      const t = this.add2(txt(this, p.x + 24, y, f.hints, 18, C.paper, wrap));
+      y = t.y + t.height + 12;
+    }
+    for (const rt of this.plan.routes) {
+      const body = rt.preview ? `\n${rt.preview.join('\n')}${rt.note ? `\n（${rt.note}）` : ''}` : '';
+      const t = this.add2(txt(this, p.x + 24, y, `${rt.id}・${rt.name}${body}`, 18, rt.color, { ...wrap, bold: true }));
+      y = t.y + t.height + 10;
+    }
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 56, 300, 70, '決定前哨去哪', () => {
+      if (this.busy) return;
+      this.showBetPick();
+    }, { size: 24, fill: 0x8a1b14 }));
+  }
+
+  /** 押兵：押甲／押乙／留在轎邊（每個選項寫明押中、押錯各會怎樣） */
+  private showBetPick(): void {
+    const f = this.plan.follow!;
+    const p = this.resetSide();
+    const wrap = { bold: false, lineSpacing: 5, wordWrap: { width: p.w - 48, useAdvancedWrap: true } };
+    this.add2(txt(this, p.x + 24, p.y + 14, '行轎岔路', 30, C.gold, { serif: true }));
+    const intro = this.add2(txt(this, p.x + 24, p.y + 58, f.intro ?? `轎子往哪走，只有媽祖知道。你能決定的是先鋒兵馬先押在哪條路等。\n${f.hint}`, 19, C.paper, wrap));
+    let y = intro.y + intro.height + 10;
     // 兩條路上看得到什麼（哪邊有小妖、哪邊有人在等）
     for (const rt of this.plan.routes) {
       const list = rt.encounters.filter((e) => visible(run, e)).map((e) => summary(run, e).icon).join('');
-      const t = this.add2(txt(this, p.x + 24, y, `${rt.id}・${rt.name}：${list || '（看不出有什麼）'}`, 19, rt.color, { bold: true, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+      const t = this.add2(txt(this, p.x + 24, y, `${rt.id}・${rt.name}：${list || '（看不出有什麼）'}`, 19, rt.color, { ...wrap, bold: true }));
       y = t.y + t.height + 6;
     }
     y += 6;
+    if (f.clues?.length) this.add2(button(this, p.x + p.w - 90, p.y + 30, 140, 44, '◀ 再看路況', () => { if (!this.busy) this.showBetInfo(); }, { size: 18, fill: 0x3a3442 }));
     for (const c of betChoices(this.plan)) {
       const stay = c.bet === 'stay';
-      y = this.optionRow(p, y, c.label, stay ? '先鋒留在轎邊' : `押中：${c.ifRight}`, stay ? '不賺不賠' : `押錯：${c.ifWrong}`, '', () => this.bet(c.bet), !stay);
+      const own = f.bets?.[c.bet];
+      if (own) y = this.optionRow(p, y, own.label, own.small, '', '', () => this.bet(c.bet), !stay);
+      else y = this.optionRow(p, y, c.label, stay ? '先鋒留在轎邊' : `押中：${c.ifRight}`, stay ? '不賺不賠' : `押錯：${c.ifWrong}`, '', () => this.bet(c.bet), !stay);
     }
   }
 
@@ -1050,13 +1135,25 @@ export class DayScene extends Phaser.Scene {
     const res = o.result === 'hit'
       ? `押中了。先鋒已經在${f.goes}路等著${o.cleared.length ? '，路上的牽路仔先清掉了' : ''}。時辰 ${diff >= 0 ? '+' : ''}${diff}。`
       : o.result === 'miss' ? `押錯了。先鋒兵馬要從另一條路趕回來。時辰 ${diff}。` : '先鋒留在轎邊。不賺不賠。';
-    this.banter('fork');
-    this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${f.turn}\n\n${res}`, '跟上', () => {
+    const go2 = () => {
       this.queue = afterFork(this.plan, run);
       this.idx = 0;
       this.seg = f.goes;
       this.busy = true;
       this.band.walk(700, () => { this.busy = false; this.next(); });
+    };
+    if (!f.results) {
+      this.banter('fork');
+      this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${f.turn}\n\n${res}`, '跟上', go2);
+      return;
+    }
+    // 第四章：行轎演出（三個選項都播）→ 押中／押錯／留在轎邊的對話 → 實際時辰變化
+    this.busy = true;
+    talk(this, say(`${f.turn}\n${f.results[o.result]}`), () => {
+      this.busy = false;
+      this.banter(`bet_${o.result}`);
+      const real = `時辰 ${diff >= 0 ? '+' : ''}${diff}（剩 ${run.hours}）`;
+      this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${f.results![o.result].split('\n').pop()}\n${real}`, '跟上', go2);
     });
   }
 
@@ -1066,7 +1163,10 @@ export class DayScene extends Phaser.Scene {
     this.seg = 'detour';
     this.stepPanel(`臨時轉進・${d.name}`, `${d.text}\n\n（這一次沒得猜，只能跟。）`, '跟進去', () => {
       this.busy = true;
-      this.band.walk(700, () => { this.busy = false; this.next(); });
+      const walk = () => this.band.walk(700, () => { this.busy = false; this.next(); });
+      // 第四章：轉進的過場（有演出腳本就播演出，見 content/stage/ch4.ts）
+      if (d.story) playStory(this, d.story, () => { this.banter('detour'); walk(); });
+      else walk();
     });
   }
 
@@ -1075,10 +1175,11 @@ export class DayScene extends Phaser.Scene {
     this.stepPanel('事後才知道', d.why, '繼續', () => this.next());
   }
 
-  /** 停駕點：短暫休息（之後是會合後的事、駐駕） */
+  /** 停駕點：短暫休息（之後是會合後的事、駐駕）。有寫 art／theme 就換街景（第四章：賢仔車行） */
   private showRest(): void {
     const r = this.plan.follow!.rest;
     this.seg = 'rest';
+    if (r.art || r.theme) this.band.setScene(r.theme ?? this.plan.theme, r.art, this.hourNow());
     this.stepPanel(`停駕・${r.name}`, r.text, '繼續', () => {
       this.busy = true;
       this.band.walk(500, () => { this.busy = false; this.next(); });
@@ -1090,13 +1191,21 @@ export class DayScene extends Phaser.Scene {
     let y = y0;
     this.add2(txt(this, p.x + 24, y, '傳消息：讓跟轎台拍到哪一件？', 22, C.gold, { serif: true }));
     y += 40;
+    if (this.plan.broadcastNote) {
+      const t = this.add2(txt(this, p.x + 24, y, this.plan.broadcastNote, 18, C.muted, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+      y = t.y + t.height + 10;
+    }
     for (const o of this.plan.broadcast ?? []) {
       const none = !o.tags.length || o.chain === 0;
-      y = this.optionRow(p, y, none ? '不拍' : '讓他拍', `拍到：${o.label}・明天多來：${o.brings}`, `明天的代價：${o.cost}`, '', () => {
+      const pick = () => {
         if (this.busy) return;
         applyBroadcast(run, this.plan.day, o);
-        this.endDay();
-      }, !none);
+        if (!o.said) return this.endDay();
+        this.busy = true;
+        talk(this, say(o.said), () => { this.busy = false; this.endDay(); });
+      };
+      if (o.said) y = this.optionRow(p, y, o.label, `明天多來的人：${o.brings}`, `明天的代價：${o.cost}`, '', pick, !none);
+      else y = this.optionRow(p, y, none ? '不拍' : '讓他拍', `拍到：${o.label}・明天多來：${o.brings}`, `明天的代價：${o.cost}`, '', pick, !none);
     }
   }
 
@@ -1144,6 +1253,13 @@ export class DayScene extends Phaser.Scene {
     const chosen = followOf(run).broadcast[day];
     if (this.plan.broadcast?.length && !chosen) {
       this.showBroadcast(p, t.y + t.height + 18);
+      // 第四章：先聽阿睿講要剪哪一段
+      const intro = this.plan.broadcastIntro;
+      if (intro && !this.broadcastHeard) {
+        this.broadcastHeard = true;
+        this.busy = true;
+        talk(this, say(intro), () => { this.busy = false; });
+      }
       return;
     }
     this.banter('dusk');

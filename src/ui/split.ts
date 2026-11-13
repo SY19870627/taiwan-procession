@@ -20,8 +20,11 @@ export interface TalkLine {
 const EXPRS = ['normal', 'sad', 'angry', 'surprised', 'smile', 'relieved', 'calm'];
 
 
-/** 把一段故事拆成一句一句 */
-export function splitStory(s: string, who?: { name: string; tex?: string; ghost?: boolean }): TalkLine[] {
+/**
+ * 把一段故事拆成一句一句。
+ * names（第四章起）：認得的說話者名字 → 小人貼圖。一行開頭寫「前哨：「……」」，那句就算前哨說的（不管 who 是誰）。
+ */
+export function splitStory(s: string, who?: { name: string; tex?: string; ghost?: boolean }, names?: Record<string, string>): TalkLine[] {
   const out: TalkLine[] = [];
   const pushNarr = (t: string) => {
     for (const part of chunk(t)) out.push({ text: part });
@@ -30,7 +33,18 @@ export function splitStory(s: string, who?: { name: string; tex?: string; ghost?
   let last = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(s))) {
-    const before = s.slice(last, m.index).replace(/[：:，,]\s*$/, '').trim();
+    let raw = s.slice(last, m.index);
+    // 「名字：」開頭的一行：那個人說的
+    const nm = names ? /(?:^|\n)([^\n。！？「」：]{1,8})：\s*$/.exec(raw) : null;
+    if (nm && names && nm[1] in names) {
+      raw = raw.slice(0, nm.index).trim();
+      if (raw) pushNarr(raw);
+      const isWho = who?.name === nm[1];
+      for (const part of chunk(m[1])) out.push({ name: nm[1], tex: isWho ? who!.tex ?? names[nm[1]] : names[nm[1]], ghost: isWho ? who!.ghost : undefined, text: `「${part}」` });
+      last = m.index + m[0].length;
+      continue;
+    }
+    const before = raw.replace(/[：:，,]\s*$/, '').trim();
     if (before) pushNarr(before);
     // 誰說的：引號前面那一句提到這個人（或前面沒有旁白），就算他說的；否則當成別人說的話
     const clause = before.split(/[。！？]/).pop() ?? '';

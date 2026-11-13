@@ -16,6 +16,7 @@
 import type { StageScript } from './types';
 import { STAGES2 } from './ch2';
 import { STAGES3 } from './ch3';
+import { STAGES4 } from './ch4';
 
 export type { StageActor, StageBeat, StageFore, StageMove, StageScript } from './types';
 
@@ -355,4 +356,6 @@ export const STAGES: Record<string, StageScript> = {
   // ---------- 第 3 階段：第二章（./ch2.ts） ----------
   ...STAGES2,
   ...STAGES3,
+  // 第四章（./ch4.ts）：拱辰宮起駕、臨時轉進賢仔車行
+  ...STAGES4,
 };

@@ -86,6 +86,10 @@ export interface TrialStyle {
   shipLine: (name: string) => string;
   /** 夜審最後一夜的按鈕 */
   finalLabel: string;
+  /** 第四章：每一夜開審前播的對話（一句一行，「名字：「…」」） */
+  intro?: (night: number) => string;
+  /** 第四章：大廳上的說明 */
+  note?: string;
 }
 
 export interface FinaleDef {
@@ -127,7 +131,10 @@ export interface ChapterDef {
   /** 畫面風格：山城、漁港、嘉南平原（第三章） */
   look: 'mountain' | 'harbor' | 'plain';
   prologue: Almanac;
-  jiao: { ask: string; times: number; holy: { text: string }; laugh: { text: string }; yin: { text: string }; allHoly: { text: string }; done: string };
+  /**
+   * 序章擲筊。lines（第四章）：擲到聖筊為止，第 i 個聖筊播 lines[i]；笑杯、陰杯只顯示那句話、重擲（不算次數）
+   */
+  jiao: { ask: string; times: number; holy: { text: string }; laugh: { text: string }; yin: { text: string }; allHoly: { text: string }; done: string; lines?: string[] };
   /** 序章黃曆下方那句話 */
   prologueLine: string;
   days: Record<number, DayPlan>;
@@ -193,6 +200,10 @@ export interface ChapterDef {
   sliceEnd?: { title: string; text: string };
   /** 序章擲筊按鈕的字（沒寫：第三章「請示太子」、其他「請示王爺」） */
   askLabel?: string;
+  /** 序章劇情（prologueStory）之後、第一天黃曆之前再播的過場（第四章：深夜起駕 qijia4） */
+  openingStory?: string;
+  /** 試玩版：最後一夜天亮之後、試玩結束畫面之前播的過場（第四章：tianliang4_1） */
+  sliceStory?: string;
 }
 
 /** 互嗆的一句（一行、不擋操作） */

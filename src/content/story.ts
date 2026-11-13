@@ -8,7 +8,10 @@ import { CUTSCENES4 } from './ch4/story';
 
 export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCalm' | 'god' | 'kaijiang' | 'judge' | 'baoma' | 'yun' | 'heichao' | 'heichaoCalm' | 'zhongjun'
   | 'taizi' | 'zhangjiang' | 'xiaojiang' | 'liujiang' | 'lianjiang' | 'jiao' | 'jiaoCalm' | 'zhizha' | 'xiabing' | 'bingbo' | 'hebo'
-  | 'wupan' | 'qiye' | 'baye' | 'xunbu' | 'jiaoban';
+  | 'wupan' | 'qiye' | 'baye' | 'xunbu' | 'jiaoban'
+  // 第四章（白砂墩）：媽祖全章不露臉、不講話，沒有說話者
+  | 'qianshao' | 'yawei' | 'touqi' | 'arui' | 'aman' | 'xianzai' | 'xiuzhi' | 'ahan' | 'caoxie' | 'apo'
+  | 'xiangdeng' | 'xiangdengbo' | 'jiaoban4' | 'cunbo' | 'qianlu' | 'chashui' | 'oajian';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -44,6 +47,24 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   xiabing: { name: '蝦兵', tex: 'xia_imp', side: 'right', scale: 2.0 },
   bingbo: { name: '炳伯', tex: 'n3_bingbo', side: 'right', scale: 1.8 },
   hebo: { name: '何伯', tex: 'n3_hebo', side: 'right', scale: 1.8 },
+  // 第四章（白砂墩）：立繪還沒到，先用程式畫的小人（folk*、st_*）。兵馬在左、凡人與鬼在右。媽祖不是說話者
+  qianshao: { name: '前哨', tex: 'folk1', side: 'left', scale: 1.8 },
+  yawei: { name: '押尾', tex: 'folk2', side: 'left', scale: 1.8 },
+  touqi: { name: '頭旗手', tex: 'st_touqi', side: 'left', scale: 0.5 },
+  arui: { name: '阿睿', tex: 'folk1', side: 'right', scale: 1.8 },
+  aman: { name: '阿滿姨', tex: 'folk3', side: 'right', scale: 1.8 },
+  xianzai: { name: '賢仔', tex: 'folk2', side: 'right', scale: 1.8 },
+  xiuzhi: { name: '秀枝', tex: 'folk4', side: 'right', scale: 1.8 },
+  ahan: { name: '阿翰', tex: 'folk1', side: 'right', scale: 1.8 },
+  caoxie: { name: '草鞋丁', tex: 'folk2', side: 'right', scale: 1.8 },
+  apo: { name: '點心擔阿婆', tex: 'folk3', side: 'right', scale: 1.8 },
+  xiangdeng: { name: '香燈腳們', tex: 'st_xiangdeng_c', side: 'right', scale: 0.5 },
+  xiangdengbo: { name: '香燈腳阿伯', tex: 'st_xiangdeng_a', side: 'right', scale: 0.5 },
+  jiaoban4: { name: '轎班們', tex: 'st_xiangdeng_c', side: 'right', scale: 0.5 },
+  cunbo: { name: '村裡的阿伯', tex: 'folk2', side: 'right', scale: 1.8 },
+  qianlu: { name: '牽路仔', tex: 'st_qianlu', side: 'right', scale: 0.5 },
+  chashui: { name: '茶水攤的阿伯', tex: 'folk2', side: 'right', scale: 1.8 },
+  oajian: { name: '賣蚵嗲的阿桑', tex: 'folk3', side: 'right', scale: 1.8 },
 };
 
 /** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */
@@ -60,7 +81,14 @@ export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import
   xiaojiang: ['xiaojiang', 'normal'], liujiang: ['liujiang', 'normal'], lianjiang: ['lianjiang', 'normal'],
   jiao: ['jiao', 'angry'], jiaoCalm: ['jiao', 'calm'],
   zhizha: ['zhizha', 'normal'], xiabing: ['xiabing', 'normal'], bingbo: ['bingbo', 'normal'], hebo: ['hebo', 'normal'],
+  // 第四章：立繪檔名見 _agent/ch4-art-keys.md §3（沒到就用 SPEAKERS 的小人）
+  qianshao: ['qianshao', 'normal'], yawei: ['yawei', 'normal'], touqi: ['touqi', 'normal'],
+  arui: ['arui', 'normal'], aman: ['aman', 'normal'], xianzai: ['xianzai', 'normal'], xiuzhi: ['xiuzhi', 'normal'],
+  ahan: ['ahan', 'normal'], caoxie: ['caoxie', 'normal'], apo: ['apo', 'normal'],
 };
+
+/** 說話的人的名字 → 程式畫的小人（白天的對話用「名字：「…」」寫，見 ui/split.ts） */
+export const SPEAKER_TEX: Record<string, string> = Object.fromEntries(Object.values(SPEAKERS).map((s) => [s.name, s.tex]));
 
 export interface Line {
   who: SpeakerId;
@@ -69,6 +97,8 @@ export interface Line {
   expr?: import('../art/portraits').Expr;
   /** 演出效果 */
   fx?: 'shake' | 'firecracker' | 'flash';
+  /** 只在這個條件成立時播（文字版；第四章天亮：阿婆判「就在這裡下」才有的那一句） */
+  when?: (r: import('../state').RunState) => boolean;
 }
 
 export interface Cutscene {

@@ -58,6 +58,8 @@ export interface Card {
   options: Option[];
   /** 不處理（直接走過）的後果 */
   ignore: string;
+  /** 第四章：略過之後，天亮「昨日」寫的事（沒辦結果） */
+  missed?: string;
 }
 
 export interface Almanac {

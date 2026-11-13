@@ -14,7 +14,8 @@ import { DEFECT_NEEDS, type GhostCase, type VerdictDef } from '../content/cases'
 import { CH, evidenceOf, verdictName } from '../content/chapter';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
-import { flashback } from '../ui/talk';
+import { flashback, splitStory, talk } from '../ui/talk';
+import { SPEAKER_TEX } from '../content/story';
 import { isLooked, LOOK_TAG, natureOf, slayGhost, slayPreview, truthReel } from '../core/renown';
 import { beginNight, canOpen, dawnHeld, flareOf, judge as judge3, knelt, muted, useTrial } from '../core/dianjiang';
 import { chat, openDianjiang, resultScreen } from '../ui/dianjiang';
@@ -91,6 +92,9 @@ export class TrialScene extends Phaser.Scene {
     fullscreenButton(this);
     this.layer = this.add.container(0, 0);
     this.lobby();
+    // 第四章：開審前的對話（車行半夜、前哨與押尾）
+    const intro = T.intro?.(this.n);
+    if (intro) this.time.delayedCall(450, () => talk(this, splitStory(intro, undefined, SPEAKER_TEX), () => this.quip('t_open')));
   }
 
   // ---------- 堂上：選要審哪一個 ----------
@@ -120,7 +124,7 @@ export class TrialScene extends Phaser.Scene {
     const list = guihu ? pending(run) : run.held;
     if (guihu) {
       const carried = carrying(run).map((h) => `${CH().cases[h.id].name}（往${CH().guihu?.dests[h.dest!]?.name ?? h.dest}）`);
-      const info = [...this.messages.slice(-2), carried.length ? `跟在頭旗後面走：${carried.join('、')}` : ''].filter(Boolean).join('\n');
+      const info = [T.note ?? '', ...this.messages.slice(-2), carried.length ? `跟在頭旗後面走：${carried.join('、')}` : ''].filter(Boolean).join('\n');
       if (info) this.add2(txt(this, W / 2, 180, info, 19, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
     }
     if (!list.length || left <= 0) {
@@ -161,7 +165,10 @@ export class TrialScene extends Phaser.Scene {
   private open(k: GhostCase): void {
     this.watch++;
     this.say(k, CH().trial.open(k.dayName), 'normal');
-    this.quip(this.heldOf(k).grudge >= 3 ? 't_mute' : 't_open');
+    // 第四章：問哪個鬼就播那個鬼的互嗆（t_open_<id>），沒有就用 t_open
+    const own = `t_open_${k.id}`;
+    if (CH().banter?.[own] && this.heldOf(k).grudge < 3) this.quip(own);
+    else this.quip(this.heldOf(k).grudge >= 3 ? 't_mute' : 't_open');
   }
 
   /** 畫審問畫面；line 是最新的一句回應 */
@@ -223,7 +230,9 @@ export class TrialScene extends Phaser.Scene {
           const hint = has ? '◆ 疑點・手上有證據' : '◇ 疑點・還缺證據';
           this.add2(txt(this, p.x + 30, y + rowH - 36, hint, 18, has ? 0xffd76a : 0xff9a8a, { bold: false }));
         }
-        this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, T.ask, () => this.say(k, `${k.dayName}：${k.press[i]}`), { size: 21, fill: 0x3a3442 })).setEnabled(!mute);
+        // 第四章：先寫問的那一句，再寫他的回答
+        const q = k.pressQ?.[i] ? `${k.pressQ[i]}\n` : '';
+        this.add2(button(this, p.x + p.w - 176, y + rowH / 2 - 4, 92, 50, T.ask, () => this.say(k, `${q}${k.dayName}：${k.press[i]}`), { size: 21, fill: 0x3a3442 })).setEnabled(!mute);
         // 案卷上「記載無誤」的那一筆不用補正
         const fixable = !dossier || !!k.dossier?.[i];
         const pb = this.add2(button(this, p.x + p.w - 76, y + rowH / 2 - 4, 92, 50, T.show, () => this.present(k, i), { size: 21, fill: has ? 0x8a6a10 : 0x2f6f5a }));
@@ -327,6 +336,7 @@ export class TrialScene extends Phaser.Scene {
       this.add2(txt(this, p.x + 190, y + 10, why ? `✕ ${why}` : result, 19, why ? 0xff9a8a : C.paper, { bold: false, lineSpacing: 4, wordWrap: { width: p.w - 214, useAdvancedWrap: true } }));
       y += boxH + 12;
     }
+    this.quip('t_verdicts');
     this.add2(button(this, p.x + p.w / 2 - 150, p.y + p.h - 56, 260, 62, '◀ 再問問', () => this.say(k, CH().trial.again), { size: 22, fill: 0x3a3442 }));
     this.add2(button(this, p.x + p.w / 2 + 150, p.y + p.h - 56, 260, 62, '改日再審', () => this.postpone(k), { size: 22, fill: 0x3a3442 }));
     this.add2(txt(this, p.x + p.w / 2 + 150, p.y + p.h - 14, CH().overnight === 'carry' ? '先跟著走，明天可以再找證據' : '怨氣 +1，明天可以再找證據', 16, C.muted, { bold: false }).setOrigin(0.5));
@@ -351,7 +361,11 @@ export class TrialScene extends Phaser.Scene {
     const name = st.truths.length ? k.name : k.dayName;
     // 第四章問歸處：帶著走的留在格子裡（跨天佔格），其他的空出格子；對鬼不斬（core/guihu.ts）
     const G = CH().guihu;
-    if (T.style === 'guihu' && G) lines.push(v.result, '', ...judgeGuihu(run, k, v, G, this.n));
+    if (T.style === 'guihu' && G) {
+      const sys = judgeGuihu(run, k, v, G, this.n);
+      // 有寫判決之後的話（第四章劇本）就只播那段；沒寫就照按鈕小字＋系統說明
+      lines.push(...(v.after ? [v.after] : [v.result, '', ...sys]));
+    }
     else {
       st.verdict = v.verdict;
       run.held = run.held.filter((h) => h.id !== k.id);
@@ -531,7 +545,9 @@ export class TrialScene extends Phaser.Scene {
     const last = CH().playableDays;
     if (last !== undefined && this.n >= last) {
       run.yesterday = [...out, ...CH().dawn(run, this.n)];
-      go(this, 'cut', { kind: 'dawn', title: '雞啼・天亮', sub: '試玩到這裡', next: { key: 'sliceEnd' } });
+      // 第四章：雞啼 → 天亮過場（tianliang4_1）→ 試玩結束畫面
+      const s = CH().sliceStory;
+      go(this, 'cut', { kind: 'dawn', title: '雞啼・天亮', sub: '試玩到這裡', next: s ? { key: 'story', data: { id: s, next: { key: 'sliceEnd' } } } : { key: 'sliceEnd' } });
       return;
     }
     if (this.n >= 3) {
