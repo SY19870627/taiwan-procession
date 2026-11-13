@@ -382,7 +382,7 @@ export const STAGES4: Record<string, StageScript> = {
       { who: 'narrator', text: '大轎三進三退，進了廟門。鞭炮從廟口炸到海堤，跟出門那一晚一樣。', src: 11, fx: 'firecracker', moves: [{ id: 'jiao8', x: 420, y: 10, alpha: 0, hop: true, ms: 2400 }], sfx: { text: '劈哩啪啦！', at: 'xd1' } },
       { at: 'yawei', who: 'yawei', text: '出門兩百一十七個。回來的我記到六萬多，後面還在進來。領隊，到了。', src: 12 },
       // 有條件的幾拍（阿滿姨第三天沒辦）
-      { who: 'narrator', text: '阿滿姨到廟埕的時候，鞭炮的紙已經掃成一堆了。她在廟門口合掌，站了很久。', src: 13, cam: { x: 300, y: -100, zoom: 1.1, ms: 700 } },
+      { who: 'narrator', text: '阿滿姨是自己走橋回來的，到廟埕的時候鞭炮還有零星幾聲。她在廟門口合掌，把那支小旗插正。', src: 13, cam: { x: 300, y: -100, zoom: 1.1, ms: 700 } },
       // 新娘放下（判帶回白砂墩）：新娘小人淡出，石階邊留一雙鞋（鞋沒有圖，只淡出）
       { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住。她把網袋從左肩卸下來，朝左邊講了一句。', src: 14, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
       { at: 'aman', who: 'aman', text: '到了。', src: 15 },
@@ -392,8 +392,8 @@ export const STAGES4: Record<string, StageScript> = {
       { at: 'aman', who: 'aman', text: '奇怪，今年回來腳比較不痠。', src: 19 },
       { who: 'narrator', text: '新娘放下了。旗下空出 1 格。', src: 20 },
       // 其他版本（短）
-      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，朝左邊講了一句「到了」。左邊沒有人。', src: 21, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
-      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。北津那一趟，他明年還要再想辦法。', src: 22, cam: { x: 400, y: -100, zoom: 1, ms: 700 } },
+      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，把那支小旗插正，講了一句「到了」。', src: 21, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
+      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。他說北津那一趟，明年他認得路了。', src: 22, cam: { x: 400, y: -100, zoom: 1, ms: 700 } },
       { at: 'apo', who: 'apo', text: '這裡不是我家。……你們吃飽沒有？沒有的話我在這邊煮也可以。', src: 23 },
       { who: 'narrator', text: '假香燈腳站在廟埕邊，看那個揹紅背包的男人進廟。這次他沒有跟進去。', src: 24 },
     ],

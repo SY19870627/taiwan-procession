@@ -207,7 +207,7 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'narrator', text: '廟埕的人慢慢跪下去。後面的看到前面的跪，也跟著跪。' },
       { who: 'narrator', text: '草鞋丁站在廟埕外面，看著廟門。他沒有進去。', when: caoxieHome },
       { who: 'caoxie', text: '你們說帶我回庄裡。那我在外面等就好。', when: caoxieHome },
-      { who: 'narrator', text: '草鞋丁還跟著走，旗下那 1 格沒有空出來。', when: caoxieHome },
+      { who: 'narrator', text: '草鞋丁繼續跟著頭旗走，回程有他作伴。', when: caoxieHome },
     ],
   },
   // 10-2 第二夜・草鞋丁還願、放下（GuihuRules.releaseStory.caoxie；只有判「帶去北津」才會到這裡；進火之後、問歸處之前）
@@ -256,7 +256,7 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'arui', text: '線上九萬。今天我不喊分享了，路已經塞到我看不到尾。' },
       { who: 'qianshao', text: '轎子的布放下來了。這樣走，後面的人看得到什麼？' },
       { who: 'yawei', text: '看得到轎頂。夠了。' },
-      { who: 'yawei', text: '今天時辰少。辦不到的，名字我先記。' },
+      { who: 'yawei', text: '今天人多。路上遇到的，名字我都記。' },
       { who: 'xinniang', text: '阿母以前回來都會講，過溪前在一棵大樹下吃飯擔。她說那裡的菜頭湯沒有她煮的好。', when: brideWith },
     ],
   },
@@ -414,7 +414,7 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'narrator', text: '大轎三進三退，進了廟門。鞭炮從廟口炸到海堤，跟出門那一晚一樣。', fx: 'firecracker' },
       { who: 'yawei', text: '出門兩百一十七個。回來的我記到六萬多，後面還在進來。領隊，到了。' },
       // 阿滿姨第三天沒辦，隔天才過溪（新娘跟著的話，下面「新娘放下」照播，只是時間在傍晚：這句放在前面）
-      { who: 'narrator', text: '阿滿姨到廟埕的時候，鞭炮的紙已經掃成一堆了。她在廟門口合掌，站了很久。', when: (r) => !r.flags.done_aman3 },
+      { who: 'narrator', text: '阿滿姨是自己走橋回來的，到廟埕的時候鞭炮還有零星幾聲。她在廟門口合掌，把那支小旗插正。', when: (r) => !r.flags.done_aman3 },
       // 新娘放下（判「帶回白砂墩」）
       { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住。她把網袋從左肩卸下來，朝左邊講了一句。', when: brideWith },
       { who: 'aman', text: '到了。', when: brideWith },
@@ -424,8 +424,8 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'aman', text: '奇怪，今年回來腳比較不痠。', when: brideWith },
       { who: 'narrator', text: '新娘放下了。旗下空出 1 格。', when: brideWith },
       // 其他版本（短）
-      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，朝左邊講了一句「到了」。左邊沒有人。', when: (r) => r.cases.xinniang?.verdict === 'tobeijin' },
-      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。北津那一趟，他明年還要再想辦法。', when: caoxieHome },
+      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，把那支小旗插正，講了一句「到了」。', when: (r) => r.cases.xinniang?.verdict === 'tobeijin' },
+      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。他說北津那一趟，明年他認得路了。', when: caoxieHome },
       { who: 'apo', text: '這裡不是我家。……你們吃飽沒有？沒有的話我在這邊煮也可以。', when: (r) => r.cases.apo?.verdict === 'tohome' },
       { who: 'narrator', text: '假香燈腳站在廟埕邊，看那個揹紅背包的男人進廟。這次他沒有跟進去。', when: (r) => r.cases.jiajiao?.verdict === 'tohome' },
     ],

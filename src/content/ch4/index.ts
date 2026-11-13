@@ -110,7 +110,7 @@ export const CHAPTER4: ChapterDef = {
     ends: [
       { kind: 'recall', label: '喚回：留在溪邊引路', desc: '牠留在渾水溪。以後有人涉水，牠在前面帶。牠還是在溪底，沒有離開。（要問完三輪）', needLast: true },
       { kind: 'return', label: '送回：送牠上對岸', desc: '最後一趟靠岸，牠就了了。以後渾水溪沒有擺渡的，明年過溪沒有人帶。', needRound: 2 },
-      { kind: 'slay', label: '斬', desc: '霧馬上散，水裡的人直接上岸。牠就沒有了，牠是誰也不用再問。這一章只有牠可以斬。' },
+      { kind: 'slay', label: '斬', desc: '霧馬上散，水裡的人自己走上岸。牠就沒有了，牠是誰也不用再問。這一章只有牠可以斬。' },
     ],
     winTitle: '過溪了',
     winText: '隊尾上了對岸。水裡的人，一個都沒有少。',

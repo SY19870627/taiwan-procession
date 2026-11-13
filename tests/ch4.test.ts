@@ -301,7 +301,7 @@ describe('日落傳消息：隔天事件池切換', () => {
     // 字照 docs/白砂墩_試玩段落文字_v0.1.md 第 7 節
     expect(opts[0]).toMatchObject({ label: '轎子在車行過夜', brings: '看熱鬧的年輕人', cost: '多 2 件小事（鞋子磨腳、中暑）；多 1 攤點心站可以託' });
     expect(opts[1]).toMatchObject({ label: '秀枝推輪椅跟在隊尾', brings: '帶病人來求的家屬', cost: '多 2 件很難辦的事；沒有多的幫手' });
-    expect(opts[2]).toMatchObject({ label: '什麼都不拍', brings: '沒有', cost: '明天清閒；第三天過溪的時候，少一批會下水牽人的手' });
+    expect(opts[2]).toMatchObject({ label: '什麼都不拍', brings: '沒有', cost: '明天清閒，隊伍照原樣走；過溪的時候岸邊是原班人馬' });
     for (const o of opts) expect(o.said?.length, o.id).toBeGreaterThan(0);
   });
 
@@ -883,7 +883,7 @@ describe('第 B1 輪：第一天補字（ch4-text-fixes.md）', () => {
     const c = CARDS4.oajian1(r())!;
     expect(c.options[0].label).toBe('聽她跟客人講');
     expect(c.options[0].result).toBe('聽得到前面兩條路的狀況（岔路的線索）');
-    expect(c.ignore).toBe('聽不到她講前面那兩條路（少一條岔路的線索）');
+    expect(c.ignore).toBe('聽了：多知道前面兩條路的狀況（岔路的線索）。沒聽也沒差，蚵嗲照炸');
     const said = c.options[0].apply(r()).split('\n');
     expect(said[0]).toBe('一個香燈腳停下來買蚵嗲。阿桑手沒停，嘴巴也沒停。');
     expect(said[said.length - 1]).toBe('她多夾了一塊進袋子，沒有算錢。');

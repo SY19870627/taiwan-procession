@@ -671,7 +671,9 @@ export class DayScene extends Phaser.Scene {
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 24, y + 2, p.x + p.w - 24, y + 2);
     this.add2(button(this, p.x + 106, y + 40, 164, 52, label, onSkip, { size: 22, fill: 0x3a3442 }));
-    const t = this.add2(txt(this, p.x + 200, y + 18, `不處理：${ignore}`, 19, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    // 第四章（爽Game）：「不辦的話：」、跟一般說明同色（不是紅字）；其他章照舊
+    const sh = this.shuang();
+    const t = this.add2(txt(this, p.x + 200, y + 18, `${sh ? '不辦的話：' : '不處理：'}${ignore}`, 19, sh ? C.muted : 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
     // 每張卡最後一列：內容的下緣（按鈕底、或「不處理」的字比較長時的字底），蓋到「前方」就縮
     this.fitCard(Math.max(y + 66, t.y + t.height) + 6);
   }
@@ -688,6 +690,11 @@ export class DayScene extends Phaser.Scene {
     this.busy = true;
     this.caught = undefined;
     this.band.pass(fled, () => { this.busy = false; this.next(); });
+  }
+
+  /** 第四章（白砂墩，爽Game）的卡片用字：不嚇人、不倒數 */
+  private shuang(): boolean {
+    return CH().id === 'baishadun';
   }
 
   /** 第三章的規則（威名、快判、風火輪）：slayRule 是 renown 的章節 */
@@ -727,7 +734,7 @@ export class DayScene extends Phaser.Scene {
   private showPerson(e: Extract<Encounter, { kind: 'person' }>): void {
     this.redraw = () => this.showPerson(e);
     const card = CH().cards[e.card](run) as Card;
-    const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? { s: `期限：${card.deadline}`, color: '#b3261e' } : undefined, e.tex);
+    const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? (this.shuang() ? { s: `趁${card.deadline}`, color: '#8a5a10' } : { s: `期限：${card.deadline}`, color: '#b3261e' }) : undefined, e.tex);
     let y = y0;
     for (const o of card.options) {
       y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }, e), !!o.miracle || !!o.report);
@@ -786,7 +793,7 @@ export class DayScene extends Phaser.Scene {
     // 細節（審清楚的好處、缺哪些證據）收在令旗下的格子裡，點了看
     const info = [
       ...(k.affects ? [`牽連：${k.affects}`] : []),
-      `證據 ${have.length}／${evs.length}・${later.length ? `之後在${later[0]}還會遇到` : '今天不收，之後就遇不到了'}`,
+      `證據 ${have.length}／${evs.length}・${later.length ? `之後在${later[0]}還會遇到` : this.shuang() ? '只在今天這段路上遇得到' : '今天不收，之後就遇不到了'}`,
     ].join('\n');
     const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
     // 第四章的鬼不是「有冤情」：是沒地方去、要帶到歸處的
@@ -796,7 +803,9 @@ export class DayScene extends Phaser.Scene {
     const full = run.held.length >= run.slots && !CH().guihu;
     const why = full ? `${CH().held.label}的格子滿了` : this.hoursWhy(hours);
     const extra = (k.onCollect ?? []).filter((id) => !run.evidence.includes(id));
-    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}佔 1 格（剩 ${run.slots - run.held.length} 格）${extra.length ? `・得到：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
+    // 第四章：旗下滿了照樣帶得走，寫「旗後面多排 1 格」；還有空格照舊
+    const room = this.shuang() && run.held.length >= run.slots ? '旗後面多排 1 格' : `佔 1 格（剩 ${run.slots - run.held.length} 格）`;
+    const cost = `${hours ? `${hours} 時辰（勸出來）・` : '不花時辰・'}${room}${extra.length ? `・得到：${extra.map((id) => CH().evidence[id].name).join('、')}` : ''}`;
     const m = k.meet;
     const y = this.optionRow(p, y0, m?.take ?? '收容', cost, m?.takeResult ?? `帶回${CH().held.label}，今晚夜審`, why, () => this.collect(e, hours));
     this.skipRow(p, y, k.harm, () => {
