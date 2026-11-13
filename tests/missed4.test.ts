@@ -6,9 +6,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { startChapter } from '../src/content/chapter';
 import { CHAPTER4 } from '../src/content/ch4';
 import { CARDS4 } from '../src/content/ch4/believers';
-import { DAY_PLANS4, dawn4 } from '../src/content/ch4/days';
-import { fordEnd4 } from '../src/content/ch4/finale';
-import { MISSED_CAP4, MISSED_END4, applyMissedPreset4, missedKeys4, missedLines4 } from '../src/content/ch4/missed';
+import { CASES4 } from '../src/content/ch4/cases';
+import { DAY_PLANS4, dawn4, verdictEffects4 } from '../src/content/ch4/days';
+import { fordEnd4, fordResult4 } from '../src/content/ch4/finale';
+import {
+  FINALE_WRONG_FUN4, MISSED_CAP4, MISSED_END4, MISSED_FINALE4, MISSED_FUN4, MISSED_NIGHT4,
+  applyMissedPreset4, dayEndMissed4, finaleMissed4, missedKeys4, missedLines4,
+} from '../src/content/ch4/missed';
+import { BossBattle } from '../src/core/boss';
 import { applyBroadcast, poolFor } from '../src/core/procession';
 import type { Encounter } from '../src/content/days';
 import * as state from '../src/state';
@@ -138,5 +143,128 @@ describe('第四章漏掉收尾（化解版）', () => {
     startChapter('baishadun');
     applyMissedPreset4(r(), 0);
     expect(r().yesterday).toEqual([]);
+  });
+});
+
+// ---------- 第 B 步：搞笑（當場播）、問歸處、最後一戰 ----------
+
+/** 判對的歸處（cases.ts 的 dests：有 needs 的那一個） */
+const right = (id: string) => CASES4[id].verdicts.find((v) => v.needs)!.verdict;
+const wrongOf = (id: string) => CASES4[id].verdicts.find((v) => !v.needs)!.verdict;
+/** 文件裡有這一句（去掉【待定】以後） */
+const inDoc = (s: string) => DOC.replace(/【待定】/g, '').includes(s);
+
+describe('第四章漏掉收尾（第 B 步）', () => {
+  it('沒有【待定】；字照文件第 2 節', () => {
+    const all = [
+      ...Object.values(MISSED_FUN4),
+      ...Object.values(MISSED_NIGHT4).flatMap((m) => [m.verdict, m.truths].filter((s): s is string => !!s)),
+      ...Object.values(MISSED_FINALE4),
+      ...FINALE_WRONG_FUN4.map((l) => l.text),
+    ];
+    for (const s of all) {
+      expect(s).not.toContain('【待定】');
+      // 送回那一句照文件備註換了第二句
+      if (s === MISSED_FINALE4.noSlayReturn) continue;
+      expect(inDoc(s), s).toBe(true);
+    }
+    expect(MISSED_FINALE4.noSlayReturn).toContain('牠撐了最後一篙，船頭碰到了岸');
+  });
+
+  it('分配表：N1-1 化解、N1-2 搞笑、N1-3 化解、N2-1 化解、N2-2 化解、N2-3 化解、N2-4 搞笑；N1-4（jump scare）不在這裡', () => {
+    const pick = (head: string, kind: string) => {
+      const sec = DOC.slice(DOC.indexOf(`#### ${head}`));
+      const line = sec.split(/\r?\n/).find((l) => l.startsWith(`- 漏掉・${kind}`))!;
+      return line.replace(/^- 漏掉・[^：]+：(【待定】)?/, '').trim();
+    };
+    expect(MISSED_NIGHT4.caoxie.verdict).toBe(pick('N1-1', '化解版'));
+    expect(MISSED_NIGHT4.caoxie.truths).toBe(pick('N1-2', '搞笑版'));
+    expect(MISSED_NIGHT4.apo.verdict).toBe(pick('N1-3', '化解版'));
+    expect(MISSED_NIGHT4.apo.truths).toBeUndefined();
+    expect(MISSED_NIGHT4.xinniang.verdict).toBe(pick('N2-1', '化解版'));
+    expect(MISSED_NIGHT4.xinniang.truths).toBe(pick('N2-2', '化解版'));
+    expect(MISSED_NIGHT4.jiajiao.verdict).toBe(pick('N2-3', '化解版'));
+    expect(MISSED_NIGHT4.jiajiao.truths).toBe(pick('N2-4', '搞笑版'));
+  });
+
+  it('問歸處：判到別處或真相沒對出來，判決之後的字接上那一句；判對而且真相都對出來就不接', () => {
+    const items: [id: string, key: 'verdict' | 'truths'][] = [
+      ['caoxie', 'verdict'], ['caoxie', 'truths'], ['apo', 'verdict'],
+      ['xinniang', 'verdict'], ['xinniang', 'truths'], ['jiajiao', 'verdict'], ['jiajiao', 'truths'],
+    ];
+    for (const [id, key] of items) {
+      const line = MISSED_NIGHT4[id][key]!;
+      const all = CASES4[id].truths.map((_, i) => i);
+      // 漏掉：判到別處（真相都對出來）／判對但真相沒對出來
+      startChapter('baishadun');
+      r().cases[id] = { truths: key === 'verdict' ? all : all.slice(0, -1) };
+      const v = key === 'verdict' ? wrongOf(id) : right(id);
+      expect(CHAPTER4.verdictEffects(r(), id, v), `${id} ${key}`).toContain(line);
+      // 有做：判對、真相都對出來
+      startChapter('baishadun');
+      r().cases[id] = { truths: all };
+      const done = CHAPTER4.verdictEffects(r(), id, right(id));
+      expect(done, `${id} 判對`).not.toContain(line);
+      expect(done, `${id} 判對`).toEqual([]);
+    }
+    // 判到別處、真相也沒對出來：兩句都接（中間空一行）
+    startChapter('baishadun');
+    r().cases.caoxie = { truths: [] };
+    expect(verdictEffects4(r(), 'caoxie', 'leave')).toEqual(['', MISSED_NIGHT4.caoxie.verdict, '', MISSED_NIGHT4.caoxie.truths]);
+    // 阿婆的真相（N1-4 jump scare）不在這裡：判對、真相沒對出來不多播
+    startChapter('baishadun');
+    r().cases.apo = { truths: [] };
+    expect(verdictEffects4(r(), 'apo', right('apo'))).toEqual([]);
+  });
+
+  it('白天的搞笑（1-01、2-03、3-14）：什麼都沒做的一局，那天日落各播一次；有做就不播', () => {
+    for (const b1 of B1) for (const b2 of B2) {
+      const x = allSkipped(b1, b2);
+      expect(CHAPTER4.dayEndMissed!(x, 1), `${b1}/${b2}`).toEqual([MISSED_FUN4.arui1]);
+      expect(CHAPTER4.dayEndMissed!(x, 2), `${b1}/${b2}`).toEqual([MISSED_FUN4.diantou2]);
+      expect(CHAPTER4.dayEndMissed!(x, 3), `${b1}/${b2}`).toEqual([MISSED_FUN4.xianzai3]);
+    }
+    startChapter('baishadun');
+    const x = r();
+    x.cases.diantou = { truths: [] };
+    for (const d of [1, 2, 3]) expect(dayEndMissed4(x, d)).toEqual([]);
+    // 搞笑的不寫進「昨日」
+    const y = allSkipped('none', 'none2');
+    for (const d of [1, 2, 3]) for (const s of Object.values(MISSED_FUN4)) expect(dawn4(y, d)).not.toContain(s);
+    // 點人頭的阿伯帶了、判到別處：判決之後播同一句
+    expect(verdictEffects4(x, 'diantou', 'leave')).toContain(MISSED_FUN4.diantou2);
+    expect(verdictEffects4(x, 'diantou', right('diantou'))).toEqual([]);
+  });
+
+  it('最後一戰：F-2 說不動茫渡當場播；其他寫在開爐那頁「昨日」（第三天白天的後面）', () => {
+    expect(CHAPTER4.finale.wrongLines).toBe(FINALE_WRONG_FUN4);
+    const x = allSkipped('none', 'none2');
+    const day3 = dawn4(x, 3);
+    const b = new BossBattle({ ...CHAPTER4.finale.setup(x), seed: 4 });
+    b.answer(1, false);
+    b.answer(2, false);
+    b.walkedBack.push('黃金水');
+    CHAPTER4.finale.onEnd!(x, b, 'return');
+    const F = MISSED_FINALE4;
+    expect(x.yesterday).toEqual([...day3, F.ferry, F.chain, F.huming, F.rounds, F.noSlayReturn, F.almostNone]);
+    // 斬：沒有 F-5、F-6
+    fordEnd4(x, fordResult4(b, 'slay'));
+    expect(x.yesterday).toEqual([...day3, F.ferry, F.chain, F.huming, F.almostNone]);
+    // 全部有做：只剩第三天白天的
+    const y = allSkipped('none', 'none2');
+    y.evidence.push('mooring');
+    const res = { kind: 'recall' as const, asked: { 1: true, 2: true, 3: true }, walkedBack: [] };
+    expect(finaleMissed4(res, { knowsFerry: true, chain: 2, rewards: 3, helped: 2 })).toEqual([F.noSlay]);
+    // 不給戰鬥結果（舊的呼叫）照舊只有第三天白天的
+    fordEnd4(y);
+    expect(y.yesterday).toEqual(dawn4(y, 3));
+  });
+
+  it('爽Game：漏掉收尾只寫字，不改任何數值', () => {
+    const x = allSkipped('none', 'none2');
+    const before = JSON.stringify(x);
+    for (const id of Object.keys(MISSED_NIGHT4)) for (const v of CASES4[id].verdicts) verdictEffects4(x, id, v.verdict);
+    for (const d of [1, 2, 3]) dayEndMissed4(x, d);
+    expect(JSON.stringify(x)).toBe(before);
   });
 });

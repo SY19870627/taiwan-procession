@@ -1050,6 +1050,8 @@ export class BossHud extends Phaser.Scene {
   private chatSaid = new Set<string>();
   /** 第四章：陣前審問的對答、人鏈台詞播放中，這段時間不插一般的互嗆 */
   private quietUntil = 0;
+  /** 第四章漏掉收尾 F-2：說不動茫渡的那段播過了 */
+  private wrongFunPlayed = false;
 
   constructor() {
     super('bosshud');
@@ -1088,6 +1090,7 @@ export class BossHud extends Phaser.Scene {
     this.chatter = new BanterPicker(CH().banter, 7000);
     this.chatSaid = new Set();
     this.quietUntil = 0;
+    this.wrongFunPlayed = false;
     const F = CH().finale;
     // 第四章：人鏈的台詞（一段一段出現；一段都沒有就播「沒有人下水」那兩句）。開打的互嗆之後先播第一組，之後每拉住一個人播下一組
     this.chainQueue = F.chainLines?.(run) ?? [];
@@ -1418,7 +1421,12 @@ export class BossHud extends Phaser.Scene {
     // 第四章：誰上前說動的記下來（斬的結局：第三輪押尾問過名字，押尾那句換掉）
     if (person) run.flags[`finale_${person.id}`] = true;
     // 審問動畫滑出後才插嘴（不疊在審問字幕上）。第四章：說動了就播那一輪的對答（共用的先播，再接上前的人或出示證據的那幾句）
-    const talkLines = ok ? [...(r.sharedLines ?? []), ...((person ? person.lines : r.okLines) ?? [])] : [];
+    let talkLines = ok ? [...(r.sharedLines ?? []), ...((person ? person.lines : r.okLines) ?? [])] : [];
+    // 第四章漏掉收尾 F-2（搞笑）：第一次說不動時茫渡自己找台階下（只播一次，不改數值）
+    if (!ok && F.wrongLines?.length && !this.wrongFunPlayed) {
+      this.wrongFunPlayed = true;
+      talkLines = F.wrongLines;
+    }
     if (talkLines.length) this.time.delayedCall(TRIAL_ANIM_MS, () => this.say(talkLines));
     else this.time.delayedCall(TRIAL_ANIM_MS, () => this.chat(ok ? 'b_trial' : 'b_trialMiss', true));
     const E = CH().evidence;

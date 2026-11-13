@@ -1373,6 +1373,16 @@ export class DayScene extends Phaser.Scene {
       playStory(this, st, () => { this.busy = false; this.endDayFollow(); });
       return;
     }
+    // 第四章漏掉收尾・搞笑（1-01、2-03、3-14）：日落、傳消息之前當場播一次（只寫字，不改數值）
+    const funKey = `missedfun_${this.plan.day}`;
+    const fun = run.flags[funKey] ? [] : CH().dayEndMissed?.(run, this.plan.day) ?? [];
+    if (fun.length) {
+      run.flags[funKey] = true;
+      this.busy = true;
+      // 「名字：「……」」接在旁白後面的，斷成一行，才認得出是誰說的
+      talk(this, fun.flatMap((s) => say(s.replace(/([。！？」])(?=[^。！？「」\n]{1,8}：「)/g, '$1\n'))), () => { this.busy = false; this.endDayFollow(); });
+      return;
+    }
     const p = this.resetSide();
     this.redraw = undefined;
     // 第四章第三天（finale）：今晚不駐駕，直接過溪

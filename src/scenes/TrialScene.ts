@@ -457,7 +457,16 @@ export class TrialScene extends Phaser.Scene {
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     this.panelTop = p.y;
     this.add2(txt(this, p.x + 24, p.y + 18, verdictName(v.verdict), 32, v.verdict === 'slay' ? 0xff8a8a : C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 72, lines.join('\n'), 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    // 判決之後的字（第四章還會接漏掉收尾）放不下「繼續」上面就縮字（23 → 17）
+    const body = (size: number) => txt(this, p.x + 24, p.y + 72, lines.join('\n'), size, C.paper, { bold: false, lineSpacing: Math.round(size * 0.43), wordWrap: { width: p.w - 48, useAdvancedWrap: true } });
+    let size = 23;
+    let bt = body(size);
+    while (bt.y + bt.height > p.y + p.h - 115 && size > 17) {
+      bt.destroy();
+      size -= 2;
+      bt = body(size);
+    }
+    this.add2(bt);
     this.add2(button(this, W / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.lobby(), { size: 24, fill: 0x8a1b14 }));
     // 有冤的被斬了，換一組（不是一般的斬）
     this.quip(v.verdict === 'slay' && k.innocent ? 't_wronged' : `t_${v.verdict}`, 600);

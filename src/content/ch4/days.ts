@@ -11,7 +11,7 @@
  */
 import type { RunState } from '../../state';
 import type { DayPlan, Encounter } from '../days';
-import { missedLines4 } from './missed';
+import { missedLines4, nightMissed4 } from './missed';
 
 const ghost = (id: string, place: string, caseId: string): Encounter => ({ kind: 'ghost', id, place, caseId });
 /** 牽路仔（第 5 節）：長得像路邊招手的人影，專找隊尾 */
@@ -450,6 +450,11 @@ export function endOfDay3_4(_r: RunState): void {
   /* 第三天沒有入夜前才結算的事 */
 }
 
-export function verdictEffects4(_r: RunState, _id: string, _verdict: string): string[] {
-  return [];
+/**
+ * 問歸處判決之後（TrialScene 接在判決之後的話後面）：判到正解以外、真相沒對出來的漏掉收尾當場播（missed.ts 的 MISSED_NIGHT4）。
+ * 判對而且真相都對出來就不多播。只寫字，不改任何數值。
+ */
+export function verdictEffects4(r: RunState, id: string, verdict: string): string[] {
+  const out = nightMissed4(r, id, verdict);
+  return out.length ? ['', ...out.flatMap((s, i) => (i ? ['', s] : [s]))] : [];
 }

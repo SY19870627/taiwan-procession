@@ -17,7 +17,8 @@ import { bandLine4 } from '../../art/baishadunSpec';
 import { CASES4, EVIDENCE4 } from './cases';
 import { CARDS4, PROLOGUE4, PROLOGUE_JIAO4, bossEffects4, epitaphs4, ghostEpitaphs4, ledger4, mangduEpitaph, newBelievers4 } from './believers';
 import { DAY_PLANS4, UNLOCKS4, dawn4, endOfDay3_4, verdictEffects4 } from './days';
-import { FINALE_ROUNDS4, FINALE_WRONG4, GHOST_MEMBERS4, MEMBER_STATS4, chainLines4, finaleSetup4, fordChatKey4, fordEnd4 } from './finale';
+import { FINALE_ROUNDS4, FINALE_WRONG4, GHOST_MEMBERS4, MEMBER_STATS4, chainLines4, finaleSetup4, fordChatKey4, fordEnd4, fordResult4 } from './finale';
+import { FINALE_WRONG_FUN4, dayEndMissed4 } from './missed';
 import { BANTER4 } from './banter';
 
 /** 頭旗下 4 格（鬼是「跟在頭旗後面走」） */
@@ -45,6 +46,8 @@ export const CHAPTER4: ChapterDef = {
   dawn: dawn4,
   endOfDay3: endOfDay3_4,
   verdictEffects: verdictEffects4,
+  // 漏掉收尾・搞笑（1-01、2-03、3-14）：那天日落當場播
+  dayEndMissed: dayEndMissed4,
   verdictName: { tobeijin: '帶去北津', tohome: '帶回白砂墩', here: '就在這裡下', leave: '不帶' },
   releaseSkill: () => null,
   held: {
@@ -120,7 +123,9 @@ export const CHAPTER4: ChapterDef = {
     // 結局 → 回宮（換八人大轎）→ 開爐的黃曆（第 12 天，「昨日」寫第三天沒辦成的事）→ 開爐 → 信徒錄
     closeStory: 'huigong4',
     afterClose: { key: 'almanac', data: { epilogue: true } },
-    onEnd: (r) => fordEnd4(r),
+    onEnd: (r, b, kind) => fordEnd4(r, fordResult4(b, kind)),
+    // 漏掉收尾 F-2（搞笑）：第一次說不動茫渡時當場播
+    wrongLines: FINALE_WRONG_FUN4,
     // 作者定案（爽Game）：這一戰一定贏（core/boss.ts），沒有遺憾、沒有人被帶走；斬茫渡不加戾氣
     slayFree: true,
     // 一定贏，下面兩句不會出現（FinaleDef 必填）

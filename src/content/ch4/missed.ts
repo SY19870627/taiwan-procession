@@ -5,15 +5,19 @@
  * 隔天黃曆的「昨日」寫一句化解版（媽祖不露臉、不說話，只透過轎、風、香、燈、鞭炮、別人補上）。第三天的寫在開爐那頁（finale.ts 的 fordEnd4）。
  * 爽Game：只寫字，不扣分、不改任何數值。
  *
- * 這一步只做白天、分配表是「化解」的項目。還沒做（之後另外接，不放這裡）：
- *   搞笑：1-01 阿睿的行動電源、2-03 點人頭的阿伯、3-14 賢仔和巴士（當場播）
- *   jump scare：3-13 提燈的（最後一戰開場）
- *   問歸處判到別處／真相沒對出來（N1-x、N2-x；2-16 顧旗的囡仔「判到別處」那一半）：判決之後當場播
+ * MISSED_END4 只放白天、分配表是「化解」的項目。其他的在檔案後半（第 B 步）：
+ *   搞笑：1-01 阿睿的行動電源、2-03 點人頭的阿伯、3-14 賢仔和巴士（那天日落當場播：MISSED_FUN4）
+ *   問歸處判到別處／真相沒對出來（N1-1～N1-3、N2-x；2-03、2-16「判到別處」那一半）：判決之後當場播（MISSED_NIGHT4）
+ *   最後一戰：F-2 說不動茫渡當場播（FINALE_WRONG_FUN4）；F-1、F-3～F-6、E-1 寫在開爐那頁「昨日」（MISSED_FINALE4）
+ * 還沒做：jump scare（N1-4 點心擔阿婆、3-13 提燈的）。
  */
 import type { RunState } from '../../state';
 import type { Encounter } from '../days';
+import type { BanterLine } from '../chapter';
 import { poolFor } from '../../core/procession';
+import { rightVerdict } from '../../core/guihu';
 import { CARDS4 } from './believers';
+import { CASES4 } from './cases';
 import { DAY_PLANS4 } from './days';
 
 /** 漏掉・化解版（key：信徒卡／牽路仔／證據／鬼的 encounter id；bet<天>、report<天>；傳消息的選項 id） */
@@ -190,4 +194,127 @@ export function applyMissedPreset4(r: RunState, upTo: number): void {
     if (f) f.betResult = 'stay';
   }
   r.yesterday = upTo >= 1 ? missedLines4(r, Math.min(3, upTo)) : [];
+}
+
+// ======================================================================
+// 第 B 步：搞笑（當場播）、問歸處（判決之後當場播）、最後一戰／回宮／開爐。
+// 字照文件第 2 節，分配表（第 3 節）選哪一種就放哪一種。jump scare（N1-4、3-13）不在這裡。
+// ======================================================================
+
+/** 白天的搞笑版（分配表：搞笑）：那一天日落（傳消息之前）當場播一次 */
+export const MISSED_FUN4: Record<string, string> = {
+  /** 1-01 阿睿的行動電源沒撿 */
+  arui1: '傍晚轎子進車行，阿睿蹲在牆邊找插座，牆上那個沒人用的插座剛好就在他手邊。阿睿：「蛤，就這樣？我連跟觀眾哭窮的開場白都想好了欸。」',
+  /** 2-03 點人頭的阿伯沒帶（判到別處的話，判決之後播同一句） */
+  diantou2: '轎子從里程碑前面過去，他簿子上的數字自己對上了。點人頭的阿伯：「蛤，對了？我數到手痠都亂掉，祢經過一下就對了，那我這本是寫心酸的喔。」他把簿子闔起來，闔得有點不甘願。',
+  /** 3-14 賢仔前面拋錨的巴士沒辦 */
+  xianzai3: '賢仔塞到不耐煩，提著工具箱下車，才走到一半，前面那台巴士自己發動了。賢仔：「欸，我都走到這裡了，好歹留一顆螺絲給我轉。」車上的人跟他揮手，他只好也揮回去。',
+};
+
+const FUN_RULES4: { key: string; day: number; missed: (r: RunState) => boolean }[] = [
+  { key: 'arui1', day: 1, missed: (r) => flag(r, 'missed_arui1') },
+  { key: 'diantou2', day: 2, missed: (r) => !r.cases.diantou },
+  { key: 'xianzai3', day: 3, missed: (r) => flag(r, 'missed_xianzai3') },
+];
+
+/** 第 n 天日落當場播的搞笑版（沒漏掉就是空的） */
+export function dayEndMissed4(r: RunState, n: number): string[] {
+  return FUN_RULES4.filter((x) => x.day === n && x.missed(r)).map((x) => MISSED_FUN4[x.key]);
+}
+
+/**
+ * 問歸處判決之後當場播（接在判決之後的話後面）。verdict：判到正解以外；truths：判的時候還有真相沒對出來。
+ * 分配表：N1-1 化解、N1-2 搞笑、N1-3 化解、N2-1 化解、N2-2 化解、N2-3 化解、N2-4 搞笑。
+ * N1-4（阿婆的真相）是 jump scare，另外做，不放這裡。
+ * 點人頭的阿伯（2-03 搞笑）、顧旗的囡仔（2-16 化解）帶了但判到別處的那一半也接在這裡。
+ */
+export const MISSED_NIGHT4: Record<string, { verdict?: string; truths?: string }> = {
+  caoxie: {
+    /** N1-1 化解 */
+    verdict: '不管判他去哪，天亮轎子出車行，在省道上頓了一下，他脖子上那條繩子剛好鬆了，草鞋掉在腳邊。他看了很久，穿上了，說今年至少有一段是用自己的腳走的。',
+    /** N1-2 搞笑 */
+    truths: '草鞋丁：「你們就問到這裡喔？我這雙草鞋掛幾十年，都沒有人好奇一下。」前哨：「阿伯，那你要講嗎？」草鞋丁：「……現在叫我講，我又歹勢了。」',
+  },
+  apo: {
+    /** N1-3 化解 */
+    verdict: '不管帶她去哪，天亮賢仔莫名其妙煮了一大鍋粥，端出來的時候轎子在省道上頓了一下。阿婆聞到味道，回頭看了一眼，說有人接手了，那她放心。',
+  },
+  xinniang: {
+    /** N2-1 化解 */
+    verdict: '不管判她去哪，天亮隊伍掉頭，轎子起馬帶起一陣風，阿滿姨網袋裡那支小旗響了好幾聲。她認得那個聲音，朝那個背影看了很久，說原來阿母還帶著。',
+    /** N2-2 化解 */
+    truths: '她阿母是誰，今晚沒有問出來。散的時候她蹲在廟埕邊，旁邊睡著的阿姨網袋口插著一支小旗，她看了很久，伸手幫人家把外套拉好。押尾：「她好像自己認出來了。我沒有問。」',
+  },
+  jiajiao: {
+    /** N2-3 化解 */
+    verdict: '不管判他去哪，半夜一陣風把他那個戴反的臂章吹掉，剛好掉在派出所的失物桌上。他伸手要撿，看到背面寫的名字，手就收回去了，天亮有個太太來認走。',
+    /** N2-4 搞笑（作者原話） */
+    truths: '揹紅背包的男人自己走到殿前跪下去，把欠他的事從頭講了一遍，沒有人逼他。假香燈腳：「你難道一點都不想知道我發生甚麼事情嗎？就這樣給我神蹟打發我。」他講完自己笑出來，說剛剛那一下氣都消了，現在要他從頭講，他也講不出那個味道。',
+  },
+  /** 2-03 判到別處（搞笑；沒帶的話是日落當場播） */
+  diantou: { verdict: MISSED_FUN4.diantou2 },
+  /** 2-16 判到別處（化解・進火的光；沒帶的話寫在隔天「昨日」） */
+  guqi: { verdict: MISSED_END4.guqi2 },
+};
+
+/** 問歸處判了 id、判的是 verdict：要接在判決之後的漏掉收尾（判對而且真相都對出來就是空的） */
+export function nightMissed4(r: RunState, id: string, verdict: string): string[] {
+  const k = CASES4[id];
+  const m = MISSED_NIGHT4[id];
+  if (!k || !m) return [];
+  const out: string[] = [];
+  if (m.verdict && verdict !== rightVerdict(k)) out.push(m.verdict);
+  if (m.truths && new Set(r.cases[id]?.truths ?? []).size < k.truths.length) out.push(m.truths);
+  return out;
+}
+
+/** 陣前審問說不動茫渡（F-2 搞笑）：第一次說不動時當場播（戰鬥帶上的對話；茫渡第一句已經在審問的結果裡） */
+export const FINALE_WRONG_FUN4: BanterLine[] = [
+  { who: '', text: '對岸這時候響了一串鞭炮，牠愣了一下' },
+  { who: '茫渡', text: '欸，你們拿不出東西，放個炮就要我讓路喔？' },
+  { who: '', text: '牠又聽了一陣，說炮聲牠很久沒聽了，這次算你們的。' },
+];
+
+/** 最後一戰、回宮、開爐的化解版：寫在開爐那頁黃曆的「昨日」（第三天白天的後面） */
+export const MISSED_FINALE4: Record<string, string> = {
+  /** F-1 茫渡的證據白天都沒拿到（對岸的火光） */
+  ferry: '牠以前的事，你們手上只有黃曆那一段。對岸香擔的火光亮了一下，牠朝那邊看了很久，自己開口：「以前我聽到鈴就靠過去。」沒有人問，牠自己講完的。',
+  /** F-3 人鏈一段都沒有（燈） */
+  chain: '沒有人下水牽。堤防上的人把手機的燈全部打開，橋上的燈也跟著亮，一路亮到對岸那一點粉紅色。水裡的人說，看得到就不會怕。',
+  /** F-4 有人往霧裡走，沒喊名（風和旗） */
+  huming: '沒有人喊他。他往下游走了幾步，手上的進香旗被風吹得一直響，他低頭看，旗尾指的是對岸，就自己轉回來了。',
+  /** F-5 審問沒問完就下判決（別人補上） */
+  rounds: '牠是誰，你們沒有問到底。天亮的時候，橋上有個很老的聲音往下喊了一句「撐船的」，牠回頭看了很久。押尾：「有人認得牠。名字我晚一點去問那個人。」',
+  /** F-6 沒斬茫渡（轎子等人）：喚回 */
+  noSlay: '刀沒有出鞘。霧自己退到下游，牠把斗笠戴正，走到隊伍前面帶路。對岸粉紅色的轎頂等到隊尾都上岸才動。',
+  /** F-6 送回：文件備註「第二句換成『牠撐了最後一篙，船頭碰到了岸』」 */
+  noSlayReturn: '刀沒有出鞘。牠撐了最後一篙，船頭碰到了岸。對岸粉紅色的轎頂等到隊尾都上岸才動。',
+  /** E-1 一路上幾乎都沒做（鞭炮和布幔） */
+  almostNone: '你們一路只是跟著走。回宮的鞭炮照樣從廟口炸到海堤，開爐那天布幔拉開，底下抬頭的臉一張都沒少。押尾：「我們沒辦到的，名字我都有記。祂那邊應該也有一本。」',
+};
+
+/** E-1「幾乎都沒做」：做了的事（rewards4）＋幫過的信徒（helped4）合起來不超過這個數 */
+export const ALMOST_NONE4 = 1;
+
+/** 最後一戰的結果（BossScene 的 BossBattle 讀出來的；測試可以直接給） */
+export type FinaleResult4 = {
+  kind: 'recall' | 'return' | 'slay';
+  /** 陣前審問三輪各自有沒有說動（1～3） */
+  asked: Record<number, boolean>;
+  /** 被叫走、沒人喊名也沒人鏈牽，自己走回來的人 */
+  walkedBack: string[];
+};
+
+/** 最後一戰、回宮、開爐漏掉的（照文件順序） */
+export function finaleMissed4(res: FinaleResult4, done: { knowsFerry: boolean; chain: number; rewards: number; helped: number }): string[] {
+  const out: string[] = [];
+  if (!done.knowsFerry) out.push(MISSED_FINALE4.ferry);
+  if (done.chain <= 0) out.push(MISSED_FINALE4.chain);
+  if (res.walkedBack.length) out.push(MISSED_FINALE4.huming);
+  // 斬了的話牠已經不在，押尾那句在 mangduSlay4 裡講過
+  if (res.kind !== 'slay' && ![1, 2, 3].every((n) => res.asked[n])) out.push(MISSED_FINALE4.rounds);
+  if (res.kind === 'recall') out.push(MISSED_FINALE4.noSlay);
+  if (res.kind === 'return') out.push(MISSED_FINALE4.noSlayReturn);
+  if (done.rewards + done.helped <= ALMOST_NONE4) out.push(MISSED_FINALE4.almostNone);
+  return out;
 }

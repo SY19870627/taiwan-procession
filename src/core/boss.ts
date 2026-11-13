@@ -347,6 +347,10 @@ export class BossBattle {
   chainLeft = 0;
   /** 回來的人（人鏈、喊名或自己走回來；一定都會回來） */
   saved: string[] = [];
+  /** 第四章漏掉收尾（只記錄，不影響數值）：沒人喊名、也沒人鏈牽，自己走回來的人（F-4） */
+  walkedBack: string[] = [];
+  /** 陣前審問各輪有沒有說動（1～3；只記錄，F-5 用） */
+  asked: Record<number, boolean> = {};
   /** 陣前審問第 3 輪說動了：霧不再往前，不會再有人被叫走 */
   noLure = false;
   /** 陣前審問第 1 輪：叫走一個人要多久的倍數；第 2 輪：學人講話的間隔倍數 */
@@ -645,6 +649,7 @@ export class BossBattle {
 
   /** 陣前審問的結果 */
   answer(round: number, ok: boolean): void {
+    this.asked[round] = ok;
     if (ok) {
       if (round === 1) this.mods.armor = this.mode === 'escort' ? 1.2 : 1.15;
       if (round === 2) { this.mods.skip++; this.mods.atk *= 0.85; }
@@ -1423,7 +1428,10 @@ export class BossBattle {
       // 畫面：前兩天幫過的人下水牽住他（段數只是畫面上的計數）
       this.chainLeft--;
       this.events.push({ type: 'chainHold', name: l.name, left: this.chainLeft });
-    } else this.events.push({ type: 'returned', name: l.name });
+    } else {
+      this.walkedBack.push(l.name);
+      this.events.push({ type: 'returned', name: l.name });
+    }
   }
 
   private toBreathFord(b: Enemy): void {

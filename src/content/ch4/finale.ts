@@ -20,8 +20,9 @@ import type { FinaleRound } from '../finale';
 import type { BanterLine } from '../chapter';
 import { rightVerdict } from '../../core/guihu';
 import { CASES4, carried3 } from './cases';
-import { chainSegments4, done3, stragglers4, xinniangWith } from './believers';
+import { chainSegments4, done3, helped4, stragglers4, xinniangWith } from './believers';
 import { dawn4 } from './days';
+import { finaleMissed4, type FinaleResult4 } from './missed';
 
 /** 兵馬四隊（前哨、押尾、兩隊旗下兵馬）＋會來幫忙的鬼。立繪、戰鬥圖還沒有，先用程式畫的小人。desc 是系統說明（不是劇本） */
 export const MEMBER_STATS4: Record<string, MemberStats & { tex: string[]; desc: string }> = {
@@ -108,11 +109,18 @@ export function finaleSetup4(r: RunState): BossSetup {
 }
 
 /**
- * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆的「昨日」（dawn4）：第三天白天漏掉的事寫化解版（missed.ts）。
- * 作者定案：沒有人被帶走（沒有沙洲的名字）。
+ * 判決之後（FinaleDef.onEnd）：開爐那頁黃曆的「昨日」（dawn4）：第三天白天漏掉的事寫化解版（missed.ts）；
+ * 有給戰鬥結果（res）的話，後面再接最後一戰、回宮、開爐漏掉的化解版（F-1、F-3～F-6、E-1；missed.ts 的 finaleMissed4）。
+ * 作者定案：沒有人被帶走（沒有沙洲的名字）。只寫字，不改任何數值。
  */
-export function fordEnd4(r: RunState): void {
-  r.yesterday = [...dawn4(r, 3)];
+export function fordEnd4(r: RunState, res?: FinaleResult4): void {
+  const fin = res ? finaleMissed4(res, { knowsFerry: knowsFerry4(r), chain: chainSegments4(r), rewards: rewards4(r), helped: helped4(r).length }) : [];
+  r.yesterday = [...dawn4(r, 3), ...fin];
+}
+
+/** BossScene 的戰鬥 → fordEnd4 要的戰鬥結果 */
+export function fordResult4(b: BossBattle, kind: FinaleResult4['kind']): FinaleResult4 {
+  return { kind, asked: { ...b.asked }, walkedBack: [...b.walkedBack] };
 }
 
 /**

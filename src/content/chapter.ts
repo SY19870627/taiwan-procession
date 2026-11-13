@@ -141,6 +141,8 @@ export interface FinaleDef {
    * 戰鬥互嗆換場合（有條件、只講一次的那幾組）：回傳要用的場合；said 是已經換過、講過的場合
    */
   chatKey?: (r: RunState, key: string, said: Set<string>, battle: import('../core/boss').BossBattle) => string;
+  /** 第四章（漏掉收尾 F-2）：陣前審問第一次說不動時，戰鬥帶上當場播的一段（只播一次；不改任何數值） */
+  wrongLines?: BanterLine[];
 }
 
 export interface ChapterDef {
@@ -173,6 +175,8 @@ export interface ChapterDef {
   dawn(r: RunState, n: number): string[];
   endOfDay3(r: RunState): void;
   verdictEffects(r: RunState, id: string, verdict: Verdict): string[];
+  /** 第四章（漏掉收尾・搞笑）：第 day 天日落、傳消息之前當場播的幾段（沒漏掉就是空的；只播一次） */
+  dayEndMissed?: (r: RunState, day: number) => string[];
   /** 判決的名稱 */
   verdictName: Partial<Record<Verdict, string>>;
   /** 超渡這個鬼，最後一戰多的技能（名稱、說明） */
