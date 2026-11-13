@@ -12,7 +12,32 @@
  * 前哨、押尾、阿睿、阿滿姨、賢仔的立繪還沒到，先用程式畫的小人（folk*）放大；頭旗手、香燈腳用 art/baishadun.ts 的暫代。
  * 轎、頭旗、香擔只是畫面（過場本來就不能點）。
  */
-import type { StageScript } from './types';
+import type { StageActor, StageScript } from './types';
+import { chainSegments4 } from '../ch4/believers';
+import { chainVisual4 } from '../ch4/finale';
+
+/**
+ * 回宮／開爐的群眾：人鏈越長（幫過越多人），畫面後排多站幾個人、多幾點燈（回宮是手機的燈，開爐是燭火）。
+ * 只是畫面：沒有字、腳本的走位不碰它們，數量照 chainVisual4（和最後一戰同一套，最多 10 段）；不讀、不改任何戰鬥數值。
+ * 人影用程式畫的小人（folk*，播放器的裁邊檢查不看它們），燈用 spark。位置用固定公式排，不用亂數。
+ */
+export function chainCrowd4(chain: number, at: 'huigong4' | 'kailu4'): StageActor[] {
+  const { figures, lights } = chainVisual4(chain);
+  const out: StageActor[] = [];
+  for (let i = 0; i < figures; i++) {
+    out.push({
+      id: `crowd${i}`, tex: `folk${(i % 5) + 1}`, x: 50 + ((i * 263) % 620), y: 4 + (i % 3) * 7,
+      scale: 1.05 + (i % 2) * 0.1, tint: at === 'kailu4' ? 0xd8c8b8 : 0xb8b0c8, alpha: 0.8,
+    });
+  }
+  for (let j = 0; j < lights; j++) {
+    out.push({
+      id: `light${j}`, tex: 'spark', x: 40 + ((j * 151) % 640), y: -36 - (j % 4) * 14,
+      scale: at === 'kailu4' ? 0.7 : 0.55, tint: at === 'kailu4' ? 0xffc860 : 0xe8f4ff, alpha: 0.85, center: true,
+    });
+  }
+  return out;
+}
 
 export const STAGES4: Record<string, StageScript> = {
   // 2 開場：拱辰宮・起駕（廟門在中間，轎停在門內；頭旗手站門檻前；前哨左前、押尾最右；香燈腳排滿下方）
@@ -307,6 +332,8 @@ export const STAGES4: Record<string, StageScript> = {
       { id: 'xd0', tex: 'st_xiangdeng_c', x: 110, y: 125, scale: 0.3 },
       { id: 'xd1', tex: 'st_xiangdeng_d', x: 400, y: 130, scale: 0.3 },
     ],
+    // 人鏈越長，路邊、廟埕後排的人越多、手機的燈越多（只是畫面）
+    crowd: (r) => chainCrowd4(chainSegments4(r), 'huigong4'),
     beats: [
       // 四人小轎從右邊進來，停在大轎旁邊
       { who: 'narrator', text: '三月初九，下午。隊伍回到通汐。防風林邊，八人大轎已經等在那裡了。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 }, moves: [{ id: 'jiao4', x: 640, hop: true, ms: 2000 }, { id: 'jiao8', alpha: 1, ms: 800 }] },
@@ -371,6 +398,8 @@ export const STAGES4: Record<string, StageScript> = {
       { id: 'xd0', tex: 'st_xiangdeng_f', x: 230, y: 30, scale: 0.3 },
       { id: 'xd1', tex: 'st_xiangdeng_b', x: 440, y: 35, scale: 0.3 },
     ],
+    // 人鏈越長，殿裡後排抬頭的人越多、燭火越多（只是畫面）
+    crowd: (r) => chainCrowd4(chainSegments4(r), 'kailu4'),
     beats: [
       { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
       // 上緣的布往兩邊拉開，一道光由上往下照在人臉上：鏡頭往上抬到臉的高度（畫面裡沒有神龕）

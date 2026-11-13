@@ -200,11 +200,18 @@ export interface StrayChoice {
   why: string;
 }
 
-/** 牽路仔的處理方式：派兵回頭喊（花時辰）、託點心站（0 時辰，那一攤這段用掉） */
+/**
+ * 爽Game（第 C2 輪）：第四章的事不會因為時辰不夠而辦不了。時辰照扣，扣到 0 為止（不會變負的）；
+ * 上限照舊（押中也不超過當天的時辰，見 hoursAfter）。
+ */
+export function spendHours(r: RunState, hours: number): void {
+  r.hours = Math.max(0, r.hours - hours);
+}
+
+/** 牽路仔的處理方式：派兵回頭喊（花時辰；時辰不夠也能喊）、託點心站（0 時辰，那一攤這段用掉） */
 export function strayChoices(r: RunState, e: Extract<Encounter, { kind: 'imp' }>, seg: Segment, shoutHours: number): StrayChoice[] {
   const out: StrayChoice[] = [{
-    how: 'shout', label: '派兵回頭喊', hours: shoutHours, cost: `${shoutHours} 時辰`,
-    why: shoutHours > r.hours ? `時辰不夠（剩 ${r.hours}）` : '',
+    how: 'shout', label: '派兵回頭喊', hours: shoutHours, cost: `${shoutHours} 時辰`, why: '',
   }];
   if (e.stall) {
     out.push({
@@ -219,7 +226,7 @@ export function strayChoices(r: RunState, e: Extract<Encounter, { kind: 'imp' }>
 export function resolveStray(r: RunState, e: Extract<Encounter, { kind: 'imp' }>, seg: Segment, how: StrayHow, shoutHours: number): boolean {
   const c = strayChoices(r, e, seg, shoutHours).find((x) => x.how === how);
   if (!c || c.why) return false;
-  if (how === 'shout') r.hours -= shoutHours;
+  if (how === 'shout') spendHours(r, shoutHours);
   else useStall(r, seg, e.stall!);
   r.flags[`stray_${e.id}`] = true;
   return true;
@@ -238,11 +245,10 @@ export function skipStray(r: RunState): void {
 /** 稟報的固定說明（選之前就寫明） */
 export const REPORT_NOTE = '媽祖會知道；轎子會不會為他停，不保證';
 
-/** 信徒卡上的選項能不能選（稟報次數、點心站） */
+/** 信徒卡上的選項能不能選（稟報次數、點心站）。時辰不夠也能選（spendHours：扣到 0 為止） */
 export function optionWhy(r: RunState, o: Option, seg: Segment): string {
   if ((o.miracle || o.report) && r.miracles <= 0) return o.report ? '今天的稟報已經用完' : '今天的神蹟已經用完';
   if (o.stall && !stallFree(r, seg, o.stall)) return `「${o.stall}」這一段已經在幫別的事`;
-  if (o.hours > r.hours) return `時辰不夠（剩 ${r.hours}）`;
   return '';
 }
 

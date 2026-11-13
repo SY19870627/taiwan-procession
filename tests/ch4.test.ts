@@ -196,11 +196,12 @@ describe('牽路仔（ImpRule stray）', () => {
     expect(r().hours).toBe(2);
   });
 
-  it('時辰不夠就不能喊', () => {
+  it('第 C2 輪（爽Game）：時辰不夠也能喊，時辰扣到 0 為止', () => {
     r().hours = 0;
     const c = strayChoices(r(), bare, 'pre', 1)[0];
-    expect(c.why).toContain('時辰不夠');
-    expect(resolveStray(r(), bare, 'pre', 'shout', 1)).toBe(false);
+    expect(c.why).toBe('');
+    expect(resolveStray(r(), bare, 'pre', 'shout', 1)).toBe(true);
+    expect(r().hours).toBe(0);
   });
 
   it('附近有點心站：託人顧 0 時辰，但那一攤這一段不能再幫別的（按鈕：託茶水攤顧）', () => {
@@ -712,7 +713,8 @@ describe('第一天試玩段落：正式文字', () => {
     }
     // 作者定案（爽Game）以後說錯的說明句換成【待定】開頭的短句等作者補（列在 _agent/c1-report.md）：只有字串開頭的那幾個可以
     const stubs = out.filter((s) => s.startsWith('【待定】'));
-    expect(stubs).toEqual([CHAPTER4.finale.briefing!.text]);
+    // 第 C2 輪：時辰不夠也能辦以後，第二、三天的今日說明卡也換成【待定】（列在 _agent/c2-report.md）
+    expect([...new Set(stubs)].sort()).toEqual([CHAPTER4.finale.briefing!.text, CHAPTER4.unlocks![2].text, CHAPTER4.unlocks![3].title, CHAPTER4.unlocks![3].text].sort());
     const text = out.filter((s) => !s.startsWith('【待定】')).join('\n');
     expect(text.length).toBeGreaterThan(3000);
     // 實際產生的字沒有【待定】；第 B2 輪：三天的字都到了，也沒有「（待寫）」
@@ -929,10 +931,12 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
       f.rest.name, f.rest.text, f.rest.gather!.title, f.rest.gather!.text, f.stay.name, f.stay.text,
       ...D2.routes.flatMap((rt) => [rt.name, rt.note, ...(rt.preview ?? [])]),
       D2.broadcastIntro, D2.broadcastNote, ...D2.broadcast!.flatMap((o) => [o.label, o.brings, o.cost, o.said]),
-      ...Object.values(D2.almanac(r())), D2.title, D2.area, CHAPTER4.unlocks![2].title, CHAPTER4.unlocks![2].text,
+      ...Object.values(D2.almanac(r())), D2.title, D2.area, CHAPTER4.unlocks![2].title,
       CHAPTER4.trial.intro!(2), CHAPTER4.trial.nightNote![2],
     ];
     for (const s of lines) expect(stub(s), String(s)).toBe(false);
+    // 第 C2 輪：時辰不夠也能辦，說明卡「辦不完是正常的」說錯了，換成【待定】開頭的短句等作者補（_agent/c2-report.md）
+    expect(CHAPTER4.unlocks![2].text.startsWith('【待定】')).toBe(true);
     // 牽路仔：舊街死巷口有自己的兩種結果（美雲、圳邊的阿嬤）
     const s2 = imp(D2, 'stray2b');
     expect(s2.story).toContain('美雲');

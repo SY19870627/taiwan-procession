@@ -21,9 +21,10 @@ import { banter } from '../ui/banter';
 import type { GhostCase } from '../content/cases';
 import {
   REPORT_NOTE, afterFork, applyBroadcast, beforeFork, betChoices, betResultText, followOf, optionWhy, report, resolveBet, resolveStray,
-  skipStray, strayChoices, useStall, type Step,
+  skipStray, spendHours, strayChoices, useStall, type Step,
 } from '../core/procession';
 import { SPEAKER_TEX } from '../content/story';
+import { fitCard as fitCardLayout } from '../core/layout';
 import { playStory } from './StoryScene';
 
 /** 第四章：故事裡「名字：「……」」的那句算那個人說的（ui/split.ts）；前三章照舊 */
@@ -73,6 +74,12 @@ export class DayScene extends Phaser.Scene {
   private redraw?: () => void;
   private slotBox?: Phaser.GameObjects.Container;
   private side!: Phaser.GameObjects.Container;
+  /** 現在這張卡的內容（cardHead 開、skipRow 排完後 fitCard 縮放）；面板、「前方」不在裡面 */
+  private cardBox?: Phaser.GameObjects.Container;
+  private cardPanel?: { x: number; y: number; w: number; h: number };
+  /** 「前方」清單（卡片太長時收起來）與它上面那條線的 y */
+  private aheadBox?: Phaser.GameObjects.Container;
+  private aheadTop = 0;
   /** 接下來的事；字串是段落標記（fork 岔路；第四章另有 detour 臨時轉進、detourEnd 轉進結束、rest 停駕點） */
   private queue: Step[] = [];
   private idx = 0;
@@ -426,6 +433,9 @@ export class DayScene extends Phaser.Scene {
   private resetSide(): { x: number; y: number; w: number; h: number } {
     this.side.destroy();
     this.side = this.add.container(0, 0).setDepth(30);
+    this.cardBox = undefined;
+    this.cardPanel = undefined;
+    this.aheadBox = undefined;
     const x = 16;
     const y = BAND_Y + BandScene.height() + 14;
     const w = W - 32;
@@ -435,8 +445,26 @@ export class DayScene extends Phaser.Scene {
   }
 
   private add2<T extends Phaser.GameObjects.GameObject>(o: T): T {
-    this.side.add(o);
+    // 卡片（cardHead 開的）：內容放進 cardBox，排完（skipRow）塞不下就整張縮小（fitCard）
+    (this.cardBox ?? this.side).add(o);
     return o;
+  }
+
+  /**
+   * 卡片排完（skipRow 是每張卡最後一列）：內容蓋到下面的「前方」就整張等比縮小；
+   * 縮太小還放不下就把「前方」收起來，放到面板下緣為止（core/layout.ts 的 fitCard）。
+   */
+  private fitCard(bottom: number): void {
+    const box = this.cardBox;
+    const p = this.cardPanel;
+    if (!box || !p) return;
+    const limit = this.aheadBox ? this.aheadTop - 6 : p.y + p.h - 12;
+    const fit = fitCardLayout(p.y, bottom, limit, p.y + p.h - 12);
+    if (!fit.ahead) this.aheadBox?.setVisible(false);
+    if (fit.scale >= 1) return;
+    // 以面板上緣、左右置中為基準縮小（容器裡的按鈕照樣點得到）
+    const cx = p.x + p.w / 2;
+    box.setScale(fit.scale).setPosition(cx * (1 - fit.scale), p.y * (1 - fit.scale));
   }
 
   private panelMsg(title: string, body: string): void {
@@ -452,24 +480,30 @@ export class DayScene extends Phaser.Scene {
     const cut = upto.findIndex((e) => typeof e === 'string');
     const rest = (cut >= 0 ? upto.slice(0, cut) : upto).filter((e): e is Encounter => typeof e !== 'string' && visible(run, e)).slice(0, 2);
     const top = p.y + p.h - 22 - Math.max(1, rest.length) * 38;
-    const g = this.add2(this.add.graphics());
+    // 「前方」自己一個容器（不跟著卡片縮放；卡片太長時整個收起來，見 fitCard）
+    const box = this.add.container(0, 0);
+    this.side.add(box);
+    this.aheadBox = box;
+    this.aheadTop = top - 10;
+    const add2 = <T extends Phaser.GameObjects.GameObject>(o: T): T => { box.add(o); return o; };
+    const g = add2(this.add.graphics());
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 20, top - 10, p.x + p.w - 20, top - 10);
-    this.add2(txt(this, p.x + 24, top - 2, '前方', 19, C.muted));
+    add2(txt(this, p.x + 24, top - 2, '前方', 19, C.muted));
     if (!rest.length) {
       const mark = cut >= 0 ? upto[cut] : undefined;
       // 第一～三章照原本的寫法（只看下一格是不是岔路）
       const label = !this.plan.follow ? (this.queue[this.idx] === 'fork' ? '岔路' : '（這條路快走完了）')
         : mark === 'fork' ? '岔路' : mark === 'rest' ? '停駕點' : mark === 'restEnd' ? '起馬' : mark === 'detourEnd' ? '回到隊伍' : mark === 'detour' ? '（轎子好像要轉彎）' : '（這條路快走完了）';
-      this.add2(txt(this, p.x + 90, top - 2, label, 19, C.muted, { bold: false }));
+      add2(txt(this, p.x + 90, top - 2, label, 19, C.muted, { bold: false }));
       return;
     }
     rest.forEach((e, i) => {
       const s = summary(run, e);
       const y = top + i * 38;
-      this.add2(txt(this, p.x + 90, y - 4, s.icon, 19, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 5, y: 1 } }));
-      this.add2(txt(this, p.x + 128, y - 2, s.title, 20, C.paper, { bold: false }));
-      this.add2(txt(this, p.x + p.w - 24, y, s.cost, 17, C.muted, { bold: false }).setOrigin(1, 0));
+      add2(txt(this, p.x + 90, y - 4, s.icon, 19, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 5, y: 1 } }));
+      add2(txt(this, p.x + 128, y - 2, s.title, 20, C.paper, { bold: false }));
+      add2(txt(this, p.x + p.w - 24, y, s.cost, 17, C.muted, { bold: false }).setOrigin(1, 0));
     });
   }
 
@@ -555,8 +589,13 @@ export class DayScene extends Phaser.Scene {
     return later.length ? `還沒收容；之後在${later[0]}會遇到` : '還沒收容';
   }
 
-  /** 花時辰（不夠就回傳 false） */
+  /** 花時辰（不夠就回傳 false）。第四章（跟轎）：不夠也能辦，扣到 0 為止（core/procession.ts 的 spendHours） */
   private spend(hours: number): boolean {
+    if (CH().follow) {
+      spendHours(run, hours);
+      this.refreshHeader();
+      return true;
+    }
     if (hours > run.hours) return false;
     run.hours -= hours;
     this.refreshHeader();
@@ -576,6 +615,11 @@ export class DayScene extends Phaser.Scene {
   /** 共用的卡片外框：（立繪）標題、地點、說明 */
   private cardHead(title: string, place: string, text: string, tag?: { s: string; color: string }, tex?: string, ghost = false, who?: string): { p: { x: number; y: number; w: number; h: number }; y: number } {
     const p = this.resetSide();
+    // 「前方」先畫（不在卡片容器裡）；卡片的內容都放進 cardBox，skipRow 排完再看要不要縮（fitCard）
+    this.drawAhead(p);
+    this.cardBox = this.add.container(0, 0);
+    this.side.add(this.cardBox);
+    this.cardPanel = p;
     let tx = p.x + 24;
     const art = portraitKey(this, who ?? title);
     if (art) {
@@ -600,7 +644,6 @@ export class DayScene extends Phaser.Scene {
     this.add2(txt(this, tx, p.y + 58, place, 20, C.muted));
     if (tag) this.add2(txt(this, p.x + p.w - 24, p.y + 18, tag.s, 19, 0xffffff, { backgroundColor: tag.color, padding: { x: 8, y: 4 } }).setOrigin(1, 0));
     const body = this.add2(txt(this, p.x + 24, p.y + 112, text, 22, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
-    this.drawAhead(p);
     return { p, y: body.y + body.height + 16 };
   }
 
@@ -627,10 +670,14 @@ export class DayScene extends Phaser.Scene {
     g.lineStyle(1, 0x7a6a8e, 0.6);
     g.lineBetween(p.x + 24, y + 2, p.x + p.w - 24, y + 2);
     this.add2(button(this, p.x + 106, y + 40, 164, 52, label, onSkip, { size: 22, fill: 0x3a3442 }));
-    this.add2(txt(this, p.x + 200, y + 18, `不處理：${ignore}`, 19, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    const t = this.add2(txt(this, p.x + 200, y + 18, `不處理：${ignore}`, 19, 0xffb0a0, { bold: false, wordWrap: { width: p.w - 224, useAdvancedWrap: true } }));
+    // 每張卡最後一列：內容的下緣（按鈕底、或「不處理」的字比較長時的字底），蓋到「前方」就縮
+    this.fitCard(Math.max(y + 66, t.y + t.height) + 6);
   }
 
   private hoursWhy(h: number): string {
+    // 第四章（爽Game）：不會因為時辰不夠而辦不了
+    if (CH().follow) return '';
     if (h > run.hours) return `時辰不夠（剩 ${run.hours}）`;
     return '';
   }

@@ -7,6 +7,7 @@
  * 手機直式畫面比較高時，播放器會把地平線往下移、演員放大（ui/stage.ts 的 stageLayout），腳本不用改。
  */
 import type { SpeakerId } from '../story';
+import type { RunState } from '../../state';
 
 export interface StageActor {
   id: string;
@@ -95,5 +96,10 @@ export interface StageScript {
   /** 前景；沒寫就照 mood 選（temple → 廟埕，其他 → 山路） */
   fore?: StageFore;
   actors: StageActor[];
+  /**
+   * 依這一局多出來的群眾（只是畫面、沒有字、腳本的走位不碰它們）：StoryScene 播之前加在 actors 最前面（站在所有人後面）。
+   * 第四章回宮／開爐：人鏈越長，人越多、燈越多（content/stage/ch4.ts 的 chainCrowd4）。
+   */
+  crowd?: (r: RunState) => StageActor[];
   beats: StageBeat[];
 }

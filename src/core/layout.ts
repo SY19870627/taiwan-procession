@@ -51,6 +51,19 @@ export const TRIAL = {
   officer: { bottom: 506, h: 250 },
 } as const;
 
+/**
+ * 白天的卡片（DayScene）塞不下時怎麼縮（第 C2 輪：第三天阿翰那種長卡，選項＋「不處理：…」蓋到下面的「前方」）：
+ * 內容從 top 排到 bottom，要放在 limit（「前方」那條線）以上，就以 top 為基準整張等比縮小（scale）。
+ * 縮到 keepMin 還放不下：把「前方」收起來（ahead = false），改成放到 floor（面板下緣）以上；最小縮到 min。
+ */
+export function fitCard(top: number, bottom: number, limit: number, floor: number, keepMin = 0.75, min = 0.5): { scale: number; ahead: boolean } {
+  const h = bottom - top;
+  if (bottom <= limit || h <= 0) return { scale: 1, ahead: true };
+  const keep = (limit - top) / h;
+  if (keep >= keepMin) return { scale: keep, ahead: true };
+  return { scale: Math.max(min, Math.min(1, (floor - top) / h)), ahead: false };
+}
+
 /** 換行後有沒有哪一行以標點開頭（「，再問問。」這種）——互嗆字幕換行時要避開 */
 export function punctLeads(rows: string[]): boolean {
   return rows.slice(1).some((r) => /^[，。、！？；：…」』）—]/.test(r));

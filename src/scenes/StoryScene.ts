@@ -57,7 +57,8 @@ export class StoryScene extends Phaser.Scene {
     // 有演出腳本就播演出（沒有 &text=1 時）；播放器出錯就退回文字版
     // 有條件的句子（Line.when）不成立時，演出裡對應的那一拍也跳過（第四章入廟：秀枝稟報過才有的四句）
     const st = STAGES[id];
-    const sc = st && { ...st, beats: st.beats.filter((b) => { const l = b.src === undefined ? undefined : cs.lines[b.src]; return !l?.when || l.when(run); }) };
+    // 依這一局多出來的群眾（第四章回宮／開爐：人鏈越長人越多）放在最前面＝站在所有人後面
+    const sc = st && { ...st, actors: [...(st.crowd?.(run) ?? []), ...st.actors], beats: st.beats.filter((b) => { const l = b.src === undefined ? undefined : cs.lines[b.src]; return !l?.when || l.when(run); }) };
     if (sc && !data.text) {
       try {
         const player = new StagePlayer(this, sc, { onDone: finish, startBeat: data.beat });
