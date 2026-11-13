@@ -124,6 +124,8 @@ export interface Line {
   fx?: 'shake' | 'firecracker' | 'flash';
   /** 只在這個條件成立時播（文字版；第四章天亮：阿婆判「就在這裡下」才有的那一句） */
   when?: (r: import('../state').RunState) => boolean;
+  /** 這一句出來之前先播一段畫面（文字版；第四章 jump scare，畫面在 ui/scare4.ts）。畫面播完或被跳過才出這一句 */
+  pre?: 'scareTideng4';
 }
 
 export interface Cutscene {

@@ -25,12 +25,16 @@ export class Dialogue {
   private onDone: () => void;
   private onFx?: (fx: NonNullable<Line['fx']>) => void;
   private finished = false;
+  /** 正在播 Line.pre 的畫面（第四章 jump scare）：這時候點擊、按鍵不往下走 */
+  private busy = false;
+  private onPre?: (pre: NonNullable<Line['pre']>, done: () => void) => void;
 
-  constructor(scene: Phaser.Scene, lines: Line[], onDone: () => void, onFx?: (fx: NonNullable<Line['fx']>) => void) {
+  constructor(scene: Phaser.Scene, lines: Line[], onDone: () => void, onFx?: (fx: NonNullable<Line['fx']>) => void, onPre?: (pre: NonNullable<Line['pre']>, done: () => void) => void) {
     this.scene = scene;
     this.lines = lines;
     this.onDone = onDone;
     this.onFx = onFx;
+    this.onPre = onPre;
     // 直式：對話框在下方，比較高、字可以多排幾行
     const bx = 20;
     const by = H - BOX_H - 40;
@@ -103,6 +107,21 @@ export class Dialogue {
       return;
     }
     const line = this.lines[this.i];
+    // 這一句之前先播一段畫面（播完或被跳過才出這一句）
+    if (line.pre && this.onPre) {
+      this.busy = true;
+      this.typing?.remove();
+      this.hint.setAlpha(0);
+      this.onPre(line.pre, () => {
+        this.busy = false;
+        if (!this.finished) this.show(line);
+      });
+      return;
+    }
+    this.show(line);
+  }
+
+  private show(line: Line): void {
     // 立繪：說話的人亮、其他人暗
     let active: Phaser.GameObjects.Container | undefined;
     if (line.who !== 'narrator') active = this.portrait(line as Line & { who: Exclude<Line['who'], 'narrator'> });
@@ -143,7 +162,7 @@ export class Dialogue {
   }
 
   advance(): void {
-    if (this.finished) return;
+    if (this.finished || this.busy) return;
     if (this.typing && this.typing.getRepeatCount() > 0) {
       this.typing.remove();
       this.typing = undefined;

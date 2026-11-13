@@ -24,6 +24,8 @@ import { banterStrip } from '../ui/banter';
 import { TRIAL } from '../core/layout';
 import { isBorrowedPortrait, portraitKey, portraitThumb, type Expr } from '../art/portraits';
 import { arrive, carrying, judgeGuihu, pending } from '../core/guihu';
+import { APO_SCARE_LINE4, SCARE_FLAG4, shouldScareApo4 } from '../content/ch4/missed';
+import { scareApo4 } from '../ui/scare4';
 
 const WATCHES = 3;
 const DEFECT_COLOR: Record<string, number> = { 塗改: 0xff9a6a, 缺頁: 0xd9b0ff, 模糊: 0x9fd0ff };
@@ -44,7 +46,7 @@ export class TrialScene extends Phaser.Scene {
     super('trial');
   }
 
-  create(data: { night: number }): void {
+  create(data: { night: number; scare?: boolean }): void {
     this.n = data.night ?? 1;
     this.watch = 0;
     this.messages = [];
@@ -113,7 +115,9 @@ export class TrialScene extends Phaser.Scene {
       if (!s) return open();
       playStory(this, s, playNext);
     };
-    if (before.length || intro) this.time.delayedCall(450, playNext);
+    // 開發用（截圖）：&scare=1 跳過開審前的對話，直接播 N1-4 阿婆的 jump scare（立繪在背景載入，等一下再播）
+    if (data.scare && run.chapter === 'baishadun' && T.style === 'guihu') this.time.delayedCall(900, () => this.scareApo());
+    else if (before.length || intro) this.time.delayedCall(450, playNext);
   }
 
   // ---------- 堂上：選要審哪一個 ----------
@@ -467,9 +471,24 @@ export class TrialScene extends Phaser.Scene {
       bt = body(size);
     }
     this.add2(bt);
-    this.add2(button(this, W / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.lobby(), { size: 24, fill: 0x8a1b14 }));
+    this.add2(button(this, W / 2, p.y + p.h - 70, 240, 70, '繼續', () => this.backToLobby(k), { size: 24, fill: 0x8a1b14 }));
     // 有冤的被斬了，換一組（不是一般的斬）
     this.quip(v.verdict === 'slay' && k.innocent ? 't_wronged' : `t_${v.verdict}`, 600);
+  }
+
+  /** 判完按「繼續」回列表；第四章 N1-4：阿婆還有真相沒對出來，回列表那一下 jump scare（一局一次，只改 flags） */
+  private backToLobby(k: GhostCase): void {
+    this.lobby();
+    if (run.chapter === 'baishadun' && CH().trial.style === 'guihu' && shouldScareApo4(run, k.id, run.cases[k.id], this.n)) this.scareApo();
+  }
+
+  /** N1-4 的畫面＋台詞（&scare=1 開發用直接叫這個） */
+  private scareApo(): void {
+    run.flags[SCARE_FLAG4.apo] = true;
+    const k = CH().cases.apo;
+    const face = portraitKey(this, 'apo', 'surprised') ?? portraitKey(this, 'apo') ?? k?.tex ?? 'folk3';
+    const smile = portraitKey(this, 'apo', 'smile') ?? portraitKey(this, 'apo') ?? face;
+    scareApo4(this, face, smile, () => talk(this, splitStory(APO_SCARE_LINE4, undefined, SPEAKER_TEX), () => undefined));
   }
 
   /**

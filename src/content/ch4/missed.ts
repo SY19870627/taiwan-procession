@@ -9,7 +9,7 @@
  *   搞笑：1-01 阿睿的行動電源、2-03 點人頭的阿伯、3-14 賢仔和巴士（那天日落當場播：MISSED_FUN4）
  *   問歸處判到別處／真相沒對出來（N1-1～N1-3、N2-x；2-03、2-16「判到別處」那一半）：判決之後當場播（MISSED_NIGHT4）
  *   最後一戰：F-2 說不動茫渡當場播（FINALE_WRONG_FUN4）；F-1、F-3～F-6、E-1 寫在開爐那頁「昨日」（MISSED_FINALE4）
- * 還沒做：jump scare（N1-4 點心擔阿婆、3-13 提燈的）。
+ *   jump scare（第 C 步，檔案最後）：N1-4 點心擔阿婆（第一夜問歸處，判完回列表那一下）、3-13 提燈的（mangdu4 起霧以後）
  */
 import type { RunState } from '../../state';
 import type { Encounter } from '../days';
@@ -317,4 +317,54 @@ export function finaleMissed4(res: FinaleResult4, done: { knowsFerry: boolean; c
   if (res.kind === 'return') out.push(MISSED_FINALE4.noSlayReturn);
   if (done.rewards + done.helped <= ALMOST_NONE4) out.push(MISSED_FINALE4.almostNone);
   return out;
+}
+
+// ======================================================================
+// 第 C 步：jump scare（全章 2 次；文件第 3 節「jump scare 兩次的做法」）。
+// 畫面在 ui/scare4.ts；這裡只放觸發條件、時間、字。每次的畫面 < 2 秒、點一下或按任何鍵馬上跳過、
+// 一局最多各一次（flags）、不擋流程、不改任何數值。
+// ======================================================================
+
+/** 播過就記在 run.flags（一局最多一次） */
+export const SCARE_FLAG4 = { apo: 'scared_apo4', tideng: 'scared_tideng4' } as const;
+
+/** 每次 jump scare 的畫面最長多久（毫秒；不含之後的台詞） */
+export const SCARE_MAX_MS4 = 2000;
+
+/**
+ * N1-4 阿婆（毫秒，依序）：畫面先暗半拍 → 大白臉（停半秒）→ 退回正常大小、換成笑 → 背景亮回來、舊灶冒白煙。
+ * 文件寫「配一聲短的鑼」：遊戲目前沒有音效系統，先不放（之後有了接在 face 開始那一下）。
+ */
+export const SCARE_APO4 = { dark: 150, face: 500, shrink: 350, clear: 400 } as const;
+
+/** 3-13 提燈的（毫秒，依序）：霧蓋上來 → 全暗 → 停一拍 → 「啪」燈亮、臉貼著鏡頭 → 他往後縮 → 燈晃 → 光暈散成堤防上一排手機燈 */
+export const SCARE_TIDENG4 = { fog: 250, black: 150, beat: 300, snap: 60, flinch: 200, sway: 300, fade: 400 } as const;
+
+/** 一段 jump scare 的畫面總長 */
+export const scareMs4 = (t: Readonly<Record<string, number>>): number => Object.values(t).reduce((a, b) => a + b, 0);
+
+/** N1-4 jump scare 版（嚇完播；臉那一句是畫面，不寫成字） */
+export const APO_SCARE_LINE4 = '點心擔阿婆：「粥滾了，都沒人叫我。」她自己笑到拍大腿，順手摸到後面的灶台，說原來在這裡，難怪找無門。';
+
+/** 3-13 漏掉版（mangdu4 起霧以後；燈亮那一句是畫面，不寫成字） */
+export const TIDENG_SCARE4 = {
+  say: '哇，亮了。歹勢，沒油幾十年突然會亮，我比你們還驚。',
+  after: '他笑到燈一直晃，說水門這邊他來照。',
+} as const;
+
+/**
+ * N1-4：第一夜問歸處，判完阿婆（哪一種判決都算）、她還有真相沒對出來，回到列表的那一下。
+ * 白天沒請她（沒有 run.cases.apo）不會觸發；一局一次。
+ */
+export function shouldScareApo4(r: RunState, id: string, st: { truths: number[] } | undefined, night: number): boolean {
+  if (id !== 'apo' || night !== 1 || !st || r.flags[SCARE_FLAG4.apo]) return false;
+  return new Set(st.truths).size < CASES4.apo.truths.length;
+}
+
+/** 3-13 的漏掉版要不要播（mangdu4 那兩句的 when）：第三天沒帶提燈的（同 cases.ts 的 carried3） */
+export const tidengMissed4 = (r: RunState): boolean => !r.held.some((h) => h.id === 'tideng');
+
+/** 3-13：最後一戰開場起霧以後，沒帶提燈的才嚇；一局一次 */
+export function shouldScareTideng4(r: RunState): boolean {
+  return tidengMissed4(r) && !r.flags[SCARE_FLAG4.tideng];
 }

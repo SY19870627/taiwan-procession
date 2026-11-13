@@ -13,6 +13,11 @@ import {
   FINALE_WRONG_FUN4, MISSED_CAP4, MISSED_END4, MISSED_FINALE4, MISSED_FUN4, MISSED_NIGHT4,
   applyMissedPreset4, dayEndMissed4, finaleMissed4, missedKeys4, missedLines4,
 } from '../src/content/ch4/missed';
+import {
+  APO_SCARE_LINE4, SCARE_APO4, SCARE_FLAG4, SCARE_MAX_MS4, SCARE_TIDENG4, TIDENG_SCARE4,
+  scareMs4, shouldScareApo4, shouldScareTideng4, tidengMissed4,
+} from '../src/content/ch4/missed';
+import { CUTSCENES4 } from '../src/content/ch4/story';
 import { BossBattle } from '../src/core/boss';
 import { applyBroadcast, poolFor } from '../src/core/procession';
 import type { Encounter } from '../src/content/days';
@@ -265,6 +270,77 @@ describe('第四章漏掉收尾（第 B 步）', () => {
     const before = JSON.stringify(x);
     for (const id of Object.keys(MISSED_NIGHT4)) for (const v of CASES4[id].verdicts) verdictEffects4(x, id, v.verdict);
     for (const d of [1, 2, 3]) dayEndMissed4(x, d);
+    expect(JSON.stringify(x)).toBe(before);
+  });
+});
+
+describe('第四章 jump scare（N1-4 阿婆、3-13 提燈的）', () => {
+  it('字照文件第 2 節的 jump scare 版／漏掉版', () => {
+    expect(DOC).toContain(APO_SCARE_LINE4);
+    expect(DOC).toContain(TIDENG_SCARE4.say);
+    expect(DOC).toContain(TIDENG_SCARE4.after);
+  });
+
+  it('每次的畫面都 < 2 秒', () => {
+    expect(SCARE_MAX_MS4).toBe(2000);
+    expect(scareMs4(SCARE_APO4)).toBeLessThan(SCARE_MAX_MS4);
+    expect(scareMs4(SCARE_TIDENG4)).toBeLessThan(SCARE_MAX_MS4);
+    for (const t of [SCARE_APO4, SCARE_TIDENG4]) for (const v of Object.values(t)) expect(v).toBeGreaterThan(0);
+    // 阿婆：先暗半拍、臉停半秒
+    expect(SCARE_APO4.dark).toBeLessThan(SCARE_APO4.face);
+    expect(SCARE_APO4.face).toBe(500);
+  });
+
+  it('N1-4：第一夜、判的是阿婆、還有真相沒對出來才嚇；沒請來、對齊了、別夜、別的鬼、播過了都不嚇', () => {
+    const x = r();
+    const all = CASES4.apo.truths.map((_, i) => i);
+    expect(all.length).toBeGreaterThan(0);
+    expect(shouldScareApo4(x, 'apo', { truths: [] }, 1)).toBe(true);
+    expect(shouldScareApo4(x, 'apo', { truths: all.slice(0, -1) }, 1)).toBe(true);
+    // 重複的不算對出來
+    expect(shouldScareApo4(x, 'apo', { truths: all.map(() => 0) }, 1)).toBe(all.length > 1);
+    expect(shouldScareApo4(x, 'apo', { truths: all }, 1)).toBe(false);
+    expect(shouldScareApo4(x, 'apo', undefined, 1)).toBe(false);
+    expect(shouldScareApo4(x, 'apo', { truths: [] }, 2)).toBe(false);
+    expect(shouldScareApo4(x, 'caoxie', { truths: [] }, 1)).toBe(false);
+    x.flags[SCARE_FLAG4.apo] = true;
+    expect(shouldScareApo4(x, 'apo', { truths: [] }, 1)).toBe(false);
+  });
+
+  it('3-13：第三天沒帶提燈的才嚇（一局一次）；有帶照原本那兩句', () => {
+    const x = r();
+    expect(tidengMissed4(x)).toBe(true);
+    expect(shouldScareTideng4(x)).toBe(true);
+    x.flags[SCARE_FLAG4.tideng] = true;
+    expect(shouldScareTideng4(x)).toBe(false);
+    delete x.flags[SCARE_FLAG4.tideng];
+    x.held.push({ id: 'tideng', grudge: 0 });
+    expect(tidengMissed4(x)).toBe(false);
+    expect(shouldScareTideng4(x)).toBe(false);
+  });
+
+  it('mangdu4：起霧以後才嚇；有帶播原本兩句、沒帶播漏掉版（兩邊不重疊）', () => {
+    const L = CUTSCENES4.mangdu4.lines;
+    const fog = L.findIndex((l) => l.text.startsWith('溪面起霧了'));
+    const scare = L.findIndex((l) => l.pre === 'scareTideng4');
+    expect(fog).toBeGreaterThanOrEqual(0);
+    expect(scare).toBeGreaterThan(fog);
+    expect(L[scare].text).toBe(TIDENG_SCARE4.say);
+    const shown = (x: state.RunState) => L.filter((l) => !l.when || l.when(x)).map((l) => l.text);
+    const x = r();
+    expect(shown(x)).toContain(TIDENG_SCARE4.say);
+    expect(shown(x)).toContain(TIDENG_SCARE4.after);
+    expect(shown(x)).not.toContain('夠亮了。今天晚上不用我的。');
+    x.held.push({ id: 'tideng', grudge: 0 });
+    expect(shown(x)).toContain('夠亮了。今天晚上不用我的。');
+    expect(shown(x)).not.toContain(TIDENG_SCARE4.say);
+  });
+
+  it('判斷不改任何狀態', () => {
+    const x = r();
+    const before = JSON.stringify(x);
+    shouldScareApo4(x, 'apo', { truths: [] }, 1);
+    shouldScareTideng4(x);
     expect(JSON.stringify(x)).toBe(before);
   });
 });

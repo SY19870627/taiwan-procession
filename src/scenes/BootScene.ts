@@ -5,7 +5,7 @@ import { makeHarbor } from '../art/harbor';
 import { makeXinying } from '../art/xinying';
 import { makeStageArt } from '../art/stage';
 import { makeBaishadun } from '../art/baishadun';
-import { playOverride, startChapter } from '../content/chapter';
+import { CH, playOverride, startChapter } from '../content/chapter';
 import { applyMissedPreset4 } from '../content/ch4/missed';
 import { run } from '../state';
 
@@ -48,7 +48,17 @@ export class BootScene extends Phaser.Scene {
       const kind = q.get('kind') ?? 'depart';
       // ?scene=story&id=recall：&text=1 強制播文字版、&beat=3 演出直接停在第 4 拍（截圖、驗收用）
       const beat = q.get('beat') !== null ? Math.max(0, Math.floor(Number(q.get('beat'))) || 0) : undefined;
+      // 第四章 jump scare（截圖）：&preset=missed&scare=1
+      //  ?scene=trial&n=1&ch=baishadun&preset=missed&scare=1：問歸處一開就播 N1-4 阿婆
+      //  ?scene=boss&ch=baishadun&preset=missed&scare=1：開戰過場 mangdu4 直接從 3-13 提燈的那一句開始（燈亮），播完進最後一戰
+      // 測試區截圖用（跟 &preset=missed 一樣只有加網址參數才會觸發）
+      const scare = ch === 'baishadun' && q.get('preset') === 'missed' && q.get('scare') === '1';
+      if (scare && jump === 'boss') {
+        this.scene.start('story', { id: CH().finale.story, scare: true, next: { key: 'boss' } });
+        return;
+      }
       this.scene.start(jump, {
+        scare,
         day: n, night: n, id: q.get('id') ?? (jump === 'story' && q.get('proto') ? 'recall' : 'dusk3'), prologue: q.get('prologue') === '1', kind, title: kind, next: { key: 'title' },
         text: q.get('text') === '1', beat,
         // ?scene=almanac&ch=baishadun&epilogue=1：第四章開爐那頁黃曆（收尾）

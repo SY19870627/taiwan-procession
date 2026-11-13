@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
-import { CUTSCENES, type Cutscene } from '../content/story';
+import { CUTSCENES, SPEAKERS, type Cutscene, type Line } from '../content/story';
+import { SCARE_FLAG4, shouldScareTideng4 } from '../content/ch4/missed';
+import { portraitKey } from '../art/portraits';
+import { scareTideng4 } from '../ui/scare4';
 import { STAGES } from '../content/stage';
 import { fitBattleArt } from '../art/xinyingBattle';
 import { Dialogue } from '../ui/dialogue';
@@ -17,6 +20,8 @@ export interface StoryData {
   text?: boolean;
   /** 演出直接跳到第幾拍（從 0 算；截圖、驗收用：網址 &beat=N） */
   beat?: number;
+  /** 開發用（截圖）：文字版直接從第一個有 Line.pre（jump scare）的那一句開始播（網址 &scare=1） */
+  scare?: boolean;
 }
 
 /**
@@ -59,7 +64,7 @@ export class StoryScene extends Phaser.Scene {
     const st = STAGES[id];
     // 依這一局多出來的群眾（第四章回宮／開爐：人鏈越長人越多）放在最前面＝站在所有人後面
     const sc = st && { ...st, actors: [...(st.crowd?.(run) ?? []), ...st.actors], beats: st.beats.filter((b) => { const l = b.src === undefined ? undefined : cs.lines[b.src]; return !l?.when || l.when(run); }) };
-    if (sc && !data.text) {
+    if (sc && !data.text && !data.scare) {
       try {
         const player = new StagePlayer(this, sc, { onDone: finish, startBeat: data.beat });
         button(this, W - 90, 40, 120, 50, '略過 ▶▶', () => player.skip(), { size: 18, fill: 0x2a2236 }).setDepth(700);
@@ -71,11 +76,22 @@ export class StoryScene extends Phaser.Scene {
         this.children.removeAll(true);
       }
     }
-    this.playText(cs, finish);
+    this.playText(cs, finish, !!data.scare);
+  }
+
+  /** 第四章 jump scare（Line.pre）：一局一次，播過或條件不成立就直接出那一句 */
+  private pre(id: NonNullable<Line['pre']>, done: () => void): void {
+    if (id === 'scareTideng4') {
+      if (!shouldScareTideng4(run)) return done();
+      run.flags[SCARE_FLAG4.tideng] = true;
+      const art = portraitKey(this, 'tideng', 'surprised') ?? portraitKey(this, 'tideng');
+      return scareTideng4(this, art ?? SPEAKERS.tideng.tex, done);
+    }
+    done();
   }
 
   /** 文字版：背景＋立繪＋下方對話框 */
-  private playText(cs: Cutscene, finish: () => void): void {
+  private playText(cs: Cutscene, finish: () => void, scare = false): void {
     const [top, bottom] = cs.mood === 'demon' ? [0x0a0614, 0x2e1446] : cs.mood === 'temple' ? [0x1a0e08, 0x5a3412] : [0x2a2a4a, 0xd88a5a];
     const bg = this.add.graphics();
     bg.fillGradientStyle(top, top, bottom, bottom, 1);
@@ -126,7 +142,11 @@ export class StoryScene extends Phaser.Scene {
       }
     };
     // 有條件的句子（第四章天亮：阿婆判「就在這裡下」才有那一句）只在條件成立時播
-    const dlg = new Dialogue(this, cs.lines.filter((l) => !l.when || l.when(run)), finish, fx);
+    let lines = cs.lines.filter((l) => !l.when || l.when(run));
+    // &scare=1（開發用）：直接從 jump scare 那一句開始
+    const from = scare ? lines.findIndex((l) => l.pre) : -1;
+    if (from > 0) lines = lines.slice(from);
+    const dlg = new Dialogue(this, lines, finish, fx, (id, done) => this.pre(id, done));
     button(this, W - 90, 40, 120, 50, '略過 ▶▶', () => dlg.skip(), { size: 18, fill: 0x2a2236 }).setDepth(700);
   }
 }

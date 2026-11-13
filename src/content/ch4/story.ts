@@ -29,6 +29,7 @@
 import type { Cutscene } from '../story';
 import type { RunState } from '../../state';
 import { carried3 } from './cases';
+import { TIDENG_SCARE4, tidengMissed4 } from './missed';
 
 /** 第一夜判「帶去北津」或「帶回白砂墩」：草鞋丁有跟著（同 days.ts 的 caoxieWith；這裡自己寫一份，避免互相 import） */
 const caoxieWith = (r: RunState): boolean => r.cases.caoxie?.verdict === 'tobeijin' || r.cases.caoxie?.verdict === 'tohome';
@@ -325,6 +326,9 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'yawei', text: '水裡四千三百多。堤防上還有人在下來。' },
       { who: 'narrator', text: '堤防上有很多人打開手機的燈，往溪裡照。提燈的站在他們中間，把他那一盞舉得最高。', when: (r) => carried3(r, 'tideng') },
       { who: 'tideng', text: '夠亮了。今天晚上不用我的。', when: (r) => carried3(r, 'tideng') },
+      // 3-13 提燈的沒帶：jump scare（全章第 2 次；起霧全暗 → 燈亮、臉貼鏡頭，畫面見 ui/scare4.ts），嚇完播漏掉版
+      { who: 'tideng', text: TIDENG_SCARE4.say, pre: 'scareTideng4', when: tidengMissed4 },
+      { who: 'narrator', text: TIDENG_SCARE4.after, when: tidengMissed4 },
       { who: 'narrator', text: '霧裡有人在喊。聲音很熟，像自己家裡的人。' },
       { who: 'mangdu', text: '要過溪的，這邊。船在這邊。' },
       { who: 'qianshao', text: '領隊，隊伍中間有人往下游走了。那邊沒有岸，那邊是沙洲。' },
