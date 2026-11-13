@@ -1,0 +1,130 @@
+{
+  "chapter": 4,
+  "subject": "白砂墩媽神轎（粉紅快轎 + 回宮八人大轎）",
+  "desaturation": "成品與母檔皆已相對原繪降彩度 20%，對齊上一批 st_wangjiao_carried 的處理",
+  "background": "去背透明 webp，不畫地面影子；腳或杆／水花最低點貼下緣、水平置中",
+  "folder": "/workspace/tp-ch4/art/jiao/",
+  "masters_folder": "/workspace/tp-ch4/art/jiao/masters/",
+  "not_in_repo": true,
+  "files": [
+    {
+      "key": "st_jiao4",
+      "file": "st_jiao4.webp",
+      "size": [
+        400,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "四分之三側，觀看角度同 st_wangjiao（正面偏畫面左）；無轎班",
+      "notes": "停駕。落地，杆擱在兩張矮木凳上。粉紅防水頂＋金獅、紅繡金穗、正面鳳凰繡幔合上。無文字。",
+      "pixels": [
+        400,
+        400
+      ],
+      "bytes": 28534,
+      "mode": "RGBA"
+    },
+    {
+      "key": "st_jiao4_carry",
+      "file": "st_jiao4_carry.webp",
+      "size": [
+        560,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "整組朝右、往右走",
+      "notes": "白天去程預設。同一頂四人轎，兩根青竹杆上肩並貫穿轎身，前杆洋紅粗繩＋花束。四名黃衣黃帽轎班，臉與步伐有變化（後左為較年長蓄鬚者）。轎幔為正面金橘鳳凰繡幔，合上。",
+      "pixels": [
+        560,
+        400
+      ],
+      "bytes": 47740,
+      "mode": "RGBA"
+    },
+    {
+      "key": "st_jiao4_carry_closed",
+      "file": "st_jiao4_carry_closed.webp",
+      "size": [
+        560,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "整組朝右、往右走",
+      "notes": "回程。同一組人與同一頂轎，差別是轎廂外另放下米色帆布，把正面繡幔（連側面繡面）蓋住，金穗下緣仍可見。仍是粉紅頂。",
+      "pixels": [
+        560,
+        400
+      ],
+      "bytes": 45448,
+      "mode": "RGBA"
+    },
+    {
+      "key": "st_jiao4_pause",
+      "file": "st_jiao4_pause.webp",
+      "size": [
+        560,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "整組朝右",
+      "notes": "路口頓住。同一頂轎，轎身明顯前低後高傾斜，呈剛停住的中間幀。轎班腳步仍略帶步伐，見弱點。",
+      "pixels": [
+        560,
+        400
+      ],
+      "bytes": 48944,
+      "mode": "RGBA"
+    },
+    {
+      "key": "st_jiao4_turn",
+      "file": "st_jiao4_turn.webp",
+      "size": [
+        560,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "仍以朝右為主，轎身略轉三分之二側",
+      "notes": "轉進小路。同一頂轎，轎身比行進圖更露出正面，杆前後高度略不同步。轉幅較溫和，見弱點。非正面朝鏡頭。",
+      "pixels": [
+        560,
+        400
+      ],
+      "bytes": 51184,
+      "mode": "RGBA"
+    },
+    {
+      "key": "st_jiao4_ford",
+      "file": "st_jiao4_ford.webp",
+      "size": [
+        560,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "整組朝右、往右走",
+      "notes": "過溪。同一頂粉紅頂小轎。水花只畫在小腿／腳踝周圍，沒有一條完整水面地平線。水深約到足踝～小腿下段。",
+      "pixels": [
+        560,
+        400
+      ],
+      "bytes": 54990,
+      "mode": "RGBA"
+    },
+    {
+      "key": "st_jiao8_carry",
+      "file": "st_jiao8_carry.webp",
+      "size": [
+        560,
+        400
+      ],
+      "size_source": "sedan-art-brief.md §3 表列",
+      "facing": "整組朝右、往右走",
+      "notes": "回宮八人大轎，另一頂莊重木轎，不是四人轎加人數，也不用粉紅防水頂。朱紅描金、重簷木頂、脊上金鳳與火焰寶珠（有別於前三章王轎的金龍）。側面浮雕為牡丹、雲紋與鳳，無人形。八人黃衣黃帽，前四後四，雙杆貫穿轎身。無文字、不露臉。",
+      "pixels": [
+        560,
+        400
+      ],
+      "bytes": 54072,
+      "mode": "RGBA"
+    }
+  ]
+}

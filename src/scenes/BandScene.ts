@@ -111,6 +111,19 @@ export class BandScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * 第四章：隊伍裡的四人小轎換姿勢（行轎岔路：路口頓住 st_jiao4_pause → 轉進小路 st_jiao4_turn → 扛著走 st_jiao4_carry）。
+   * 顯示高度不變、底部置中不變。只換去程布幔拉開的轎（回程 st_jiao4_carry_closed 沒有頓住／轉彎圖，不換）；
+   * 其他章沒有這頂轎，什麼都不做。
+   */
+  poseJiao(tex: 'st_jiao4_carry' | 'st_jiao4_pause' | 'st_jiao4_turn'): void {
+    const m = this.members.find((x) => ['st_jiao4_carry', 'st_jiao4_pause', 'st_jiao4_turn'].includes(x.img.texture.key));
+    if (!m || m.img.texture.key === tex || !this.textures.exists(tex)) return;
+    const h = m.img.displayHeight;
+    m.img.setTexture(tex);
+    if (m.img.height > 0) m.img.setScale(h / m.img.height);
+  }
+
   /** 一個東西從右邊走近，到隊伍前面停下來 */
   approach(v: Visitor, done: () => void): void {
     this.visitor?.destroy();

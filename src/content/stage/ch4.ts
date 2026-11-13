@@ -4,6 +4,9 @@
  * 台詞照抄 content/ch4/story.ts（src 標第幾句）；走位照 _agent/ch4-text-day1.md 的（演出：……），沒有補寫的拍子。
  *
  * 媽祖全章不露臉：畫面上只有轎子（四人小轎 st_jiao4_carry，落地換 st_jiao4），沒有旨意、沒有神明說話。
+ * 第 3 輪：轎在路口／車行門口頓住換 st_jiao4_pause、轉進小路／轉向車行門口換 st_jiao4_turn、走路換回 st_jiao4_carry、落地 st_jiao4。
+ * 轎的圖都是朝右畫的，這兩段轎子往左走，所以 flip（倒退時仍面向左＝倒著退）。
+ * 轎的設計尺寸 560×400（落地 400×400），scale 0.5 → 約 280×200（× 畫面倍率 k；第 3 輪從 0.42 調大：比頭旗手 480×0.4＝192 略高，和白天隊伍轎 0.36／頭旗 0.26 的比例相近）；正式圖同尺寸、底部置中，直接對齊。
  * 前哨、押尾、阿睿、阿滿姨、賢仔的立繪還沒到，先用程式畫的小人（folk*）放大；頭旗手、香燈腳用 art/baishadun.ts 的暫代。
  * 轎、頭旗、香擔只是畫面（過場本來就不能點）。
  */
@@ -21,7 +24,7 @@ export const STAGES4: Record<string, StageScript> = {
     ground: 0x2a2632,
     fore: 'temple',
     actors: [
-      { id: 'jiao', tex: 'st_jiao4_carry', x: 360, y: 0, scale: 0.42 },
+      { id: 'jiao', tex: 'st_jiao4_carry', x: 360, y: 0, scale: 0.5, flip: true },
       { id: 'touqi', tex: 'st_touqi', x: 470, y: 30, scale: 0.4 },
       { id: 'qianshao', tex: 'folk1', x: 150, y: 70, scale: 1.5 },
       { id: 'yawei', tex: 'folk2', x: 650, y: 70, scale: 1.5 },
@@ -64,13 +67,14 @@ export const STAGES4: Record<string, StageScript> = {
       {
         who: 'narrator', text: '轎子到了廟前第一個路口，停住。前後擺了兩下，頓了一頓。', src: 9,
         cam: { x: 260, y: -80, zoom: 1.12, ms: 800 },
-        moves: [{ id: 'jiao', x: 230, y: 50, ms: 900 }],
+        // 第 3 輪：換「路口頓住」的轎（st_jiao4_pause，前低後高）
+        moves: [{ id: 'jiao', x: 230, y: 50, tex: 'st_jiao4_pause', ms: 900 }],
         sfx: { text: '頓！', at: 'jiao', color: 0xffd76a },
       },
-      // 轎轉向左下方的小路
-      { who: 'narrator', text: '轎班沒有人開口，肩膀跟著轎槓轉。轎子往海邊的小路去了。', src: 10, moves: [{ id: 'jiao', x: 140, y: 95, hop: true, ms: 1500 }] },
-      // 前哨煞住，折回來
-      { at: 'qianshao', who: 'qianshao', text: '……海邊？那邊沒有路燈欸。', src: 11, moves: [{ id: 'qianshao', x: 200, ms: 500 }] },
+      // 轎轉向左下方的小路（換「轉進小路」的轎 st_jiao4_turn）
+      { who: 'narrator', text: '轎班沒有人開口，肩膀跟著轎槓轉。轎子往海邊的小路去了。', src: 10, moves: [{ id: 'jiao', x: 140, y: 95, tex: 'st_jiao4_turn', hop: true, ms: 1500 }] },
+      // 前哨煞住，折回來（轎已經轉進小路，換回扛著走的轎）
+      { at: 'qianshao', who: 'qianshao', text: '……海邊？那邊沒有路燈欸。', src: 11, moves: [{ id: 'qianshao', x: 200, ms: 500 }, { id: 'jiao', tex: 'st_jiao4_carry', ms: 400 }] },
       { at: 'xd0', who: 'xiangdengbo', text: '今年走海線啦！跟好跟好！', src: 12, cam: { x: 360, y: -80, zoom: 1, ms: 700 } },
       // 阿滿姨在隊伍中段，一手扶膝蓋
       { at: 'aman', who: 'aman', text: '我就知道會彎這裡。', src: 13, cam: { x: 520, y: -80, zoom: 1.1, ms: 700 } },
@@ -99,7 +103,7 @@ export const STAGES4: Record<string, StageScript> = {
     ground: 0x4a4048,
     fore: 'none',
     actors: [
-      { id: 'jiao', tex: 'st_jiao4_carry', x: 640, y: 20, scale: 0.42 },
+      { id: 'jiao', tex: 'st_jiao4_carry', x: 640, y: 20, scale: 0.5, flip: true },
       { id: 'qianshao', tex: 'folk1', x: 110, y: 70, scale: 1.5 },
       { id: 'yawei', tex: 'folk2', x: 660, y: 80, scale: 1.5 },
       { id: 'arui', tex: 'folk1', x: 560, y: 95, scale: 1.4, tint: 0xffe0b0 },
@@ -115,12 +119,16 @@ export const STAGES4: Record<string, StageScript> = {
       {
         who: 'narrator', text: '轎子在車行門口進了三次、退了三次。鐵門只拉到一半。', src: 2,
         cam: { x: 330, y: -90, zoom: 1.1, ms: 700 },
-        moves: [{ id: 'jiao', x: 330, hop: true, ms: 700 }],
+        // 第 3 輪：在車行門口頓住的轎（st_jiao4_pause）
+        moves: [{ id: 'jiao', x: 330, tex: 'st_jiao4_pause', hop: true, ms: 700 }],
         sfx: { text: '進！退！', at: 'jiao', color: 0xffd76a },
       },
       { at: 'jiao', who: 'jiaoban4', text: '讓路！讓路！', src: 3, moves: [{ id: 'xd0', x: 560, ms: 500 }, { id: 'xd1', x: 160, ms: 500 }] },
-      // 賢仔拿著扳手衝出來，把鐵門整個推上去
-      { at: 'xianzai', who: 'xianzai', text: '欸欸欸，裡面還有車沒修好啦——好啦好啦，進來進來。', src: 4, moves: [{ id: 'xianzai', x: 200, hop: true, ms: 700 }] },
+      // 賢仔拿著扳手衝出來，把鐵門整個推上去；轎身轉向門口（st_jiao4_turn），下一拍衝進去落地
+      {
+        at: 'xianzai', who: 'xianzai', text: '欸欸欸，裡面還有車沒修好啦——好啦好啦，進來進來。', src: 4,
+        moves: [{ id: 'xianzai', x: 200, hop: true, ms: 700 }, { id: 'jiao', tex: 'st_jiao4_turn', ms: 600 }],
+      },
       // 轎衝進門內，換落地的轎
       {
         who: 'narrator', text: '轎子衝進車行，在升降機旁邊落了地。', src: 5,

@@ -18,7 +18,7 @@ import {
 import { CARRY, arrive, carrying, hasSlay, judgeGuihu, pending } from '../src/core/guihu';
 import { dawnHeld } from '../src/core/dianjiang';
 import { impsFlee, moodOf, slayPreview } from '../src/core/renown';
-import { CH4_STAGE_FILES, bandLine4, jiaoKey } from '../src/art/baishadunSpec';
+import { CH4_STAGE_ART, CH4_STAGE_FILES, bandLine4, jiaoKey } from '../src/art/baishadunSpec';
 import { STAGES } from '../src/content/stage';
 import { SPEAKERS, SPEAKER_TEX } from '../src/content/story';
 import { CUTSCENES4 } from '../src/content/ch4/story';
@@ -244,7 +244,7 @@ describe('牽路仔（ImpRule stray）', () => {
     expect(day).toContain("{ s: '隊尾', color: '#6a4a8a' }");
     expect(day).toContain("{ tex: e.tex, kind: 'imp', count: 1, tail: true }");
     expect(raw('/scenes/BandScene.ts')).toContain('if (v.tail) {');
-    const forbidden = ['st_jiao4_carry', 'st_jiao4_carry_closed', 'st_jiao4', 'st_jiao8_carry', 'st_touqi', 'st_xiangdan'];
+    const forbidden = ['st_jiao4_carry', 'st_jiao4_carry_closed', 'st_jiao4', 'st_jiao4_pause', 'st_jiao4_turn', 'st_jiao4_ford', 'st_jiao8_carry', 'st_touqi', 'st_xiangdan'];
     for (const e of all) if ('tex' in e) expect(forbidden.includes(e.tex), e.id).toBe(false);
   });
 });
@@ -290,7 +290,7 @@ describe('日落傳消息：隔天事件池切換', () => {
 
   it('三個選項照計畫 §4 的表（拍什麼、明天多來的人、代價）', () => {
     expect(opts.map((o) => o.id)).toEqual(['garage', 'xiuzhi', 'none']);
-    // 字照 _agent/ch4-text-day1.md 第 7 節
+    // 字照 docs/白砂墩_試玩段落文字_v0.1.md 第 7 節
     expect(opts[0]).toMatchObject({ label: '轎子在車行過夜', brings: '看熱鬧的年輕人', cost: '多 2 件小事（鞋子磨腳、中暑）；多 1 攤點心站可以託' });
     expect(opts[1]).toMatchObject({ label: '秀枝推輪椅跟在隊尾', brings: '帶病人來求的家屬', cost: '多 2 件很難辦的事；沒有多的幫手' });
     expect(opts[2]).toMatchObject({ label: '什麼都不拍', brings: '沒有', cost: '明天清閒；第三天過溪的時候，少一批會下水牽人的手' });
@@ -517,7 +517,7 @@ describe('第四章內容一致性', () => {
 });
 
 /** 原始碼（用 Vite 的 glob 讀，不必裝 node 型別） */
-const RAW = import.meta.glob(['../src/art/*.ts', '../src/scenes/*.ts', '../_agent/ch4-art-keys.md'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const RAW = import.meta.glob(['../src/art/*.ts', '../src/scenes/*.ts', '../docs/第四章_美術接點清單.md', '../docs/第四章_神轎交稿_manifest.json'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const raw = (end: string) => RAW[Object.keys(RAW).find((p) => p.endsWith(end))!];
 
 describe('第四章暫代美術與畫面接法', () => {
@@ -545,10 +545,33 @@ describe('第四章暫代美術與畫面接法', () => {
     expect(p).toContain("阿哲: 'azhe'");
   });
 
-  it('_agent/ch4-art-keys.md 列了程式找的每一張演出貼圖', () => {
-    const doc = raw('/_agent/ch4-art-keys.md');
+  it('docs/第四章_美術接點清單.md 列了程式找的每一張演出貼圖', () => {
+    const doc = raw('/docs/第四章_美術接點清單.md');
     expect(doc).toBeTruthy();
     for (const k of CH4_STAGE_FILES) expect(doc, k).toContain(k);
+  });
+
+  it('第 3 輪：畫師交的神轎（docs/第四章_神轎交稿_manifest.json）每張都已登記在 CH4_STAGE_FILES，設計尺寸相同；有暫代、會被載入', () => {
+    const man = JSON.parse(raw('/docs/第四章_神轎交稿_manifest.json')) as { files: { key: string; file: string; size: [number, number]; pixels: [number, number] }[] };
+    expect(man.files.length).toBe(7);
+    const art = raw('/art/baishadun.ts');
+    const sizes = CH4_STAGE_ART as Record<string, readonly [number, number]>;
+    for (const f of man.files) {
+      expect((CH4_STAGE_FILES as string[]).includes(f.key), f.key).toBe(true);
+      expect(f.file, f.key).toBe(`${f.key}.webp`);
+      expect(sizes[f.key], f.key).toEqual(f.size);
+      expect(f.pixels, f.key).toEqual(f.size);
+      expect(art.includes(`'${f.key}'`), `${f.key} 暫代`).toBe(true);
+    }
+    // 新的三張：頓住、轉彎（演出與行轎岔路用）、過溪（只登記）
+    for (const k of ['st_jiao4_pause', 'st_jiao4_turn', 'st_jiao4_ford']) expect(man.files.some((f) => f.key === k), k).toBe(true);
+    const used = (id: string, k: string) => STAGES[id].beats.some((b) => b.moves?.some((m) => m.id === 'jiao' && m.tex === k));
+    for (const id of ['qijia4', 'zhuanjin4']) {
+      expect(used(id, 'st_jiao4_pause'), id).toBe(true);
+      expect(used(id, 'st_jiao4_turn'), id).toBe(true);
+    }
+    expect(used('qijia4', 'st_jiao4_carry')).toBe(true);
+    expect(raw('/scenes/BandScene.ts')).toContain('poseJiao(');
   });
 
   it('停駕點換成車行的街景（garage 背景圖的接點）；序章之後接起駕、試玩版天亮接天亮過場', () => {
@@ -570,7 +593,7 @@ describe('第四章暫代美術與畫面接法', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-// 第 2 輪：試玩段落換成正式文字（_agent/ch4-text-day1.md v0.1，作者尚未定稿）
+// 第 2 輪：試玩段落換成正式文字（docs/白砂墩_試玩段落文字_v0.1.md v0.1，作者尚未定稿）
 // ---------------------------------------------------------------------------------------------------------------
 const CH4_SRC = import.meta.glob(['../src/content/ch4/*.ts', '../src/content/stage/ch4.ts'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"\\])\/\/[^\n]*/g, '$1');
@@ -686,7 +709,11 @@ describe('第一天試玩段落：正式文字', () => {
     expect(betOutcome(D1, '甲').result).toBe('hit');
     // 押兵按鈕照劇本（押甲、押乙、留在轎邊），三種都會播行轎演出
     expect(Object.keys(f.bets!).sort()).toEqual(['stay', '乙', '甲'].sort());
-    expect(raw('/scenes/DayScene.ts')).toContain('`${f.turn}\\n${f.results[o.result]}`');
+    // 第 3 輪：turn 第一行（停住、頓）自己一段（轎換 st_jiao4_pause），其餘＋押中／押錯／留在轎邊的話照舊（轎換 st_jiao4_turn）
+    const day = raw('/scenes/DayScene.ts');
+    expect(day).toContain("f.turn.split('\\n')");
+    expect(day).toContain('`${rest.join(\'\\n\')}\\n${f.results[o.result]}`');
+    expect(day).toMatch(/poseJiao\('st_jiao4_pause'\)[\s\S]*poseJiao\('st_jiao4_turn'\)/);
   });
 
   it('問歸處：兩個鬼都有四種歸處；草鞋丁該帶去北津、點心擔阿婆就在這裡下；每種判決都有劇本的話', () => {

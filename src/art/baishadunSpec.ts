@@ -1,6 +1,6 @@
 /**
  * 第四章（白砂墩）的美術接點：畫師的圖叫什麼、放哪裡、多大。純資料，不碰 Phaser（可以單元測試）。
- * 清單同 _agent/ch4-art-keys.md；規則照舊「有圖用圖、沒圖用程式畫的暫代，檔名就是接點」。
+ * 清單同 docs/第四章_美術接點清單.md；規則照舊「有圖用圖、沒圖用程式畫的暫代，檔名就是接點」。
  *
  *  - 演出小人：public/stage/st_*.webp。BootScene 先用同名畫好暫代（art/baishadun.ts），AssetScene 載到就蓋掉。
  *  - 背景：public/bg/bg_<theme>_far.webp（2048×260）、_near.webp（2048×400 上方透明）。DayPlan.art 指定主題，
@@ -17,6 +17,10 @@ export const CH4_STAGE_ART = {
   st_jiao4_carry: [560, 400],
   st_jiao4_carry_closed: [560, 400],
   st_jiao4: [400, 400],
+  // 第 3 輪新 key（畫師已交稿、未審）：路口頓住（轎身前低後高）、轉進小路（轎身轉約三分之二側）、過溪（腳邊水花）
+  st_jiao4_pause: [560, 400],
+  st_jiao4_turn: [560, 400],
+  st_jiao4_ford: [560, 400],
   st_jiao8_carry: [560, 400],
   st_touqi: [240, 480],
   st_xiangdan: [240, 480],
@@ -67,7 +71,12 @@ export const CH4_PORTRAITS: Record<string, string[]> = {
   mangdu: ['normal', 'fierce', 'sad', 'calm'],
 };
 
-/** 轎子：去程布幔拉開、回程（第三天起）布幔放下 */
+/**
+ * 轎子的接點全部是去背、朝右、腳底（轎槓／水花）貼下緣、水平置中：演出與隊伍都用底部置中（origin 0.5, 1）擺。
+ * 去程頓住／轉彎只有布幔拉開這一版（回程布幔放下的轎不換這兩張；BandScene.poseJiao）。
+ *
+ * 轎子：去程布幔拉開、回程（第三天起）布幔放下
+ */
 export function jiaoKey(day: number): Ch4StageKey {
   return day >= 3 ? 'st_jiao4_carry_closed' : 'st_jiao4_carry';
 }

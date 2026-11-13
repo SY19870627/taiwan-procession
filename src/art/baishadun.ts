@@ -1,6 +1,6 @@
 /**
  * 第四章（白砂墩）的【暫代美術】：BootScene 開場時畫好；畫師的圖（public/stage/st_*.webp）載到時，AssetScene 蓋掉同名的暫代。
- * 尺寸、檔名照 art/baishadunSpec.ts（和 _agent/ch4-art-keys.md 同一份清單）。
+ * 尺寸、檔名照 art/baishadunSpec.ts（和 docs/第四章_美術接點清單.md 同一份清單）。
  *
  *  - 四人小轎＋粉紅遮雨布：布幔拉開（去程）／放下（回程）、落地的轎、回宮的八人大轎。
  *    布幔拉開也只看得到轎裡暗暗的金框，不畫神像的臉（媽祖全章不露臉）。
@@ -97,18 +97,47 @@ function sedan(g: G, cx: number, base: number, s: number, open: boolean): void {
   g.fillCircle(cx, top - 32 * s, 7 * s);
 }
 
-/** 扛著的轎：n 個轎夫（4 或 8），轎槓 */
-function carried(g: G, w: number, h: number, open: boolean, n: 4 | 8): void {
+/** 扛轎的姿勢（第 3 輪）：行進、路口頓住（轎身前低後高）、轉進小路（略縮短，像轉了三分之二側）、過溪（腳邊水花） */
+type CarryPose = 'walk' | 'pause' | 'turn' | 'ford';
+
+/** 扛著的轎：n 個轎夫（4 或 8），轎槓。腳底貼下緣、水平置中（和畫師交稿同一個錨點） */
+function carried(g: G, w: number, h: number, open: boolean, n: 4 | 8, pose: CarryPose = 'walk'): void {
   const s = 1.6;
   const cx = w / 2;
   g.fillStyle(0x000000, 0.22);
   g.fillEllipse(cx, h - 6, w * 0.8, 14);
-  const xs = n === 4 ? [-150, -80, 80, 150] : [-200, -150, -100, -50, 50, 100, 150, 200];
-  for (const dx of xs) bearer(g, cx + dx * (n === 4 ? 1.4 : 1.15) * 0.75, h - 4, s);
+  g.save();
+  // 轉彎：整組以下緣中點為準橫向縮成 0.8（腳底仍貼下緣、仍置中）
+  if (pose === 'turn') {
+    g.translateCanvas(cx, h);
+    g.scaleCanvas(0.8, 1);
+    g.translateCanvas(-cx, -h);
+  }
+  const xs = (n === 4 ? [-150, -80, 80, 150] : [-200, -150, -100, -50, 50, 100, 150, 200]).map((dx) => cx + dx * (n === 4 ? 1.4 : 1.15) * 0.75);
+  for (const x of xs) bearer(g, x, h - 4, s);
   const pole = h - 4 - 66 * s;
+  g.save();
+  // 頓住：轎槓和轎身繞轎槓中點往前（右）壓低約 5 度；轉彎：前槓略高（兩槓不同步）
+  const tilt = pose === 'pause' ? 0.09 : pose === 'turn' ? -0.04 : 0;
+  if (tilt) {
+    g.translateCanvas(cx, pole);
+    g.rotateCanvas(tilt);
+    g.translateCanvas(-cx, -pole);
+  }
   g.fillStyle(WOOD, 1);
   g.fillRect(cx - w * 0.47, pole - 5 * s, w * 0.94, 8 * s);
   sedan(g, cx, pole - 4 * s, n === 8 ? 1.25 : 1.1, open);
+  g.restore();
+  g.restore();
+  // 過溪：小腿／腳踝周圍的水花（不畫整條水面）
+  if (pose === 'ford') {
+    for (const x of xs) {
+      g.fillStyle(0xbfe0f0, 0.75);
+      g.fillEllipse(x, h - 10, 46, 14);
+      g.fillStyle(0xf4fbff, 0.9);
+      for (const [dx, dy, r] of [[-18, -22, 5], [-8, -32, 4], [10, -28, 5], [20, -18, 4], [0, -16, 6]]) g.fillCircle(x + dx, h + dy, r);
+    }
+  }
 }
 
 const TOUQI: PersonOpt = { robe: 0xf4f0e6, trim: RED, pants: DARK, hat: 'band', hatColor: RED, item: 'none', tall: 1.0, wide: 1.05 };
@@ -126,6 +155,9 @@ const PILGRIMS: PersonOpt[] = [
 export function makeBaishadun(scene: Phaser.Scene): void {
   stage(scene, 'st_jiao4_carry', (g, w, h) => carried(g, w, h, true, 4));
   stage(scene, 'st_jiao4_carry_closed', (g, w, h) => carried(g, w, h, false, 4));
+  stage(scene, 'st_jiao4_pause', (g, w, h) => carried(g, w, h, true, 4, 'pause'));
+  stage(scene, 'st_jiao4_turn', (g, w, h) => carried(g, w, h, true, 4, 'turn'));
+  stage(scene, 'st_jiao4_ford', (g, w, h) => carried(g, w, h, true, 4, 'ford'));
   stage(scene, 'st_jiao8_carry', (g, w, h) => carried(g, w, h, false, 8));
   stage(scene, 'st_jiao4', (g, w, h) => {
     // 停駕時落地的轎：轎槓擱在兩張板凳上

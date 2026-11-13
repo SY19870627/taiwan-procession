@@ -1,5 +1,5 @@
 /**
- * 第四章「跟轎」的純邏輯（可測試；畫面在 scenes/DayScene.ts）。見 _agent/ch4-baishatun-plan.md §4 方案 A＋C。
+ * 第四章「跟轎」的純邏輯（可測試；畫面在 scenes/DayScene.ts）。見 docs/白砂墩媽祖_第四章計畫書_v0.1.md §4 方案 A＋C。
  *
  *  - 行轎岔路：轎子走哪條由內容決定（DayPlan.follow.goes），玩家只決定先鋒押哪：
  *      押中：那條路的小妖已經清掉，省 1 時辰；押錯：兵馬要趕回來，少 1 時辰；留在轎邊：不賺不賠。

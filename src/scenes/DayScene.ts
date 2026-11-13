@@ -1136,6 +1136,7 @@ export class DayScene extends Phaser.Scene {
       ? `押中了。先鋒已經在${f.goes}路等著${o.cleared.length ? '，路上的牽路仔先清掉了' : ''}。時辰 ${diff >= 0 ? '+' : ''}${diff}。`
       : o.result === 'miss' ? `押錯了。先鋒兵馬要從另一條路趕回來。時辰 ${diff}。` : '先鋒留在轎邊。不賺不賠。';
     const go2 = () => {
+      this.band.poseJiao('st_jiao4_carry');
       this.queue = afterFork(this.plan, run);
       this.idx = 0;
       this.seg = f.goes;
@@ -1148,12 +1149,23 @@ export class DayScene extends Phaser.Scene {
       return;
     }
     // 第四章：行轎演出（三個選項都播）→ 押中／押錯／留在轎邊的對話 → 實際時辰變化
+    // 第 3 輪：隊伍裡的轎第一句（路口停住、頓）換 st_jiao4_pause，之後（往小路踩）換 st_jiao4_turn，「跟上」換回扛著走。
+    // 字不動：同一段字在 turn 第一行之後切成兩段播（第一行「停住、頓」自己一個框，其餘照舊）
     this.busy = true;
-    talk(this, say(`${f.turn}\n${f.results[o.result]}`), () => {
+    const [stop, ...rest] = f.turn.split('\n');
+    const first = say(stop);
+    const lines = [...first, ...say(`${rest.join('\n')}\n${f.results[o.result]}`)];
+    const cut = first.length;
+    this.band.poseJiao('st_jiao4_pause');
+    const after = () => {
       this.busy = false;
       this.banter(`bet_${o.result}`);
       const real = `時辰 ${diff >= 0 ? '+' : ''}${diff}（剩 ${run.hours}）`;
       this.stepPanel(`轎子往${f.goes}・${rt?.name ?? ''}`, `${f.results![o.result].split('\n').pop()}\n${real}`, '跟上', go2);
+    };
+    talk(this, lines.slice(0, cut), () => {
+      this.band.poseJiao('st_jiao4_turn');
+      talk(this, lines.slice(cut), after);
     });
   }
 

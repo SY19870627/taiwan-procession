@@ -81,7 +81,7 @@ export const ART: Partial<Record<Exclude<SpeakerId, 'narrator'>, [string, import
   xiaojiang: ['xiaojiang', 'normal'], liujiang: ['liujiang', 'normal'], lianjiang: ['lianjiang', 'normal'],
   jiao: ['jiao', 'angry'], jiaoCalm: ['jiao', 'calm'],
   zhizha: ['zhizha', 'normal'], xiabing: ['xiabing', 'normal'], bingbo: ['bingbo', 'normal'], hebo: ['hebo', 'normal'],
-  // 第四章：立繪檔名見 _agent/ch4-art-keys.md §3（沒到就用 SPEAKERS 的小人）
+  // 第四章：立繪檔名見 docs/第四章_美術接點清單.md §3（沒到就用 SPEAKERS 的小人）
   qianshao: ['qianshao', 'normal'], yawei: ['yawei', 'normal'], touqi: ['touqi', 'normal'],
   arui: ['arui', 'normal'], aman: ['aman', 'normal'], xianzai: ['xianzai', 'normal'], xiuzhi: ['xiuzhi', 'normal'],
   ahan: ['ahan', 'normal'], caoxie: ['caoxie', 'normal'], apo: ['apo', 'normal'],
