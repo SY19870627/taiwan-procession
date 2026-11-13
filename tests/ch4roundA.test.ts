@@ -14,7 +14,7 @@ import { CUTSCENES } from '../src/content/story';
 import { STAGES } from '../src/content/stage';
 import type { DayPlan, Encounter, FollowPlan } from '../src/content/days';
 import * as state from '../src/state';
-import { HIT_FULL_DEFAULT, afterFork, applyBroadcast, beforeFork, betResultText, poolFor, resolveBet, skipStray } from '../src/core/procession';
+import { HIT_FULL_DEFAULT, afterFork, applyBroadcast, beforeFork, betResultText, resolveBet, skipStray } from '../src/core/procession';
 import { arrive, judgeGuihu } from '../src/core/guihu';
 import { bandLine4, jiaoKey } from '../src/art/baishadunSpec';
 
@@ -214,38 +214,86 @@ describe('B-2. 第三天（回程・渾水溪）', () => {
     expect(CHAPTER4.band(3)).toEqual(bandLine4(3));
   });
 
-  it('事情最多 7 件（不管第二天拍什麼）', () => {
-    const f = D3.follow!;
-    const route = D3.routes.find((x) => x.id === f.goes)!;
-    const counts = [[], ['crowd'], ['helper'], ['quiet']].map((tags) => {
-      const p = poolFor(D3, tags);
-      return p.pre.length + route.encounters.length + (f.detour?.encounters.length ?? 0) + f.rest.encounters.length + p.post.length;
-    });
-    expect(Math.max(...counts)).toBe(7);
-    for (const n of counts) expect(n).toBeGreaterThanOrEqual(5);
+  it('事情 7 件（ch4-text-day3.md 總註；小咖鬼不算）；拍三進三退 +2、拍賢仔的貨車 +1、什麼都不拍 −1（渡頭路的牽路仔）＋1', () => {
+    const count = (tags: string[]) => {
+      startChapter('baishadun');
+      r().follow!.tags = tags;
+      const steps = [...beforeFork(D3, r()), ...afterFork(D3, r())];
+      return steps.filter((s): s is Encounter => typeof s !== 'string' && s.kind !== 'ghost').length;
+    };
+    expect(count([])).toBe(7);
+    expect(count(['crowd'])).toBe(9);
+    expect(count(['helper'])).toBe(8);
+    expect(count(['quiet'])).toBe(7);
+    // 什麼都不拍：渡頭路的牽路仔不排進行程（也看不到）
+    startChapter('baishadun');
+    r().follow!.tags = ['quiet'];
+    expect(afterFork(D3, r()).some((s) => typeof s !== 'string' && s.id === 'stray3a')).toBe(false);
+    expect(beforeFork(D3, r()).some((s) => typeof s !== 'string' && s.id === 'count3')).toBe(true);
   });
 
-  it('秀枝的那一段在這天（有卡、可以稟報）', () => {
-    const e = allEncounters(D3).find((x) => x.kind === 'person' && x.card === 'xiuzhi3');
+  it('什麼都不拍：押中甲不省也不扣，最後一行換成 hitEmpty（「今天人少，渡頭路本來就沒有牽路仔」）', () => {
+    r().follow!.tags = ['quiet'];
+    r().hours = 2;
+    const o = resolveBet(r(), D3, '甲');
+    expect(o.result).toBe('hit');
+    expect(o.empty).toBe(true);
+    expect(o.gained).toBe(0);
+    expect(r().hours).toBe(2);
+    const said = betResultText(D3.follow!, o);
+    expect(lastLine(said)).toBe(D3.follow!.results!.hitEmpty);
+    expect(said.split('\n').slice(0, -1)).toEqual(D3.follow!.results!.hit.split('\n').slice(0, -1));
+  });
+
+  it('秀枝的那一段在停駕點（有卡、可以稟報）；稟報不等於辦成：報了卡片還在（keepOpen），還能辦卡上的事；報過才播「轎子回頭」', () => {
+    const e = D3.follow!.rest.encounters.find((x) => x.kind === 'person' && x.card === 'xiuzhi3');
     expect(e).toBeDefined();
-    expect(CARDS4.xiuzhi3(r())!.options.some((o) => o.report)).toBe(true);
+    const rep = CARDS4.xiuzhi3(r())!.options.find((o) => o.report)!;
+    expect(rep.keepOpen).toBe(true);
+    const ls = D3.follow!.rest.leaveStory!;
+    expect(ls.id).toBe('huitou4');
+    expect(ls.when(r())).toBe(false);
+    r().follow!.reports[rep.report!.key] = rep.report!.stops(r());
+    rep.apply(r());
+    expect(ls.when(r())).toBe(true);
+    const again = CARDS4.xiuzhi3(r())!;
+    expect(again).toBeTruthy();
+    expect(again.options.some((o) => o.report)).toBe(false);
+    again.options[0].apply(r());
+    expect(CARDS4.xiuzhi3(r())).toBeNull();
+    expect(CHAPTER4.ledger(r()).find((x) => x.who === '秀枝' && x.state.includes('回頭路'))?.tone).toBe('good');
+    expect(CUTSCENES.huitou4.lines.some((l) => l.who === 'xiuzhiamu')).toBe(true);
+    // 停駕點的事辦完、起馬（restEnd）在 post 之前
+    const steps = afterFork(D3, r()).map((s) => (typeof s === 'string' ? s : s.id));
+    expect(steps.indexOf('restEnd')).toBeGreaterThan(steps.indexOf('rest'));
+    expect(steps.indexOf('restEnd')).toBeLessThan(steps.indexOf('xianzai3'));
+    expect(raw('/scenes/DayScene.ts')).toContain("if (e === 'restEnd') return this.showRestEnd();");
   });
 
-  it('橋頭頓三下、下堤防：臨時轉進播 qiaotou4；轎只用布幔放下的 st_jiao4_carry_closed，頓三次、最後往下走', () => {
-    expect(D3.follow!.detour!.story).toBe('qiaotou4');
+  it('橋頭頓三下、下堤防：日落前播 qiaotou4（stay.story）；轎只用准用的鍵（布幔放下 st_jiao4_carry_closed，pause／turn 准用）、頓三次、最後往下走', () => {
+    expect(D3.follow!.stay.story).toBe('qiaotou4');
+    expect(D3.follow!.detour).toBeUndefined();
     const sc = STAGES.qiaotou4;
     expect(sc).toBeDefined();
     const jiao = sc.actors.find((a) => a.id === 'jiao')!;
     expect(jiao.tex).toBe('st_jiao4_carry_closed');
-    for (const b of sc.beats) for (const m of b.moves ?? []) if (m.id === 'jiao' && m.tex) expect(m.tex).toBe('st_jiao4_carry_closed');
+    const allowed = ['st_jiao4_carry_closed', 'st_jiao4_pause', 'st_jiao4_turn'];
+    for (const a of sc.actors) if (a.tex.startsWith('st_jiao')) expect(allowed, a.id).toContain(a.tex);
+    for (const b of sc.beats) for (const m of b.moves ?? []) if (m.tex?.startsWith('st_jiao')) expect(allowed).toContain(m.tex);
     expect(sc.beats.filter((b) => b.sfx?.at === 'jiao' && b.sfx.text.includes('頓')).length).toBe(3);
     const down = sc.beats.flatMap((b) => (b.moves ?? []).filter((m) => m.id === 'jiao' && m.y !== undefined));
     expect(down[down.length - 1].y!).toBeGreaterThan(jiao.y);
+    // 第三天的隊伍、起駕、回程的過場都沒有布幔拉開的轎
+    expect(STAGES.huigong4.actors.filter((a) => a.tex.startsWith('st_jiao4')).map((a) => a.tex)).toEqual(['st_jiao4_carry_closed']);
   });
 
-  it('第三天之後：第三夜 → 茫渡現身 → 最後一戰（不再接第四天）', () => {
+  it('第三天之後：不問歸處，日落直接播茫渡現身 → 最後一戰（不再接第四天、不進第三夜的問歸處）', () => {
     expect(CHAPTER4.days[4]).toBeUndefined();
+    expect(D3.follow!.stay.finale).toBe(true);
     expect(CUTSCENES[CHAPTER4.finale.story]).toBeDefined();
+    const day = raw('/scenes/DayScene.ts');
+    expect(day).toContain('if (f.stay.finale) {');
+    expect(day).toContain("next: { key: 'story', data: { id: F.story, next: { key: 'cut', data: { kind: 'boss'");
   });
 });
 
@@ -275,16 +323,17 @@ describe('B-3. 回宮、開爐、整章接法', () => {
 
   it('過場都有：整章模式的天亮、第二夜、回宮、開爐；說話的人都登記過，媽祖不說話', () => {
     const ids = [...Object.values(CHAPTER4.dawnStory ?? {}), ...Object.values(CHAPTER4.nightStory ?? {}), ...Object.values(CHAPTER4.guihu!.releaseStory ?? {}),
-      D2.follow!.rest.gather!.story!, D2.follow!.stay.story!, D3.follow!.detour!.story!, CHAPTER4.epilogue!.story];
+      D2.follow!.rest.gather!.story!, D2.follow!.stay.story!, D3.follow!.stay.story!, D3.follow!.rest.leaveStory!.id, CHAPTER4.departStory![3],
+      D3.routes.find((x) => x.id === D3.follow!.goes)!.endStory!, CHAPTER4.finale.regretStory!, CHAPTER4.epilogue!.story];
     for (const id of ids) {
       expect(CUTSCENES[id], id).toBeDefined();
       for (const l of CUTSCENES[id].lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who), id).toBe(false);
     }
   });
 
-  it('playableDays 2（第 B1 輪：試玩版開到第二夜天亮）；網址 &full=1 時不限（整章走到底）', () => {
-    expect(CHAPTER4.playableDays).toBe(2);
-    expect(playableDays(CHAPTER4)).toBe(2);
+  it('第 B2 輪：拿掉試玩版的天數限制（playableDays 沒有了，整章走到底）；網址 &full=1 的接點照舊（別章的試玩版用得到）', () => {
+    expect(CHAPTER4.playableDays).toBeUndefined();
+    expect(playableDays(CHAPTER4)).toBeUndefined();
     playOverride.full = true;
     try {
       expect(playableDays(CHAPTER4)).toBeUndefined();

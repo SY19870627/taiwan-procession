@@ -35,8 +35,9 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
   lines.forEach((l, i) => {
     scene.time.delayedCall(i * LINE_MS, () => {
       if (live.get(scene) !== objs) return;
-      // 名字依五營上色，後面接著台詞
-      let name = txt(scene, 10, 4, `${l.who}：`, size, WHO_COLOR[l.who] ?? 0xffd76a, { stroke: '#120a10', strokeThickness: 5 });
+      // 名字依五營上色，後面接著台詞（第四章最後一戰：旁白沒有名字，who 是空字串）
+      const tag = l.who ? `${l.who}：` : '';
+      let name = txt(scene, 10, 4, tag, size, WHO_COLOR[l.who] ?? 0xffd76a, { stroke: '#120a10', strokeThickness: 5 });
       let t = txt(scene, 10 + name.width, 4, l.text, size, 0xfbf3e2, { bold: false, stroke: '#120a10', strokeThickness: 5 });
       let bw = name.width + t.width + 20;
       let pad = 8;
@@ -46,7 +47,7 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
         name.destroy();
         t.destroy();
         const st = { bold: false, stroke: '#120a10', strokeThickness: 4 };
-        t = txt(scene, 10, 3, `${l.who}：${l.text}`, size - 2, 0xfbf3e2, st);
+        t = txt(scene, 10, 3, `${tag}${l.text}`, size - 2, 0xfbf3e2, st);
         const rows = Math.ceil(t.width / (maxW - 20));
         // 標點不放在行首：寬一點或窄一點再換一次
         const tt = t;
@@ -55,7 +56,7 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
           return tt.getWrappedText();
         });
         t.setWordWrapWidth(ww, true);
-        name = txt(scene, 10, 3, `${l.who}：`, size - 2, WHO_COLOR[l.who] ?? 0xffd76a, st);
+        name = txt(scene, 10, 3, tag, size - 2, WHO_COLOR[l.who] ?? 0xffd76a, st);
         bw = Math.min(maxW, t.width + 20);
         pad = 6;
       }

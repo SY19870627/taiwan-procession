@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import type { Card, Option } from '../content/believers';
 import type { DayPlan, Encounter, RouteDef } from '../content/days';
-import { CH, collectHours, evidenceFor, evidenceOf, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible, type ImpRule } from '../content/chapter';
+import { CH, collectHours, evidenceFor, evidenceOf, finaleEvidence, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible, type ImpRule } from '../content/chapter';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
@@ -365,6 +365,9 @@ export class DayScene extends Phaser.Scene {
         para('快判（太子親斬、押送）不花時辰、不佔今晚的審案名額；路邊點將花 1 時辰。', C.muted, 18);
       } else if (h1?.dest) {
         para(`跟在頭旗後面走，要帶到${CH().guihu?.dests[h1.dest]?.name ?? h1.dest}才放得下；在那之前一直佔著一格。`, 0xffd76a, 19);
+      } else if (h1 && CH().overnight === 'carry' && this.plan.follow?.stay.finale) {
+        // 第四章第三天：今晚不問歸處（入夜直接過溪），過溪的時候交代去處
+        para('跟在頭旗後面走。今晚不問歸處，過溪的時候交代去處。', 0xffd76a, 19);
       } else if (h1 && CH().overnight === 'carry') {
         para(`怨氣 ${h1.grudge}／3。跟在頭旗後面過夜不加怨氣；今晚問歸處。`, 0xff9a8a, 19);
       } else if (h1) para(`怨氣 ${h1.grudge}／3（每過一夜沒審 +1，到 3 會掙脫）`, 0xff9a8a, 19);
@@ -457,7 +460,7 @@ export class DayScene extends Phaser.Scene {
       const mark = cut >= 0 ? upto[cut] : undefined;
       // 第一～三章照原本的寫法（只看下一格是不是岔路）
       const label = !this.plan.follow ? (this.queue[this.idx] === 'fork' ? '岔路' : '（這條路快走完了）')
-        : mark === 'fork' ? '岔路' : mark === 'rest' ? '停駕點' : mark === 'detourEnd' ? '回到隊伍' : mark === 'detour' ? '（轎子好像要轉彎）' : '（這條路快走完了）';
+        : mark === 'fork' ? '岔路' : mark === 'rest' ? '停駕點' : mark === 'restEnd' ? '起馬' : mark === 'detourEnd' ? '回到隊伍' : mark === 'detour' ? '（轎子好像要轉彎）' : '（這條路快走完了）';
       this.add2(txt(this, p.x + 90, top - 2, label, 19, C.muted, { bold: false }));
       return;
     }
@@ -491,6 +494,7 @@ export class DayScene extends Phaser.Scene {
     if (e === 'detour') return this.showDetour();
     if (e === 'detourEnd') return this.showDetourWhy();
     if (e === 'rest') return this.showRest();
+    if (e === 'restEnd') return this.showRestEnd();
     // 走近的這段時間，面板上還是上一件事的卡片：先擋住，免得按到舊卡片的「略過」把走近的這件事一起略過
     this.busy = true;
     // 第四章：走近時先看到的樣子（預覽）
@@ -530,7 +534,9 @@ export class DayScene extends Phaser.Scene {
       for (const id of gained) {
         const ev = CH().evidence[id];
         this.add2(txt(this, p.x + 24, y, `＋【${ev.kind}】${ev.name}`, 23, 0x9fe8c0));
-        const t = this.add2(txt(this, p.x + 24, y + 36, `審「${evidenceFor(id)}」時用得上（${this.ghostStatus(ev.ghost)}）`, 20, C.muted, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+        // 第四章：最後一戰陣前審問用的證據（不屬於任何鬼案）
+        const use = finaleEvidence(id) ? `最後一戰陣前審問「${evidenceFor(id)}」時用得上` : `審「${evidenceFor(id)}」時用得上（${this.ghostStatus(ev.ghost)}）`;
+        const t = this.add2(txt(this, p.x + 24, y + 36, use, 20, C.muted, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
         y = t.y + t.height + 24;
       }
       this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 240, 70, '繼續', () => {
@@ -644,7 +650,9 @@ export class DayScene extends Phaser.Scene {
   /** 互嗆：一句一行的小字幕，不擋操作（台詞庫見各章的 banter） */
   private banter(key: string): void {
     // 第四章：同一個場合每天不同的，寫成「場合@第幾天」（例如 bet@2）；沒有就用通用的
-    const lib = CH().banter?.[`${key}@${this.plan.day}`] ?? CH().banter?.[key];
+    // 「場合@第幾天#版本」（第三天：新娘有跟著才播的那一組，ChapterDef.banterTag）先找
+    const tag = CH().banterTag?.(run);
+    const lib = (tag ? CH().banter?.[`${key}@${this.plan.day}#${tag}`] : undefined) ?? CH().banter?.[`${key}@${this.plan.day}`] ?? CH().banter?.[key];
     if (!lib?.length) return;
     const n = (this.banterN[key] = (this.banterN[key] ?? -1) + 1);
     banter(this, lib[n % lib.length], BAND_Y + 8);
@@ -674,7 +682,7 @@ export class DayScene extends Phaser.Scene {
     const { p, y: y0 } = this.cardHead(card.who, e.place, card.text, card.deadline ? { s: `期限：${card.deadline}`, color: '#b3261e' } : undefined, e.tex);
     let y = y0;
     for (const o of card.options) {
-      y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }), !!o.miracle || !!o.report);
+      y = this.optionRow(p, y, o.label, this.costLine(o), o.result, this.blocked(o), () => this.choosePerson(o, { name: card.who, tex: e.tex }, e), !!o.miracle || !!o.report);
     }
     this.skipRow(p, y, card.ignore, () => {
       // 第四章：略過的事，天亮「昨日」寫出沒辦的結果
@@ -683,7 +691,7 @@ export class DayScene extends Phaser.Scene {
     });
   }
 
-  private choosePerson(o: Option, who: { name: string; tex: string }): void {
+  private choosePerson(o: Option, who: { name: string; tex: string }, e?: Extract<Encounter, { kind: 'person' }>): void {
     if (this.blocked(o) || this.busy) return;
     const before = run.evidence.length;
     this.spend(o.hours);
@@ -697,6 +705,12 @@ export class DayScene extends Phaser.Scene {
     const rep = o.report ? report(run, o) : undefined;
     const story = [o.apply(run), rep?.text].filter(Boolean).join('\n');
     this.refreshHeader();
+    // 第四章第三天：報完卡片還在（稟報不等於辦成），播完回到同一張卡（卡片函式回傳 null 才往下走）
+    if (o.keepOpen && e && CH().cards[e.card](run)) {
+      this.busy = true;
+      talk(this, say(story, who), () => { this.busy = false; this.showPerson(e); });
+      return;
+    }
     this.after(story, run.evidence.slice(before), who);
   }
 
@@ -1229,6 +1243,14 @@ export class DayScene extends Phaser.Scene {
     this.stepPanel(`停駕・${r.name}`, r.text, '繼續', go2);
   }
 
+  /** 停駕點的事辦完、轎子起馬（post 之前）：有條件的過場（第三天：稟報過秀枝才播「轎子回頭」） */
+  private showRestEnd(): void {
+    const ls = this.plan.follow!.rest.leaveStory;
+    if (!ls || !ls.when(run)) return this.next();
+    this.busy = true;
+    playStory(this, ls.id, () => { this.busy = false; this.next(); });
+  }
+
   /** 日落傳消息：讓跟轎台拍到哪一件事 → 明天的事件池換人（代價照例明講） */
   private showBroadcast(p: { x: number; y: number; w: number; h: number }, y0: number): void {
     let y = y0;
@@ -1294,11 +1316,12 @@ export class DayScene extends Phaser.Scene {
     }
     const p = this.resetSide();
     this.redraw = undefined;
-    this.add2(txt(this, p.x + p.w / 2, p.y + 24, `日落・駐駕${f.stay.name}`, 30, C.gold, { serif: true }).setOrigin(0.5, 0));
+    // 第四章第三天（finale）：今晚不駐駕，直接過溪
+    this.add2(txt(this, p.x + p.w / 2, p.y + 24, f.stay.finale ? `日落・${f.stay.name}` : `日落・駐駕${f.stay.name}`, 30, C.gold, { serif: true }).setOrigin(0.5, 0));
     const held = run.held.length
       ? `頭旗下 ${run.held.length}／${run.slots}：${run.held.map((h) => `${CH().cases[h.id].dayName}${h.dest ? `（往${CH().guihu?.dests[h.dest]?.name ?? h.dest}）` : ''}`).join('、')}`
       : '頭旗下沒有跟著的鬼。';
-    const t = this.add2(txt(this, p.x + 24, p.y + 76, `${f.stay.text}\n${held}`, 20, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    const t = this.add2(txt(this, p.x + 24, p.y + 76, [f.stay.text, held].filter(Boolean).join('\n'), 20, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.band.setHour(18);
     const day = this.plan.day;
     const chosen = followOf(run).broadcast[day];
@@ -1319,6 +1342,15 @@ export class DayScene extends Phaser.Scene {
       if (o) this.add2(txt(this, p.x + 24, t.y + t.height + 18, `跟轎台拍到：${o.label}\n明天多來：${o.brings}\n明天的代價：${o.cost}`, 20, 0xffd76a, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     }
     if (day === 3) CH().endOfDay3(run);
+    // 第四章第三天：今晚不問歸處，入夜直接接最後一戰（茫渡現身 → 渾水溪）
+    if (f.stay.finale) {
+      const F = CH().finale;
+      this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 280, 72, CH().trial.finalLabel, () => go(this, 'cut', {
+        kind: 'dusk', title: '日落・入夜', sub: F.cutSub,
+        next: { key: 'story', data: { id: F.story, next: { key: 'cut', data: { kind: 'boss', title: F.cutTitle, sub: F.cutSub, next: { key: 'boss' } } } } },
+      }), { size: 26, fill: 0x8a1b14 }));
+      return;
+    }
     this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・問歸處', () => go(this, 'cut', { kind: 'dusk', title: '日落・駐駕', sub: `今晚問${CH().held.label}的鬼要去哪裡`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
   }
 
@@ -1448,6 +1480,19 @@ export class DayScene extends Phaser.Scene {
           y += 32 + t.height + 16;
         }
         y += 8;
+      }
+      // 第四章：最後一戰陣前審問用的證據（渾水溪的舊渡頭），不屬於任何鬼案
+      const fin = run.evidence.filter((id) => CH().evidence[id] && finaleEvidence(id));
+      if (fin.length) {
+        add(txt(this, x + 30, y, `最後一戰・${CH().finale.bossName}（陣前審問用得上）`, 23, 0xd9b0ff, { wordWrap: { width: pw - 60, useAdvancedWrap: true } }));
+        y += 40;
+        for (const id of fin) {
+          const ev = CH().evidence[id];
+          add(txt(this, x + 40, y, `【${ev.kind}】${ev.name}`, 21, 0x9fe8c0));
+          const t = txt(this, x + 40, y + 32, ev.text, 20, C.paper, { bold: false, lineSpacing: 5, wordWrap: { width: pw - 80, useAdvancedWrap: true } });
+          add(t);
+          y += 32 + t.height + 16;
+        }
       }
     });
   }

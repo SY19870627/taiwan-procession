@@ -47,6 +47,11 @@ export interface Option {
   report?: { key: string; stops: (r: RunState) => boolean; stop: string; pass: string };
   /** 第四章：要用附近的點心站（這一段那一攤就不能再幫別的） */
   stall?: string;
+  /**
+   * 第四章第三天：選完之後卡片不收起來，同一張卡還可以再選別的（稟報不等於辦成：報了以後還能辦卡上的事，
+   * ch4-text-day3.md 3-6「兩個都做，兩段都播」）。卡片函式自己決定報過之後還列哪些選項
+   */
+  keepOpen?: boolean;
 }
 
 export interface Card {

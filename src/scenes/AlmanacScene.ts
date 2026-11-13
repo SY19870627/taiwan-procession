@@ -71,8 +71,11 @@ export class AlmanacScene extends Phaser.Scene {
     g.lineBetween(x + 6, top - 10, x + 6, py + ph - 40);
     x -= 36;
     // 舊聞
-    this.vtext(x, top, `【${a.source}】`, 28, RED, colH);
-    x -= 50;
+    // 第四章開爐那頁：劇本沒有舊聞，source 是空的就不寫【】
+    if (a.source) {
+      this.vtext(x, top, `【${a.source}】`, 28, RED, colH);
+      x -= 50;
+    }
     x = this.vtext(x, top, a.text, 30, INK, colH);
     // 昨日
     if (yesterday.length) {

@@ -25,7 +25,7 @@ import { STAGES } from '../src/content/stage';
 import { SPEAKERS, SPEAKER_TEX } from '../src/content/story';
 import { CUTSCENES4 } from '../src/content/ch4/story';
 import { BANTER4, DAY_BANTER4, NIGHT_BANTER4 } from '../src/content/ch4/banter';
-import { MISSED4 } from '../src/content/ch4/believers';
+import { MISSED4, sandbarLines4 } from '../src/content/ch4/believers';
 import { splitStory } from '../src/ui/split';
 
 const r = () => state.run;
@@ -448,25 +448,29 @@ describe('威名關掉、只有茫渡可以斬', () => {
   });
 });
 
-describe('試玩版：到第二夜天亮', () => {
-  it('playableDays 2、試玩結束畫面有字；第二天有作者的字，第三天還是暫代（網址 &full=1 整章走到底）', () => {
-    expect(CHAPTER4.playableDays).toBe(2);
-    expect(CHAPTER4.sliceEnd!.title).toContain('試玩');
+describe('整章：沒有試玩版的天數限制（第 B2 輪）', () => {
+  it('playableDays／sliceEnd／sliceStory 都拿掉了：和第一～三章一樣走到開爐、信徒錄；三天都有作者的字', () => {
+    expect(CHAPTER4.playableDays).toBeUndefined();
+    expect(CHAPTER4.sliceEnd).toBeUndefined();
+    expect(CHAPTER4.sliceStory).toBeUndefined();
     expect(CHAPTER4.days[2].title).toBe('第二天・到北津');
-    expect(CHAPTER4.days[3].title).toBe('第三天');
+    expect(CHAPTER4.days[3].title).toBe('第三天・回程');
   });
 });
 
 describe('第四章內容一致性', () => {
   const days = Object.values(CHAPTER4.days);
 
-  it('每件事指到的信徒卡、鬼、證據都存在；證據都屬於某個鬼', () => {
+  it('每件事指到的信徒卡、鬼、證據都存在；證據都屬於某個鬼（第三天渡頭的四件屬於最後一戰的茫渡）', () => {
     for (const e of days.flatMap(allEncounters)) {
       if (e.kind === 'person') expect(CARDS4[e.card], e.id).toBeDefined();
       if (e.kind === 'ghost') expect(CHAPTER4.cases[e.caseId], e.id).toBeDefined();
       if (e.kind === 'clue' || e.kind === 'talk') expect(CHAPTER4.evidence[e.evidence], e.id).toBeDefined();
     }
-    for (const ev of Object.values(CHAPTER4.evidence)) expect(CHAPTER4.cases[ev.ghost], ev.id).toBeDefined();
+    for (const ev of Object.values(CHAPTER4.evidence)) {
+      if (ev.ghost === 'mangdu') expect(['dutou_doc', 'mooring', 'agong_call', 'amu_ferry'], ev.id).toContain(ev.id);
+      else expect(CHAPTER4.cases[ev.ghost], ev.id).toBeDefined();
+    }
     for (const c of Object.values(CHAPTER4.cases)) {
       for (const t of c.truths) {
         expect(t.stmt, c.id).toBeLessThan(c.statements.length);
@@ -506,7 +510,7 @@ describe('第四章內容一致性', () => {
 
   it('序章、天亮前、結局、收尾的劇情 id 都存在；旁白不替媽祖講話（第四章劇情裡沒有神明說話者）', () => {
     const F = CHAPTER4.finale;
-    for (const s of [CHAPTER4.prologueStory!, CHAPTER4.openingStory!, CHAPTER4.sliceStory!, F.story, F.recallStory, ...Object.values(F.endStory ?? {}), F.closeStory!, D1.follow!.detour!.story!]) {
+    for (const s of [CHAPTER4.prologueStory!, CHAPTER4.openingStory!, F.story, F.recallStory, ...Object.values(F.endStory ?? {}), F.regretStory!, F.closeStory!, D1.follow!.detour!.story!]) {
       expect(CUTSCENES[s], s).toBeDefined();
       for (const l of CUTSCENES[s].lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who), s).toBe(false);
     }
@@ -581,23 +585,23 @@ describe('第四章暫代美術與畫面接法', () => {
     expect(raw('/scenes/BandScene.ts')).toContain('poseJiao(');
   });
 
-  it('停駕點換成車行的街景（garage 背景圖的接點）；序章之後接起駕、試玩版天亮接天亮過場', () => {
+  it('停駕點換成車行的街景（garage 背景圖的接點）；序章之後接起駕；天亮過場（第一夜 → 第二天、第二夜 → 第三天）', () => {
     expect(D1.follow!.rest.art).toBe('garage');
     expect(raw('/scenes/DayScene.ts')).toContain('this.band.setScene(');
     expect(raw('/scenes/AlmanacScene.ts')).toContain('CH().openingStory');
-    expect(raw('/scenes/TrialScene.ts')).toContain('CH().sliceStory');
     expect(CHAPTER4.openingStory).toBe('qijia4');
-    // 第 B1 輪：試玩版到第二夜，第一夜天亮改走 dawnStory[2]，第二夜天亮（tianliang4_2）接試玩結束卡
-    expect(CHAPTER4.dawnStory?.[2]).toBe('tianliang4_1');
-    expect(CHAPTER4.sliceStory).toBe('tianliang4_2');
+    // 第 B2 輪：沒有試玩版了，兩個天亮都走 dawnStory
+    expect(CHAPTER4.dawnStory).toEqual({ 2: 'tianliang4_1', 3: 'tianliang4_2' });
+    expect(raw('/scenes/TrialScene.ts')).toContain('CH().dawnStory?.[this.n + 1]');
   });
 
-  it('DayScene：跟轎的天用押兵畫面（不是二選一）；試玩版天亮後接 sliceEnd', () => {
+  it('DayScene：跟轎的天用押兵畫面（不是二選一）；試玩結束畫面的程式還在（別的分支、別章的試玩版用得到），第四章不會走到', () => {
     const day = raw('/scenes/DayScene.ts');
     expect(day).toContain("if (e === 'fork') return this.plan.follow ? this.showBet() : this.showFork();");
     const trial = raw('/scenes/TrialScene.ts');
     expect(trial).toContain("next: { key: 'sliceEnd' }");
     expect(raw('/scenes/SliceEndScene.ts')).toContain("super('sliceEnd')");
+    expect(CHAPTER4.playableDays).toBeUndefined();
   });
 });
 
@@ -651,8 +655,8 @@ describe('第一天試玩段落：正式文字', () => {
       ...Object.values(D1.almanac(r())), CHAPTER4.unlocks![1].text,
     ];
     for (const s of lines) expect(stub(s), String(s)).toBe(false);
-    // 序章黃曆、擲筊（三個聖筊各一句）、序章那句話、試玩結束卡
-    for (const s of [...Object.values(CHAPTER4.prologue), CHAPTER4.jiao.ask, CHAPTER4.jiao.done, CHAPTER4.jiao.allHoly.text, CHAPTER4.prologueLine, CHAPTER4.sliceEnd!.text]) expect(stub(s), s).toBe(false);
+    // 序章黃曆、擲筊（三個聖筊各一句）、序章那句話（第 B2 輪：試玩結束卡拿掉了）
+    for (const s of [...Object.values(CHAPTER4.prologue), CHAPTER4.jiao.ask, CHAPTER4.jiao.done, CHAPTER4.jiao.allHoly.text, CHAPTER4.prologueLine]) expect(stub(s), s).toBe(false);
     expect(CHAPTER4.jiao.lines).toHaveLength(CHAPTER4.jiao.times);
     // 夜裡：開場對話、說明；牽路仔兩種結果
     expect(stub(CHAPTER4.trial.intro?.(1))).toBe(false);
@@ -695,11 +699,23 @@ describe('第一天試玩段落：正式文字', () => {
         if (o.report) out.push(o.report.stop, o.report.pass);
       }
     }
+    // 第 B2 輪：信徒錄、人鏈台詞、沙洲那句也是實際產生的字
+    for (const setup of [(): void => undefined, (): void => {
+      for (const id of ['aman3', 'arui3', 'xianzai3', 'xiuzhi3', 'ahan3']) r().flags[`done_${id}`] = true;
+      r().cases.xinniang = { truths: [], verdict: 'tohome' };
+      r().shijuEnd = 'recall';
+    }]) {
+      startChapter('baishadun');
+      setup();
+      walk([CHAPTER4.epitaphs(r()), CHAPTER4.ghostEpitaphs(r()), CHAPTER4.finalEpitaph(r()), CHAPTER4.finale.chainLines!(r()), CHAPTER4.epilogue!.almanac(r())]);
+    }
+    walk(sandbarLines4(['金水伯', '美雲', '宗翰', '阿翰']));
     const text = out.join('\n');
     expect(text.length).toBeGreaterThan(3000);
-    // 實際產生的字沒有【待定】；還沒到的字是「（待寫）」開頭的暫代
+    // 實際產生的字沒有【待定】；第 B2 輪：三天的字都到了，也沒有「（待寫）」
     expect(text.includes('【待定】')).toBe(false);
-    for (const line of text.split('\n')) if (line.includes('（待寫）')) expect(line.startsWith('（待寫）'), line).toBe(true);
+    expect(text.includes('（待寫）')).toBe(false);
+    for (const src of Object.values(CH4_SRC)) expect(stripComments(src).includes('（待寫）')).toBe(false);
     expect(text.includes('阿哲')).toBe(false);
     expect(text.includes('azhe')).toBe(false);
     expect(text).toContain('阿睿');
@@ -796,7 +812,9 @@ describe('第一天試玩段落：正式文字', () => {
     // 第 A 輪：最後一戰的 b_* 接在 BossScene
     const boss = raw('/scenes/BossScene.ts');
     // 「場合@n」（第 n 天／第 n 夜才用的）：DayScene／TrialScene 先找這個，場合本身要接到畫面
-    const scoped = (k: string) => /@\d+$/.test(k) && day.includes('`${key}@${this.plan.day}`') && trial.includes('`${key}@${this.n}`') && hooked(k.replace(/@\d+$/, ''));
+    // 第 B2 輪：「場合@n#版本」（第三天新娘有跟著才播的那一組，ChapterDef.banterTag）也算
+    const scoped = (k: string) => /@\d+(#\w+)?$/.test(k) && day.includes('`${key}@${this.plan.day}`') && trial.includes('`${key}@${this.n}`')
+      && (!k.includes('#') || day.includes('`${key}@${this.plan.day}#${tag}`')) && hooked(k.replace(/@\d+(#\w+)?$/, ''));
     const hooked = (k: string): boolean => scoped(k) || day.includes(`'${k}'`) || trial.includes(`'${k}'`) || (k.startsWith('b_') && boss.includes(`'${k}'`))
       || (k.startsWith('walk') && day.includes('`walk${this.plan.day}`'))
       || (k.startsWith('bet_') && day.includes('`bet_${o.result}`'))
@@ -1074,11 +1092,10 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
     expect(hoursAfter(6, 1, D2.hours)).toBe(6);
   });
 
-  it('試玩版：第一夜 → 第二天 → 第二夜 → 天亮（tianliang4_2）→ 試玩結束卡；第二天的沒辦結果寫進「昨日」、因果簿', () => {
-    expect(CHAPTER4.playableDays).toBe(2);
+  it('第一夜 → 第二天 → 第二夜 → 天亮（tianliang4_2）→ 第三天（第 B2 輪：不再接試玩結束卡）；第二天的沒辦結果寫進「昨日」、因果簿', () => {
+    expect(CHAPTER4.playableDays).toBeUndefined();
     expect(CHAPTER4.dawnStory?.[2]).toBe('tianliang4_1');
-    expect(CHAPTER4.sliceStory).toBe('tianliang4_2');
-    expect(CHAPTER4.sliceEnd!.text).not.toContain('第二天');
+    expect(CHAPTER4.dawnStory?.[3]).toBe('tianliang4_2');
     const trial = raw('/scenes/TrialScene.ts');
     expect(trial).toContain('if (last !== undefined && this.n >= last)');
     // 第二天略過的卡：天亮寫沒辦結果；因果簿寫沒辦的那一種

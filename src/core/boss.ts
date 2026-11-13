@@ -124,6 +124,8 @@ export interface FordSetup {
   chain: number;
   /** 還在水裡、會被叫走的人（依序；叫完就不再叫） */
   stragglers: string[];
+  /** 被帶到下游的人超過這個數，戰鬥結束（遺憾：天亮在沙洲找到，人平安，沒趕上回宮）；沒寫就不設上限 */
+  maxStranded?: number;
 }
 
 export interface BossSetup {
@@ -347,6 +349,11 @@ export class BossBattle {
   stranded: string[] = [];
   /** 被拉回來的人（人鏈或喊名） */
   saved: string[] = [];
+  /** 陣前審問第 3 輪說動了：霧不再往前，不會再有人被叫走 */
+  noLure = false;
+  /** 陣前審問第 1 輪：叫走一個人要多久的倍數；第 2 輪：學人講話的間隔倍數 */
+  private lureSlow = 1;
+  private lureGap = 1;
   private lureTimer = 0;
   private strIdx = 0;
   private dragTimer = 0;
@@ -473,6 +480,8 @@ export class BossBattle {
     if (this.mode === 'escort') this.stepEscort(dt);
     if (this.mode === 'jiao') this.stepJiaoField(dt);
     if (this.mode === 'ford') this.stepFordField(dt);
+    // 第四章：被帶走的人太多（遺憾），這一幀就結束
+    if (this.result) return;
     // 換位走路
     for (const u of this.units) {
       u.flash = Math.max(0, u.flash - dt * 4);
@@ -643,8 +652,21 @@ export class BossBattle {
       if (round === 2) { this.mods.skip++; this.mods.atk *= 0.85; }
       // 第三章：太子沉默、五將齊喊之後全開（戰鬥不停，CUE_TIME 秒後開始）
       if (round === 3 && this.mode === 'jiao') this.cueT = 0;
-      // 第四章：問出牠是以前擺渡的，牠的霧薄了一層
-      if (round === 3 && this.mode === 'ford') this.mods.armor *= 1.1;
+      // 第四章（ch4-text-day3.md 7-5 的 effect）：
+      //  第 1 輪：霧薄了一層——被叫走的人走得比較慢（叫走要多 50% 的時間），來得及喊回來；
+      //  第 2 輪：學來的聲音慢半拍——學人講話的間隔多 50%；
+      //  第 3 輪：霧不再往前——不會再有人被叫走（正被叫走的那個自己走回來），茫渡現出渡船的樣子。
+      if (this.mode === 'ford') {
+        if (round === 1) this.lureSlow = 1.5;
+        if (round === 2) this.lureGap = 1.5;
+        if (round === 3) {
+          this.mods.armor *= 1.1;
+          this.noLure = true;
+          if (this.lure) this.saved.push(this.lure.name);
+          this.lure = null;
+          if (this.boss.state !== 'breath') this.toBreathFord(this.boss);
+        }
+      }
     } else {
       this.mods.atk *= 1.1;
     }
@@ -1369,7 +1391,7 @@ export class BossBattle {
   /** 霧裡學人講話：叫走下一個還在水裡的人（已經有人正被叫走、或都叫完了就不叫） */
   private startLure(): void {
     const fs = this.setup.ford!;
-    if (this.lure || this.strIdx >= fs.stragglers.length) return;
+    if (this.noLure || this.lure || this.strIdx >= fs.stragglers.length) return;
     const name = fs.stragglers[this.strIdx++];
     this.lure = { name, t: 0 };
     this.events.push({ type: 'lure', name });
@@ -1380,7 +1402,7 @@ export class BossBattle {
     const fs = this.setup.ford!;
     this.lureTimer -= dt;
     if (this.lureTimer <= 0) {
-      this.lureTimer = fs.lureEvery;
+      this.lureTimer = fs.lureEvery * this.lureGap;
       this.startLure();
     }
     const l = this.lure;
@@ -1392,11 +1414,19 @@ export class BossBattle {
       this.lure = null;
       this.saved.push(l.name);
       this.events.push({ type: 'chainHold', name: l.name, left: this.chainLeft });
-    } else if (l.t >= fs.lureTime) {
+    } else if (l.t >= fs.lureTime * this.lureSlow) {
       this.lure = null;
       this.stranded.push(l.name);
       this.events.push({ type: 'stranded', name: l.name });
+      // 遺憾：被帶走的人超過上限，霧沒有散（天亮在沙洲找到，人平安，沒趕上回宮）
+      if (fs.maxStranded !== undefined && this.stranded.length > fs.maxStranded) this.finish('lose');
     }
+  }
+
+  /** 第四章：被帶走的人超過上限而結束（遺憾） */
+  get regret(): boolean {
+    const m = this.setup.ford?.maxStranded;
+    return this.mode === 'ford' && m !== undefined && this.stranded.length > m;
   }
 
   private toBreathFord(b: Enemy): void {

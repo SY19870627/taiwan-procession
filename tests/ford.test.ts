@@ -7,7 +7,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { BossBattle, CHAIN_TIME, FORD_HOME, FRONT_MAX, SPELLS, type BossSetup } from '../src/core/boss';
-import { FINALE_ROUNDS4, GHOST_MEMBERS4, MEMBER_STATS4, WAVES4, finaleSetup4, fordEnd4, fordGhosts } from '../src/content/ch4/finale';
+import { FINALE_ROUNDS4, GHOST_MEMBERS4, MAX_STRANDED4, MEMBER_STATS4, WAVES4, finaleSetup4, fordEnd4, fordGhosts } from '../src/content/ch4/finale';
+import { chainSegments4, sandbarLines4, stragglers4 } from '../src/content/ch4/believers';
+import { CUTSCENES } from '../src/content/story';
 import { CHAPTER4 } from '../src/content/ch4';
 import { hasSlay, rightVerdict } from '../src/core/guihu';
 import { newRun, newFollow, type RunState } from '../src/state';
@@ -171,12 +173,22 @@ describe('渾水溪・茫渡：平衡模擬（第 A 輪初版）', () => {
     expect(wins, res.map((x) => `${x.result}@${x.t}s 下游${x.stranded}`).join(' ')).toBeGreaterThanOrEqual(7);
   });
 
-  it('什麼都不按也打得完（茫渡不打人；輸贏看的是有沒有人被帶走）', () => {
-    const res = SEEDS.map((s) => simulate(ch4Run(), 'noCall', s));
+  it('什麼都不按、但人鏈夠長也打得完（茫渡不打人；輸贏看的是有沒有人被帶走）', () => {
+    const res = SEEDS.map((s) => {
+      const ford = finaleSetup4(ch4Run()).ford!;
+      return simulate(ch4Run(), 'noCall', s, { ford: { ...ford, chain: ford.stragglers.length } });
+    });
     expect(res.filter((x) => x.result === 'subdued').length).toBeGreaterThanOrEqual(6);
   });
 
-  it('人鏈越長，被帶到下游的人越少（同一個種子、同樣不按喊名）', () => {
+  it('什麼都不按、一段人鏈都沒有：被帶走的人超過上限，霧沒有散（遺憾）', () => {
+    const res = SEEDS.map((s) => simulate(ch4Run(), 'noCall', s));
+    const regret = res.filter((x) => x.result === 'lose' && x.b.regret);
+    expect(regret.length, res.map((x) => `${x.result}@${x.t}s 下游${x.stranded}`).join(' ')).toBeGreaterThanOrEqual(6);
+    for (const x of regret) expect(x.stranded).toBe(MAX_STRANDED4 + 1);
+  });
+
+  it('人鏈越長，被帶到下游的人越少（同一個種子、同樣不按喊名）；人鏈長度決定贏還是遺憾', () => {
     for (const seed of [1, 4, 7]) {
       const ford = finaleSetup4(ch4Run()).ford!;
       const short = simulate(ch4Run(), 'noCall', seed, { ford: { ...ford, chain: 0 } });
@@ -184,6 +196,7 @@ describe('渾水溪・茫渡：平衡模擬（第 A 輪初版）', () => {
       expect(short.stranded, `seed ${seed}`).toBeGreaterThan(0);
       expect(long.stranded, `seed ${seed}`).toBe(0);
       expect(long.stranded).toBeLessThan(short.stranded);
+      expect(long.b.regret).toBe(false);
     }
   });
 
@@ -191,20 +204,118 @@ describe('渾水溪・茫渡：平衡模擬（第 A 輪初版）', () => {
     const lonely = simulate(ch4Run(), 'noCall', 5);
     const helped = simulate(ch4Run((x) => { x.follow!.chain = 2; x.b.aman = 'walked'; x.b.ahan = 'wrapped'; x.b.xiuzhi = 'noted'; }), 'noCall', 5);
     expect(helped.stranded).toBeLessThan(lonely.stranded);
+    // 第三天的卡辦成也算幫過（辦成一位多一段，稟報不算）
+    const r = ch4Run();
+    const before = chainSegments4(r);
+    CHAPTER4.cards.arui3(r)!.options[0].apply(r);
+    expect(chainSegments4(r)).toBe(before + 1);
+    const r2 = ch4Run();
+    CHAPTER4.cards.aman3(r2)!.options.find((o) => o.report)!.apply(r2);
+    expect(chainSegments4(r2)).toBe(before);
   });
 
-  it('被帶到下游的人：開爐那頁黃曆「昨日」寫他們的名字；沒有人被帶走就不寫', () => {
+  it('被叫走的人：沒辦成的阿翰、阿睿，加上被牽路仔帶偏過的人（金水伯、美雲、宗翰；帶偏過的排前面），不夠就用這三個補', () => {
+    expect(stragglers4(ch4Run())).toEqual(['阿翰', '阿睿', '金水伯', '美雲', '宗翰']);
+    const r = ch4Run((x) => { x.follow!.strayedDay = { 3: 1 }; x.follow!.strayed = 1; x.flags.helped_ahan = true; x.flags.helped_arui = true; });
+    expect(stragglers4(r)).toEqual(['宗翰', '金水伯', '美雲']);
+    // 秀枝的輪椅留在橋頭、阿滿姨沒辦成的時候還在渡頭路、賢仔塞在便道：都不會在水裡被叫走
+    for (const n of ['秀枝', '秀枝的阿母', '阿滿姨', '賢仔']) expect(stragglers4(ch4Run())).not.toContain(n);
+  });
+
+  it('遺憾：開爐那頁黃曆「昨日」寫被帶到下游的人（三個名字＋人數；一個人用單人版），再接第三天沒辦成的事；打贏了沙洲上的人押尾帶回來，不寫', () => {
+    // 什麼都不按、沒有人鏈：找一個遺憾收場的種子
+    const seed = SEEDS.find((s) => simulate(ch4Run(), 'noCall', s).b.regret)!;
+    expect(seed).toBeDefined();
     const r = ch4Run();
-    const { b } = simulate(r, 'noCall', 2);
-    fordEnd4(r, b);
+    const { b } = simulate(r, 'noCall', seed);
+    expect(b.regret).toBe(true);
+    r.flags.missed_ahan3 = true;
+    fordEnd4(r, b, 'regret');
     expect(r.follow!.sandbar).toEqual(b.stranded);
-    if (b.stranded.length) {
-      expect(r.yesterday.length).toBe(1);
-      for (const n of b.stranded) expect(r.yesterday[0]).toContain(n);
-    }
+    expect(r.yesterday[0]).toContain(`等 ${b.stranded.length} 人被帶到下游沙洲`);
+    for (const n of b.stranded.slice(0, 3)) expect(r.yesterday[0]).toContain(n);
+    expect(r.yesterday[0]).toContain('香擔的火一路沒有熄');
+    expect(r.yesterday).toContain(CHAPTER4.cards.ahan3(ch4Run())!.missed);
+    expect(sandbarLines4(['金水伯'])[0]).toBe('渾水溪夜霧。金水伯被帶到下游沙洲，天亮尋獲，人平安。回宮未趕上。香擔的火一路沒有熄。');
+    // 打贏（喚回）：沒有沙洲的名字
     const r2 = ch4Run();
-    fordEnd4(r2, new BossBattle({ ...finaleSetup4(r2), seed: 1 }));
+    fordEnd4(r2, b, 'recall');
+    expect(r2.follow!.sandbar).toEqual([]);
     expect(r2.yesterday).toEqual([]);
+  });
+
+  it('陣前審問說動了：第一輪叫走得比較慢、第二輪學人講話慢半拍、第三輪不再有人被叫走（現出渡船）', () => {
+    const b = new BossBattle({ ...finaleSetup4(ch4Run()), seed: 3, waves: [] });
+    b.answer(3, true);
+    expect(b.noLure).toBe(true);
+    expect(b.boss.state).toBe('breath');
+    const end = b.t + 40;
+    while (b.t < end && !b.result) b.step(1 / 30);
+    expect(b.stranded).toEqual([]);
+    expect(b.lure).toBeNull();
+  });
+});
+
+describe('渾水溪・茫渡：陣前審問、結局、遺憾的字與接法', () => {
+  it('三輪：第一輪石樁／渡頭文獻／等船的人；第二輪阿公的電話／渡頭文獻／阿母的話；第三輪秀枝的阿母（要有證詞、秀枝辦成）或押尾（一定可以）', () => {
+    const [r1, r2, r3] = FINALE_ROUNDS4;
+    expect(r1.evidence).toEqual(['mooring', 'dutou_doc']);
+    expect(r1.people!.map((p) => p.id)).toEqual(['dengchuan']);
+    expect(r1.people![0].test(ch4Run())).toBe(false);
+    expect(r1.people![0].test(ch4Run((x) => { x.held.push({ id: 'dengchuan', grudge: 0 }); }))).toBe(true);
+    expect(r1.okLines!.length).toBe(4);
+    expect(r1.people![0].lines!.length).toBe(4);
+    expect(r2.evidence).toEqual(['agong_call', 'dutou_doc', 'amu_ferry']);
+    expect(r3.sharedLines!.length).toBe(2);
+    const [amu, yawei] = r3.people!;
+    expect(amu.test(ch4Run((x) => { x.evidence.push('amu_ferry'); }))).toBe(false);
+    expect(amu.test(ch4Run((x) => { x.evidence.push('amu_ferry'); x.flags.done_xiuzhi3 = true; }))).toBe(true);
+    expect(yawei.test(ch4Run())).toBe(true);
+    expect(amu.ok).not.toBe(yawei.ok);
+    // 第三天黃曆的文獻一定拿得到：前兩輪一定說得動
+    expect(CHAPTER4.days[3].docs).toContain('dutou_doc');
+  });
+
+  it('三個結局都有字：喚回要問完三輪、送回要問完第二輪、斬一開始就能選；按鈕小字照劇本', () => {
+    const F = CHAPTER4.finale;
+    const ends = Object.fromEntries(F.ends.map((e) => [e.kind, e]));
+    expect(ends.recall.needLast).toBe(true);
+    expect(ends.return.needRound).toBe(2);
+    expect(ends.slay.needLast ?? ends.slay.needRound).toBeUndefined();
+    for (const e of F.ends) expect(e.desc.length, e.kind).toBeGreaterThan(10);
+    expect(ends.slay.desc).toContain('這一章只有牠可以斬');
+    for (const k of ['recall', 'return', 'slay'] as const) {
+      const cs = CUTSCENES[F.endStory![k]!];
+      expect(cs.lines.length, k).toBeGreaterThanOrEqual(10);
+      // 媽祖不出現、不說話
+      for (const l of cs.lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who)).toBe(false);
+    }
+    // 收尾的那句：兵馬自己猜轎子為什麼不走橋（旁白不替媽祖解釋）
+    for (const k of ['recall', 'return', 'slay'] as const) expect(CUTSCENES[F.endStory![k]!].lines.some((l) => l.who === 'qianshao' && l.text.includes('難怪不走橋')), k).toBe(true);
+    // 斬：第三輪押尾問過名字，押尾那句換掉
+    const slay = CUTSCENES.mangduSlay4.lines.filter((l) => l.who === 'yawei' && l.when);
+    expect(slay.length).toBe(2);
+    expect(slay.filter((l) => l.when!(ch4Run((x) => { x.flags.finale_yawei = true; }))).map((l) => l.text)).toEqual(['「渡頭撐船的」。我記了。現在要劃掉。']);
+  });
+
+  it('遺憾：可以再試一次或就這樣回宮；遺憾的過場 → 照常回宮（遺憾版那兩句）→ 開爐；沒有人死，火沒有熄', () => {
+    const F = CHAPTER4.finale;
+    expect(F.regretStory).toBe('mangduRegret4');
+    expect(F.retryNote!.length).toBeGreaterThan(5);
+    expect(F.acceptNote).toContain('昨日欄');
+    expect(F.loseText).toContain('火沒有事');
+    const boss = raw('/scenes/BossScene.ts');
+    expect(boss).toContain('private regretEnd(): void');
+    expect(boss).toContain("run.flags.ford_regret = true;");
+    expect(boss).toContain("F.onEnd?.(run, this.battle, 'regret');");
+    expect(boss).toContain('{ id: F.regretStory!, next: end }');
+    const regret = (x: RunState) => { x.flags.ford_regret = true; };
+    const hg = CUTSCENES.huigong4.lines.filter((l) => l.when && l.when(ch4Run(regret)) && !l.when(ch4Run((x) => { x.flags.done_aman3 = true; })));
+    expect(hg.map((l) => l.text)).toContain('沒趕上的那幾個，傍晚會坐車到。我在廟口等。');
+    const all = [...CUTSCENES.mangduRegret4.lines, ...CUTSCENES.huigong4.lines].map((l) => l.text).join('\n');
+    for (const bad of ['死了', '淹死', '火熄了']) expect(all).not.toContain(bad);
+    // 茫渡還在溪裡（信徒錄）
+    expect(CHAPTER4.finalEpitaph(ch4Run(regret)).text).toContain('還在溪裡');
   });
 });
 

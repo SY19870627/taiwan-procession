@@ -19,6 +19,7 @@ import { run } from '../state';
 import { banter } from '../ui/banter';
 import { BanterPicker } from '../core/banterPick';
 import { button, floatText, fullscreenButton, panel, txt, type Button } from '../ui/widgets';
+import type { BanterLine } from '../content/chapter';
 
 /** 五營的名字（HUD 的營旗列） */
 const CAMP_NAME: Record<JiaoCamp, string> = { east: '東', south: '南', west: '西', north: '北', center: '中' };
@@ -810,6 +811,7 @@ export class BossScene extends Phaser.Scene {
         return true;
       case 'hold':
         this.ft(e.x, GROUND_Y - 190, '被拉住', 0xa8c0e0, 20);
+        this.hud.chat('b_hold');
         return true;
       case 'lure':
         this.hud.toast(`霧裡學人講話，在叫「${e.name}」……往下游走了！（喊名；人鏈拉得住）`, 0xd8e0ff, 3000);
@@ -819,7 +821,8 @@ export class BossScene extends Phaser.Scene {
         this.ring(b.palanquin.x + 80, 160, 0xffd76a);
         this.ft(b.palanquin.x + 60, GROUND_Y - 260, `人鏈拉住了${e.name}`, 0xffd76a, 24);
         this.hud.toast(`前兩天幫過的人下水牽住了「${e.name}」。人鏈還剩 ${e.left} 段`, 0xffd76a, 2600);
-        this.hud.chat('b_chainHold');
+        // 人鏈的台詞（7-3）一段一段播；播完了才是一般的 b_chainHold
+        this.hud.chainNext();
         return true;
       case 'called':
         this.ft(b.palanquin.x + 60, GROUND_Y - 260, `${e.name}回來了`, 0x9fe8c0, 24);
@@ -834,6 +837,7 @@ export class BossScene extends Phaser.Scene {
         this.cameras.main.flash(200, 255, 240, 200);
         this.ring(FW / 2, 420, 0xffd76a);
         this.hud.toast('頭旗一揮：被拉住的都掙開了，牽路仔往後退', 0xffd76a, 2200);
+        this.hud.chat('b_huiqi');
         return true;
       default:
         return false;
@@ -980,9 +984,29 @@ export class BossHud extends Phaser.Scene {
   private cueShown = -1;
   /** 戰鬥中的互嗆（兩組之間至少隔幾秒，不洗版） */
   private chatter = new BanterPicker(undefined);
+  /** 第四章：人鏈一段一段出現時的台詞（還沒播的，一次播一組） */
+  private chainQueue: BanterLine[][] = [];
+  /** 第四章：只講一次的台詞已經講過的場合（FinaleDef.chatKey 用） */
+  private chatSaid = new Set<string>();
+  /** 第四章：陣前審問的對答、人鏈台詞播放中，這段時間不插一般的互嗆 */
+  private quietUntil = 0;
 
   constructor() {
     super('bosshud');
+  }
+
+  /** 直接播一串台詞（陣前審問的對答、人鏈）：播的這段時間一般的互嗆不插嘴 */
+  say(lines: BanterLine[], depth = 255): void {
+    if (!lines.length) return;
+    this.quietUntil = this.time.now + lines.length * 2200 + 800;
+    banter(this, lines, BAND_Y + 34, depth, undefined, { alpha: 0.88, rows: 2 });
+  }
+
+  /** 第四章：人鏈又拉住一個人——播下一組人鏈台詞；播完了就照一般的互嗆 */
+  chainNext(): void {
+    const next = this.chainQueue.shift();
+    if (next) this.say(next);
+    else this.chat('b_chainHold');
   }
 
   private get battle(): BossBattle {
@@ -1002,13 +1026,21 @@ export class BossHud extends Phaser.Scene {
     this.cueTxt = undefined;
     this.cueShown = -1;
     this.chatter = new BanterPicker(CH().banter, 7000);
+    this.chatSaid = new Set();
+    this.quietUntil = 0;
     const F = CH().finale;
+    // 第四章：人鏈的台詞（一段一段出現；一段都沒有就播「沒有人下水」那兩句）。開打的互嗆之後先播第一組，之後每拉住一個人播下一組
+    this.chainQueue = F.chainLines?.(run) ?? [];
     const esc = this.battle.mode === 'escort';
     const jiao = this.battle.mode === 'jiao';
     const ford = this.battle.mode === 'ford';
     this.cameras.main.fadeIn(500, 10, 8, 18);
     // 互嗆：這一章有這個場合的台詞才播（第三章 key 都已存在，行為不變；第一、二章第 7 階段加上）
-    this.time.delayedCall(1500, () => this.chat('b_start', true));
+    // 第四章：開打前有說明卡（briefing），按了才開始，開打的互嗆、人鏈台詞也從那時候算
+    const begin = (): void => {
+      this.time.delayedCall(1500, () => this.chat('b_start', true));
+      if (this.chainQueue.length) this.time.delayedCall(7000, () => this.chainNext());
+    };
     txt(this, 24, 16, F.title, 30, C.gold, { serif: true });
     txt(this, 24, 58, F.place, 20, C.paper, { bold: false });
     this.clock = txt(this, W - 96, 34, '19:00', 30, C.paper).setOrigin(1, 0.5);
@@ -1118,6 +1150,21 @@ export class BossHud extends Phaser.Scene {
       this.cueTxt = txt(this, W / 2, cy, '', 26, 0xfff3c4, { align: 'center', serif: true, stroke: '#1d1726', strokeThickness: 6, wordWrap: { width: W - 60, useAdvancedWrap: true } }).setOrigin(0.5);
       this.cueBox.add([top, bot, this.cueTxt]);
     }
+    // 第四章：開打前的說明卡（蓋在操作面板上，戰鬥先停著；轎子過溪的開場照樣在上面播）
+    const brief = F.briefing;
+    if (!brief) return begin();
+    this.battle.paused = true;
+    const c = this.add.container(0, 0).setDepth(900);
+    const top = BAND_Y + BAND_H + 4;
+    c.add(this.add.rectangle(0, top, W, H - top, 0x000000, 0.7).setOrigin(0).setInteractive());
+    c.add(panel(this, 16, top + 24, W - 32, H - top - 48));
+    c.add(txt(this, W / 2, top + 50, brief.title, 32, C.gold, { serif: true }).setOrigin(0.5, 0));
+    c.add(txt(this, 44, top + 110, brief.text, 21, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: W - 88, useAdvancedWrap: true } }));
+    c.add(button(this, W / 2, H - 110, 260, 76, '開始', () => {
+      c.destroy();
+      this.battle.paused = false;
+      begin();
+    }, { size: 28, fill: 0x8a1b14 }));
   }
 
   /** 第三章：陣前審問第 3 輪之後，依戰鬥時間播字幕（凡人的聲音只有請到奶嘴、陣頭跳完才有） */
@@ -1152,7 +1199,13 @@ export class BossHud extends Phaser.Scene {
   /** 互嗆（三章共用；第一、二章第 7 階段加上）：一句一行從右邊滑進戰鬥帶上方，不擋操作；10% 特寫字幕播放時不插嘴 */
   chat(key: string, force = false): void {
     if (this.cueBox && this.cueBox.alpha > 0) return;
-    const lines = this.chatter.pick(key, this.time.now, force);
+    // 第四章：陣前審問的對答、人鏈台詞還在播
+    if (this.time.now < this.quietUntil) return;
+    // 第四章：有條件、只講一次的那幾組換場合（content/ch4/finale.ts 的 fordChatKey4）：
+    // 'b_fog' → 'b_xianzai'（賢仔的車燈）、'b_lure' → 'b_xiuzhi'（橋上的鈴）／'b_lureChain'（人鏈出現以後茫渡那句）
+    const k = CH().finale.chatKey?.(run, key, this.chatSaid, this.battle) ?? key;
+    if (k !== key) this.chatSaid.add(k);
+    const lines = this.chatter.pick(k, this.time.now, force || k !== key);
     // 字幕疊在戰場特效（飛過去的王令、旨意）上面、底色不透明，字不會被壓住；
     // 最多兩行（修正第 2 輪，Q26：第三句會疊到神轎／王船的血條），第三句來就把第一句收掉
     if (lines) banter(this, lines, BAND_Y + 34, 255, undefined, { alpha: 0.88, rows: 2 });
@@ -1302,11 +1355,16 @@ export class BossHud extends Phaser.Scene {
       return;
     }
     if (person?.id === 'yamupo') this.boss.ducks(false);
-    // 審問動畫滑出後才插嘴（不疊在審問字幕上）
-    this.time.delayedCall(TRIAL_ANIM_MS, () => this.chat(ok ? 'b_trial' : 'b_trialMiss', true));
+    // 第四章：誰上前說動的記下來（斬的結局：第三輪押尾問過名字，押尾那句換掉）
+    if (person) run.flags[`finale_${person.id}`] = true;
+    // 審問動畫滑出後才插嘴（不疊在審問字幕上）。第四章：說動了就播那一輪的對答（共用的先播，再接上前的人或出示證據的那幾句）
+    const talkLines = ok ? [...(r.sharedLines ?? []), ...((person ? person.lines : r.okLines) ?? [])] : [];
+    if (talkLines.length) this.time.delayedCall(TRIAL_ANIM_MS, () => this.say(talkLines));
+    else this.time.delayedCall(TRIAL_ANIM_MS, () => this.chat(ok ? 'b_trial' : 'b_trialMiss', true));
     const E = CH().evidence;
     const used = person ? { tag: '上前', name: person.label.replace('請', '').replace('上前', ''), say: person.say } : ev ? { tag: E[ev].kind, name: E[ev].name, say: E[ev].text } : null;
-    this.playTrial(round, `${F.bossName}：${r.line}`, used, ok ? `${r.ok}\n${r.effect}` : `手上沒有能說動牠的證據。\n${F.wrong}`, ok);
+    const okText = person?.ok ?? r.ok;
+    this.playTrial(round, `${F.bossName}：${r.line}`, used, ok ? `${okText}\n${r.effect}` : `手上沒有能說動牠的證據。\n${F.wrong}`, ok);
   }
 
   private playTrial(round: number, line: string, used: { tag: string; name: string; say: string } | null, result: string, ok: boolean): void {
@@ -1375,17 +1433,40 @@ export class BossHud extends Phaser.Scene {
       const last = this.ok[2];
       m.add(panel(this, x, 220, pw, 760));
       m.add(txt(this, W / 2, 260, F.winTitle, 36, C.gold, { serif: true }).setOrigin(0.5, 0));
-      m.add(txt(this, x + 24, 320, F.winText, 20, C.paper, { bold: false, wordWrap: { width: pw - 48, useAdvancedWrap: true } }));
-      let yy = 380;
+      const wt = txt(this, x + 24, 320, F.judgeText ? `${F.winText}\n${F.judgeText}` : F.winText, 20, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: pw - 48, useAdvancedWrap: true } });
+      m.add(wt);
+      let yy = Math.max(380, wt.y + wt.height + 16);
       const fills: Record<string, number> = { recall: 0x2f6f5a, return: 0x4a3a6a, slay: 0x8a1b14 };
       for (const o of F.ends) {
         const why = o.needLast && !last ? '陣前審問最後一輪沒有說動牠' : o.needRound && !this.ok[o.needRound - 1] ? `陣前審問第 ${o.needRound} 輪沒有說動牠` : '';
-        const b = button(this, x + 110, yy + 50, 170, 70, o.label, () => this.end(o.kind), { size: o.label.length > 3 ? 20 : 24, fill: fills[o.kind] });
+        // 第四章的按鈕字比較長（「喚回：留在溪邊引路」）：按鈕放寬、字縮小
+        const long = o.label.length > 5;
+        const bw = long ? 230 : 170;
+        const b = button(this, x + 20 + bw / 2, yy + 50, bw, 70, o.label, () => this.end(o.kind), { size: long ? 18 : o.label.length > 3 ? 20 : 24, fill: fills[o.kind] });
         b.setEnabled(!why);
         m.add(b);
-        m.add(txt(this, x + 210, yy + 26, why ? `✕ ${why}` : o.desc, 18, why ? 0xff9a8a : C.paper, { bold: false, wordWrap: { width: pw - 230, useAdvancedWrap: true } }));
+        m.add(txt(this, x + 40 + bw, yy + 14, why ? `✕ ${why}` : o.desc, 17, why ? 0xff9a8a : C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 60 - bw, useAdvancedWrap: true } }));
         yy += 130;
       }
+      // 第四章：判決之前兵馬的那一組（蓋在黑幕上面）
+      const judge = this.chatter.pick('b_judge', this.time.now, true);
+      if (judge) this.time.delayedCall(400, () => this.say(judge, 960));
+      return;
+    }
+    // 第四章：遺憾（被帶走的人太多、或天亮了霧還沒散）——可以重來，也可以接受結果照常回宮
+    if (F.regretStory && this.battle.mode === 'ford') {
+      m.add(panel(this, x, 300, pw, 560));
+      m.add(txt(this, W / 2, 336, F.loseTitle ?? '霧沒有散', 36, 0xff8a8a, { serif: true }).setOrigin(0.5, 0));
+      const lt = txt(this, x + 24, 400, `${F.loseText}\n下游的沙洲：${this.battle.stranded.join('、') || '（沒有）'}`, 20, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 48, useAdvancedWrap: true } });
+      m.add(lt);
+      let yy = lt.y + lt.height + 24;
+      const row = (label: string, note: string, fill: number, onPick: () => void) => {
+        m.add(button(this, x + 20 + 115, yy + 40, 230, 70, label, onPick, { size: 22, fill }));
+        m.add(txt(this, x + 270, yy + 8, note, 17, C.paper, { bold: false, lineSpacing: 3, wordWrap: { width: pw - 290, useAdvancedWrap: true } }));
+        yy += 120;
+      };
+      row(F.retryLabel ?? '再試一次', F.retryNote ?? '', 0x2f6f5a, () => { run.retries++; this.boss.leave('boss'); });
+      row(F.acceptLabel ?? '就這樣回宮', F.acceptNote ?? '', 0x7a3a2a, () => this.regretEnd());
       return;
     }
     run.retries++;
@@ -1412,5 +1493,20 @@ export class BossHud extends Phaser.Scene {
     const story = F.endStory?.[kind] ?? (kind === 'recall' ? F.recallStory : undefined);
     if (story) this.boss.leave('story', { id: story, next: end }, 800);
     else this.boss.leave(end.key, end.data, 800);
+  }
+
+  /**
+   * 第四章・遺憾：接受結果。被帶到下游沙洲的人天亮找到、人平安、沒趕上回宮；茫渡還在溪裡（不判決）。
+   * 遺憾的過場（regretStory）→ 照常回宮（closeStory，遺憾版的句子）→ 開爐的黃曆（昨日寫他們的名字）→ 開爐 → 信徒錄
+   */
+  private regretEnd(): void {
+    const F = CH().finale;
+    run.shijuEnd = undefined;
+    run.shijuJoined = false;
+    run.flags.ford_regret = true;
+    F.onEnd?.(run, this.battle, 'regret');
+    const close = F.afterClose ?? { key: 'end' };
+    const end = F.closeStory ? { key: 'story', data: { id: F.closeStory, next: close } } : close;
+    this.boss.leave('story', { id: F.regretStory!, next: end }, 800);
   }
 }

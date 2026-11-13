@@ -60,6 +60,8 @@ export interface BetOutcome {
   gained?: number;
   /** resolveBet 之後才有：押中了，但時辰本來就是滿的（不加，改顯示「時辰已滿」那句） */
   full?: boolean;
+  /** resolveBet 之後才有：押中了，但那條路今天本來就沒有牽路仔（Encounter.unlessTag；不省也不扣，改顯示 hitEmpty） */
+  empty?: boolean;
 }
 
 /** 只算結果，不改狀態 */
@@ -84,15 +86,26 @@ export function hoursAfter(hours: number, delta: number, max: number): number {
  * 時辰永遠不超過當天的上限（作者定案 A）：押中時已經是滿的就不加（full），畫面改播「時辰已滿」那句（betResultText）。
  */
 export function resolveBet(r: RunState, plan: DayPlan, bet: string): BetOutcome {
-  const o = betOutcome(plan, bet);
+  const base = betOutcome(plan, bet);
   const f = followOf(r);
+  // 第三天「什麼都不拍」：那條路的牽路仔今天不出現（unlessTag）——押中也沒有東西可以清，不省也不扣
+  const here = base.cleared.filter((id) => !absentToday(r, plan, id));
+  const empty = base.result === 'hit' && base.cleared.length > 0 && here.length === 0;
+  const o: BetOutcome = empty ? { ...base, delta: 0, cleared: [] } : { ...base, cleared: here };
   f.bet = bet;
   f.betResult = o.result;
   const before = r.hours;
-  const full = o.result === 'hit' && before >= plan.hours;
+  const full = o.result === 'hit' && !empty && before >= plan.hours;
   r.hours = hoursAfter(before, o.delta, plan.hours);
   for (const id of o.cleared) r.flags[`cleared_${id}`] = true;
-  return { ...o, gained: r.hours - before, full };
+  return { ...o, gained: r.hours - before, full, empty };
+}
+
+/** 這件事今天因為傳消息的標籤不出現（Encounter.unlessTag：第三天「什麼都不拍」，渡頭路的牽路仔不出現） */
+export function absentToday(r: RunState, plan: DayPlan, id: string): boolean {
+  const all = [...plan.pre, ...plan.post, ...plan.routes.flatMap((x) => x.encounters)];
+  const e = all.find((x) => x.id === id);
+  return !!e && e.kind === 'imp' && !!e.unlessTag && followOf(r).tags.includes(e.unlessTag);
 }
 
 /** 押中但時辰已滿時的系統句（FollowPlan.results.hitFull 沒寫時用這句） */
@@ -103,9 +116,11 @@ export const HIT_FULL_DEFAULT = '押中了。牽路仔已經清掉；時辰本�
  * 換成 results.hitFull（沒寫用 HIT_FULL_DEFAULT）。最後一行就是押兵結果頁上的那一句。
  * hitFull 寫了好幾行（第二天：作者另寫了一整段「押中但時辰已滿」）就整段換掉。
  */
-export function betResultText(f: FollowPlan, o: Pick<BetOutcome, 'result' | 'full'>): string {
+export function betResultText(f: FollowPlan, o: Pick<BetOutcome, 'result' | 'full' | 'empty'>): string {
   const res = f.results;
   if (!res) return '';
+  // 押中、但那條路今天本來就沒有牽路仔（第三天「什麼都不拍」）：最後一行系統句換成 hitEmpty
+  if (o.result === 'hit' && o.empty && res.hitEmpty) return [...res.hit.split('\n').slice(0, -1), res.hitEmpty].join('\n');
   if (o.result !== 'hit' || !o.full) return res[o.result];
   if (res.hitFull?.includes('\n')) return res.hitFull;
   const lines = res.hit.split('\n');
@@ -117,15 +132,20 @@ export function impCleared(r: RunState, e: Encounter): boolean {
   return e.kind === 'imp' && !!r.flags[`cleared_${e.id}`];
 }
 
-/** 岔路之後的行程：那條路 →（臨時轉進）→ 停駕點 → post（字串是段落標記） */
-export type Step = Encounter | 'fork' | 'detour' | 'detourEnd' | 'rest';
+/**
+ * 岔路之後的行程：那條路 →（臨時轉進）→ 停駕點 →（restEnd：轎子起馬時的過場）→ post（字串是段落標記）。
+ * 今天因為標籤不出現的事（unlessTag）不排進來。
+ */
+export type Step = Encounter | 'fork' | 'detour' | 'detourEnd' | 'rest' | 'restEnd';
 
 export function afterFork(plan: DayPlan, r: RunState): Step[] {
   const f = plan.follow!;
   const rt = plan.routes.find((x) => x.id === f.goes) ?? plan.routes[0];
-  const out: Step[] = [...rt.encounters];
+  const out: Step[] = rt.encounters.filter((e) => !absentToday(r, plan, e.id));
   if (f.detour) out.push('detour', ...f.detour.encounters, 'detourEnd');
-  out.push('rest', ...f.rest.encounters, ...poolFor(plan, followOf(r).tags).post);
+  out.push('rest', ...f.rest.encounters);
+  if (f.rest.leaveStory) out.push('restEnd');
+  out.push(...poolFor(plan, followOf(r).tags).post);
   return out;
 }
 

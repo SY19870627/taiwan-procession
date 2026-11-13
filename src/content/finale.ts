@@ -4,6 +4,7 @@
  */
 import type { RunState } from '../state';
 import type { BossSetup, MemberStats, Row, SkillId } from '../core/boss';
+import type { BanterLine } from './chapter';
 
 /** 陣頭與收編的鬼的數值（沒有升級，成長全部來自故事） */
 export const MEMBER_STATS: Record<string, MemberStats & { tex: string[]; desc: string }> = {
@@ -62,10 +63,16 @@ export interface FinaleRound {
   line: string;
   /** 對得上的證據 */
   evidence: string[];
-  /** 特別的人（有到場才能用） */
-  people?: { id: string; label: string; test: (r: RunState) => boolean; say: string }[];
+  /**
+   * 特別的人（有到場才能用）。第四章：lines＝請他上前、說動了之後的對答（換掉 okLines）；ok＝換掉這一輪的 ok
+   */
+  people?: { id: string; label: string; test: (r: RunState) => boolean; say: string; lines?: BanterLine[]; ok?: string }[];
   /** 答對 */
   ok: string;
+  /** 第四章：出示證據說動了之後的對答（戰鬥帶上方一句一行播，戰鬥不停） */
+  okLines?: BanterLine[];
+  /** 第四章：說動了之後先播的共用對答（第三輪），再接上前的人或出示證據的那幾句 */
+  sharedLines?: BanterLine[];
   /** 答對的效果（顯示用） */
   effect: string;
 }

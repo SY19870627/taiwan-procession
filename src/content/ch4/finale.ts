@@ -1,34 +1,37 @@
 // 台詞：第四章試玩段落文字 v0.1（全部【待定】，作者尚未定稿）
 /**
  * 第四章最後一戰：渾水溪・茫渡（core/boss.ts 的 ford 模式；計畫 §6「最後一戰：渾水溪・茫渡」）。
+ * 字照 _agent/ch4-text-day3.md 第 7 節（第 B2 輪）。
  *
  * 轎子先過去了（開場 st_jiao4_ford 過溪，之後只剩對岸一點粉紅），戰場上沒有轎、沒有香擔，只有還在水裡的隊伍。
  *  - 茫渡起霧、學人講話，把人往下游的沙洲帶。牠不打人，牠是要留人（拉住前排、叫走水裡的人）。
  *  - 玩家照舊前後排換位、法術冷卻（兵馬自己的兩招：喊名、揮頭旗；媽祖不出手）。
  *  - 收編上場的鬼：判對歸處、而且有帶著走或在原地放下的鬼才會來（core/guihu.ts 的 rightVerdict；帶錯的、不帶的不會來）。
- *  - 人鏈：前兩天幫過的信徒下水牽人，段數＝傳消息加的（follow.chain）＋幫過的信徒（believers.ts 的 chainSegments4）。
- *  - 陣前審問三輪（70／40／10%）問出牠是誰：以前在這裡擺渡的。
- *  - 結局：喚回／送回／斬（斬只對茫渡）。被帶到下游的人天亮在沙洲上找到，人沒事，沒趕上回宮——開爐那頁黃曆「昨日」寫他們的名字。
- *
- * 數值是第 A 輪初版（tests/ford.test.ts 的模擬：一般打法贏得了、人鏈越長被帶走的越少）。字全部（待寫）。
+ *  - 人鏈：幫過的信徒下水牽人，段數＝傳消息加的（follow.chain）＋幫過的信徒（believers.ts 的 chainSegments4）；台詞 7-3（chainLines4）。
+ *  - 陣前審問三輪（70／40／10%）：牠把人帶去哪（渡頭）→ 牠以前是誰（擺渡的）→ 沒有人記得（有人記得／押尾記一個先頂著）。
+ *  - 結局：喚回（問完三輪）／送回（問完第二輪）／斬（一開始就能選；只有茫渡可以斬）。
+ *  - 遺憾：被帶走的人超過上限（maxStranded），戰鬥結束。沒有人死、沒有人受傷，火沒有事；天亮在沙洲找到，人平安，沒趕上回宮。
+ *    可以重來，也可以接受（遺憾的過場 → 照常回宮，開爐那頁黃曆「昨日」寫他們的名字）。
  */
 import type { RunState } from '../../state';
 import type { BossBattle, BossSetup, MemberStats, Row, Wave } from '../../core/boss';
 import type { FinaleRound } from '../finale';
+import type { BanterLine } from '../chapter';
 import { rightVerdict } from '../../core/guihu';
-import { CASES4 } from './cases';
-import { chainSegments4, sandbarLines4, stragglers4 } from './believers';
+import { CASES4, carried3 } from './cases';
+import { chainSegments4, done3, sandbarLines4, stragglers4, xinniangWith } from './believers';
+import { dawn4 } from './days';
 
-/** 兵馬四隊（前哨、押尾、兩隊旗下兵馬）＋會來幫忙的鬼。立繪、戰鬥圖還沒有，先用程式畫的小人 */
+/** 兵馬四隊（前哨、押尾、兩隊旗下兵馬）＋會來幫忙的鬼。立繪、戰鬥圖還沒有，先用程式畫的小人。desc 是系統說明（不是劇本） */
 export const MEMBER_STATS4: Record<string, MemberStats & { tex: string[]; desc: string }> = {
-  qianshao: { key: 'qianshao', name: '前哨', role: 'melee', hp: 230, atk: 24, cd: 1.1, range: 170, aoe: 0, guard: 1, tex: ['folk1'], desc: '（待寫）前排：出手快' },
-  yawei: { key: 'yawei', name: '押尾', role: 'melee', hp: 320, atk: 16, cd: 1.3, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '（待寫）前排：耐拉' },
-  bingma: { key: 'bingma', name: '旗下兵馬・刀', role: 'melee', hp: 260, atk: 20, cd: 1.3, range: 170, aoe: 0, guard: 1, trait: 'block', tex: ['bajiang0'], desc: '（待寫）前排：橫掃，25% 格擋' },
-  gongshou: { key: 'gongshou', name: '旗下兵馬・弓', role: 'ranged', hp: 120, atk: 16, cd: 1.5, range: 600, aoe: 40, guard: 1, tex: ['paoshou'], desc: '（待寫）後排：遠程' },
+  qianshao: { key: 'qianshao', name: '前哨', role: 'melee', hp: 230, atk: 24, cd: 1.1, range: 170, aoe: 0, guard: 1, tex: ['folk1'], desc: '前排：出手快' },
+  yawei: { key: 'yawei', name: '押尾', role: 'melee', hp: 320, atk: 16, cd: 1.3, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '前排：耐拉' },
+  bingma: { key: 'bingma', name: '旗下兵馬・刀', role: 'melee', hp: 260, atk: 20, cd: 1.3, range: 170, aoe: 0, guard: 1, trait: 'block', tex: ['bajiang0'], desc: '前排：橫掃，25% 格擋' },
+  gongshou: { key: 'gongshou', name: '旗下兵馬・弓', role: 'ranged', hp: 120, atk: 16, cd: 1.5, range: 600, aoe: 40, guard: 1, tex: ['paoshou'], desc: '後排：遠程' },
   // 會來幫忙的鬼（判對歸處的）
-  caoxie: { key: 'caoxie', name: '草鞋丁', role: 'melee', hp: 340, atk: 18, cd: 1.4, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '（待寫）還了願的草鞋丁：扛得住' },
-  apo: { key: 'apo', name: '點心擔阿婆', role: 'support', hp: 120, atk: 20, cd: 2.2, range: 0, aoe: 0, guard: 1, trait: 'heal', tex: ['folk3'], desc: '（待寫）鹹粥：照顧血最少的' },
-  xinniang: { key: 'xinniang', name: '沒走成的新娘', role: 'ranged', hp: 110, atk: 10, cd: 1.6, range: 480, aoe: 40, guard: 1, trait: 'slow', tex: ['folk5'], desc: '（待寫）後排：讓牽路仔變慢' },
+  caoxie: { key: 'caoxie', name: '草鞋丁', role: 'melee', hp: 340, atk: 18, cd: 1.4, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '還了願的草鞋丁：扛得住' },
+  apo: { key: 'apo', name: '點心擔阿婆', role: 'support', hp: 120, atk: 20, cd: 2.2, range: 0, aoe: 0, guard: 1, trait: 'heal', tex: ['folk3'], desc: '鹹粥：照顧血最少的' },
+  xinniang: { key: 'xinniang', name: '沒走成的新娘', role: 'ranged', hp: 110, atk: 10, cd: 1.6, range: 480, aoe: 40, guard: 1, trait: 'slow', tex: ['folk5'], desc: '後排：讓牽路仔變慢' },
 };
 
 /** 鬼的上場順序（假香燈腳該判「不帶」，判對了也不會來） */
@@ -49,6 +52,12 @@ export const WAVES4: Wave[] = [
   [142, 'qianlu', 5, 0.9], [160, 'qianlu', 5, 0.9], [178, 'qianlu', 5, 0.9],
 ];
 
+/** 被帶到下游的人超過這個數，霧沒有散（遺憾） */
+export const MAX_STRANDED4 = 3;
+
+/** 白天拿到「茫渡以前是擺渡的」的證據（不算黃曆上的文獻）：現出渡船時打得更痛 */
+export const knowsFerry4 = (r: RunState): boolean => ['mooring', 'agong_call', 'amu_ferry'].some((id) => r.evidence.includes(id));
+
 export function finaleSetup4(r: RunState): BossSetup {
   const keys = ['qianshao', 'yawei', 'bingma', 'gongshou', ...fordGhosts(r)];
   let front = 0;
@@ -63,59 +72,151 @@ export function finaleSetup4(r: RunState): BossSetup {
     members,
     // 「神轎」欄位＝還在水裡的隊伍（前排沒人時茫渡把他們往回拉）
     palanquin: { hp: 300, smite: 0, bless: 0 },
-    // 隊伍越大霧越濃一點（每多一個 +4%）；重來一次，茫渡的霧也耗掉一些（每次 -15%）
+    // 隊伍越大霧越濃一點（每多一個 +4%）；重來一次，茫渡的霧也耗掉一些（每次 -15%：「茫渡喊了一夜，聲音會小一點」）
     boss: { hpMul: (1 + 0.04 * (members.length - 4)) * Math.pow(0.85, r.retries), atkMul: 1, chargeEvery: 0, skipCharges: 0 },
-    // 第三天聽過堤防邊的老人講渡口：知道牠是擺渡的，現出渡船時打得更痛
-    bellyWound: !!r.flags.ferry_heard,
+    // 白天找到繫船的石樁、聽過阿翰阿公或秀枝阿母講渡頭：知道牠是擺渡的，現出渡船時打得更痛
+    bellyWound: knowsFerry4(r),
     extraWaves: Math.min(3, r.follow?.strayed ?? 0),
     extraKinds: ['qianlu', 'qianlu'],
     skills: [],
     spells: ['huming', 'huiqi'],
     waves: WAVES4,
-    ford: { fogEvery: 14, lureEvery: 12, lureTime: 4, chain: chainSegments4(r), stragglers: stragglers4(r) },
+    ford: { fogEvery: 14, lureEvery: 12, lureTime: 4, chain: chainSegments4(r), stragglers: stragglers4(r), maxStranded: MAX_STRANDED4 },
     duration: 210,
   };
 }
 
 /**
- * 打贏、選完判決之後：被帶到下游沙洲的人記進進度，開爐那頁黃曆「昨日」寫他們的名字（FinaleDef.onEnd）。
+ * 判決之後、或接受遺憾之後（FinaleDef.onEnd）：被帶到下游沙洲的人記進進度。
+ * 遺憾：開爐那頁黃曆「昨日」寫他們的名字（7-10），再列第三天沒辦成的信徒卡的「沒辦結果」。
+ * 打贏了：沙洲上的人押尾去帶回來了（到齊），「昨日」只列第三天沒辦成的事。
  */
-export function fordEnd4(r: RunState, b: BossBattle): void {
-  const names = [...b.stranded];
+export function fordEnd4(r: RunState, b: BossBattle, kind: 'recall' | 'return' | 'slay' | 'regret' = 'regret'): void {
+  const names = kind === 'regret' ? [...b.stranded] : [];
   if (r.follow) r.follow.sandbar = names;
-  r.yesterday = sandbarLines4(names);
+  r.yesterday = [...sandbarLines4(names), ...dawn4(r, 3)];
 }
 
-// ---------- 陣前審問（70／40／10%）：問出牠是以前擺渡的。字全部（待寫）；誰上前、要什麼條件是規則 ----------
+const L = (who: string, text: string): BanterLine => ({ who, text });
+/** 旁白（戰鬥帶上的字幕不寫名字） */
+const N = (text: string): BanterLine => ({ who: '', text });
+
+// ---------- 陣前審問（7-5，70／40／10%）：誰上前、要什麼證據是規則；字照劇本 ----------
 export const FINALE_ROUNDS4: FinaleRound[] = [
+  // 第一輪：牠把人帶去哪裡
   {
-    line: '（待寫）「橋上那麼多人，一個都不下來。」',
-    evidence: [],
+    line: '「橋上那麼多人，一個都不下來。今天總算有人走我這裡。」',
+    evidence: ['mooring', 'dutou_doc'],
     people: [
-      { id: 'dukou', label: '請堤防邊的老人上前', test: (r) => !!r.flags.ferry_heard, say: '（待寫）老人講以前渾水溪有擺渡的那段。' },
+      {
+        id: 'dengchuan', label: '請等船的人上前', test: (r) => carried3(r, 'dengchuan'),
+        say: '「撐船的！你說再載一趟就回頭接我。我在樹下等到現在。」',
+        lines: [
+          L('等船的人', '撐船的！你說再載一趟就回頭接我。我在樹下等到現在。'),
+          L('茫渡', '……你還在等？船沒有了，我沒辦法回頭。'),
+          L('等船的人', '沒有船你叫人去渡頭做什麼？'),
+          L('茫渡', '渡頭有人，船就會來。以前都是這樣。'),
+        ],
+      },
     ],
-    ok: '（待寫）第 1 輪說動牠的那句。',
-    effect: '茫渡動搖：受到的傷害 ×1.15',
+    okLines: [
+      L('前哨', '你把人往下游帶。下游那個沙洲是什麼地方？'),
+      L('茫渡', '渡頭。過溪要從渡頭上船。'),
+      L('押尾', '堤防下面有一根繫船的石樁，打歪了。'),
+      L('茫渡', '……那根是我打的。一直說要重打，沒有打。'),
+    ],
+    ok: '牠帶人去的沙洲是以前的渡頭。牠在叫人上船。',
+    effect: '霧薄了一層：被叫走的人走得比較慢，來得及喊回來。',
   },
+  // 第二輪：牠以前是誰
   {
-    line: '（待寫）茫渡第 2 輪的話。',
-    evidence: [],
-    people: [
-      { id: 'caoxie', label: '請草鞋丁上前', test: (r) => r.cases.caoxie?.verdict === 'tobeijin', say: '（待寫）還了願的草鞋丁說的話。' },
-      { id: 'aman', label: '請阿滿姨上前', test: (r) => r.cases.xinniang?.verdict === 'tohome', say: '（待寫）阿滿姨（女兒跟她回家了）說的話。' },
+    line: '「這條水路是我的。要過，坐我的船。走路的、走橋的，都不算過溪。」',
+    evidence: ['agong_call', 'dutou_doc', 'amu_ferry'],
+    okLines: [
+      L('押尾', '有人說，以前這裡撐船的，不收拿旗的錢。'),
+      L('茫渡', '不收。進香的走了幾百里路，到我這裡還要收錢，像話嗎。'),
+      L('茫渡', '旗上有鈴。我在對岸聽到鈴，就把船靠過來。一趟一趟載，載到半夜。'),
+      L('前哨', '後來呢？'),
+      L('茫渡', '後來橋蓋好了。鈴聲都從上面過。'),
     ],
-    ok: '（待寫）第 2 輪說動牠的那句。',
-    effect: '茫渡動搖：攻擊 ×0.85；下一次霧起不來',
+    ok: '牠是渾水溪擺渡的。橋通了以後，沒有人再下來坐船。',
+    effect: '牠學人講話學得不像了：學來的聲音會慢半拍。可以選「送回」。',
   },
+  // 第三輪：沒有人記得（秀枝的阿母：要有她的證詞，而且秀枝在橋上；押尾一定可以選）
   {
-    line: '（待寫）茫渡第 3 輪的話（他是以前在這裡擺渡的）。',
+    line: '「沒有人記得了啦。溪底還有一個，誰知道？你們過了溪也不會記得。」',
     evidence: [],
-    people: [
-      { id: 'yawei', label: '押尾叫出他的名字', test: (r) => !!r.flags.ferry_heard || (r.follow?.chain ?? 0) > 0, say: '（待寫）押尾記得每個落隊的人叫什麼——也記得他。' },
+    sharedLines: [
+      L('茫渡', '橋通車那天，全庄的人都去橋頭看。我在渡頭等到天黑，一個都沒有。'),
+      L('茫渡', '隔年做大水，船翻了。沒有人來找。沒有人要過溪，誰會來找撐船的。'),
     ],
-    ok: '（待寫）問出他是以前擺渡的。橋蓋好以後沒人坐船，也沒人記得溪底還有一個。',
-    effect: '茫渡的霧薄了一層（受到的傷害 ×1.1）；可以喚回',
+    people: [
+      {
+        id: 'amu', label: '請秀枝的阿母上前', test: (r) => r.evidence.includes('amu_ferry') && done3(r, 'xiuzhi3'),
+        say: '「撐船的！我坐過你的船！我阿母牽我的！你沒有跟我們收錢！」',
+        lines: [
+          N('橋上的鈴停了。一個很老的聲音往下喊，喊得很用力。'),
+          L('秀枝的阿母', '撐船的！我坐過你的船！我阿母牽我的！你沒有跟我們收錢！'),
+          L('茫渡', '……哪一個？綁兩條辮子，從上船哭到下船那個？'),
+          L('秀枝的阿母', '我怕水啦！'),
+          N('霧停在水面上，不動了。'),
+        ],
+        ok: '有人記得。坐過牠的船的人，今天晚上就在橋上。',
+      },
+      {
+        id: 'yawei', label: '請押尾上前', test: () => true,
+        say: '「你叫什麼名字？」',
+        lines: [
+          L('押尾', '你叫什麼名字？'),
+          L('茫渡', '……撐船的。大家都叫撐船的。名字太久沒有人叫，我想不起來。'),
+          L('押尾', '那我先記『渡頭撐船的』。今天晚上過溪的，我一個一個跟他們講。'),
+          N('霧停在水面上，不動了。'),
+        ],
+        ok: '沒有人記得牠的名字，牠自己也忘了。押尾記了一個先頂著。',
+      },
+    ],
+    ok: '沒有人記得牠的名字，牠自己也忘了。押尾記了一個先頂著。',
+    effect: '霧不再往前：不會再有人被叫走。茫渡現出渡船的樣子。可以選「喚回」。',
   },
 ];
 
-export const FINALE_WRONG4 = '（待寫）霧更濃了。（攻擊 ×1.1）';
+/** 出示錯誤（三輪共用） */
+export const FINALE_WRONG4 = '茫渡：「聽不懂。要過溪的，這邊上船。」\n霧又厚了一層。';
+
+/**
+ * 7-3 人鏈出現時的台詞：照順序，條件不成立就跳過那一句；一段都沒有就只播最後兩句。
+ * 一組一組播（BossScene：開打後先播第一組，之後每次人鏈拉住一個人播下一組）。
+ */
+export function chainLines4(r: RunState): BanterLine[][] {
+  if (chainSegments4(r) <= 0) {
+    return [[N('堤防上的人打開手機的燈往溪裡照。霧太厚，光到一半就散了。沒有人下水。'), L('押尾', '沒有人牽。我們自己來。')]];
+  }
+  const aman = done3(r, 'aman3');
+  const out: BanterLine[][] = [[N('堤防上有人把鞋脫了，走回水裡。一個牽一個，從岸邊往溪中間排過去。')]];
+  if (aman) {
+    const g = [L('阿滿姨', '我腳不行，我站岸邊這一頭。後面的抓我的手，抓緊，阿姨站得住。')];
+    if (xinniangWith(r)) g.push(N('阿滿姨左手抓著岸邊的芒草，右手牽人。她左邊還有一個，牽著下一個人的衣角，那個人沒有發現。'));
+    out.push(g);
+  }
+  if (done3(r, 'xianzai3')) out.push([L('賢仔', '拖車繩三十米！一頭我綁保險桿，另一頭你們拉下去！車燈我開遠燈，看到燈的往燈走！')]);
+  if (done3(r, 'arui3')) out.push([L('阿睿', '各位，畫面是白的，我知道。我現在念名字，在水裡聽到自己名字的，喊『有』！黃金水！有沒有？林美雲！')]);
+  if (['wrapped', 'told'].includes(r.b.ahan) || r.flags.ledger_ahan2_walk) out.push([L('阿翰', '水才到腰而已。阿伯，旗子舉高，另一隻手給我。')]);
+  if (done3(r, 'xiuzhi3')) out.push([L('秀枝', '這邊！橋墩在這邊！聽我的聲音，橋在你們左邊！左邊！'), N('橋上有鈴在響。輪椅上的阿母兩隻手抓著旗桿，一直搖。')]);
+  if (r.follow?.broadcast[2] === 'jinmiao2') out.push([L('接轎的年輕人', '昨天看直播來的！我們這邊六個，排哪裡？')]);
+  if (chainSegments4(r) >= 3) out.push([L('前哨', '領隊，岸上的人自己下來了。沒有人叫他們。')]);
+  return out;
+}
+
+/**
+ * 戰鬥互嗆換場合（只講一次的那幾組；BossHud.chat 用）：
+ *  - 霧起（b_fog）：賢仔第三天辦成 → 第一次換「賢仔的車燈」（b_xianzai）；
+ *  - 學人講話（b_lure）：秀枝第三天辦成 → 第一次換「橋上的鈴」（b_xiuzhi）；人鏈出現以後 → 第一次換茫渡「你們手牽那麼緊」（b_lureChain）。
+ */
+export function fordChatKey4(r: RunState, key: string, said: Set<string>, b: BossBattle): string {
+  if (key === 'b_fog' && done3(r, 'xianzai3') && !said.has('b_xianzai')) return 'b_xianzai';
+  if (key === 'b_lure') {
+    if (done3(r, 'xiuzhi3') && !said.has('b_xiuzhi')) return 'b_xiuzhi';
+    if (b.chainLeft < (b.setup.ford?.chain ?? 0) && !said.has('b_lureChain')) return 'b_lureChain';
+  }
+  return key;
+}

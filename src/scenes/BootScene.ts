@@ -27,7 +27,7 @@ export class BootScene extends Phaser.Scene {
     this.scene.launch('assets');
     // 網址加 ?scene=night&n=2 可以直接跳到某個場景（測試用）
     const q = new URLSearchParams(location.search);
-    // &full=1：不管試玩版只做到第幾天（playableDays），整章走到底（第四章第三天、最後一戰、開爐還是「（待寫）」暫代字）
+    // &full=1：不管試玩版只做到第幾天（playableDays），整章走到底（第四章第 B2 輪已經拿掉 playableDays，不用加也走得到底）
     playOverride.full = q.get('full') === '1';
     // ?proto=stage&id=recall：原型的舊網址，現在等同 ?scene=story&id=recall（播正式演出，看完回標題）
     const jump = q.get('proto') === 'stage' ? 'story' : q.get('scene');

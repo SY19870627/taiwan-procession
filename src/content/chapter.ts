@@ -128,7 +128,29 @@ export interface FinaleDef {
    */
   afterClose?: { key: string; data?: object };
   /** 第四章：打贏、選完判決之後（離開戰鬥前）把戰鬥結果記進進度（被帶到下游沙洲的人） */
-  onEnd?: (r: RunState, battle: import('../core/boss').BossBattle, kind: 'recall' | 'return' | 'slay') => void;
+  onEnd?: (r: RunState, battle: import('../core/boss').BossBattle, kind: 'recall' | 'return' | 'slay' | 'regret') => void;
+  // ----- 第四章：遺憾（被帶走的人太多，霧沒有散）-----
+  /** 打贏後判決畫面的說明（winText 下面） */
+  judgeText?: string;
+  /** 沒打贏（遺憾）的標題；沒寫用預設的「……被拉回去了」 */
+  loseTitle?: string;
+  /**
+   * 有寫就是第四章的遺憾：輸了不只能重來，也可以接受結果（acceptLabel），播 regretStory 之後照常接 closeStory。
+   * retryNote／acceptNote：兩個按鈕下面的小字
+   */
+  regretStory?: string;
+  retryLabel?: string;
+  retryNote?: string;
+  acceptLabel?: string;
+  acceptNote?: string;
+  /** 開打前的說明卡（第四章：顧人過溪）：蓋在操作面板上，按了才開始 */
+  briefing?: { title: string; text: string };
+  /** 人鏈一段一段出現時的台詞（一組一組播：開打後先播第一組，之後每次人鏈拉住一個人播下一組） */
+  chainLines?: (r: RunState) => BanterLine[][];
+  /**
+   * 戰鬥互嗆換場合（有條件、只講一次的那幾組）：回傳要用的場合；said 是已經換過、講過的場合
+   */
+  chatKey?: (r: RunState, key: string, said: Set<string>, battle: import('../core/boss').BossBattle) => string;
 }
 
 export interface ChapterDef {
@@ -222,6 +244,11 @@ export interface ChapterDef {
    *（最後一戰被帶到下游沙洲的人），按鈕播 story，之後到信徒錄。
    */
   epilogue?: { title: string; area: string; almanac: (r: RunState) => Almanac; button: string; story: string };
+  /**
+   * 白天互嗆的版本（第四章第三天：新娘有跟著才播的那一組）：回傳的字串接在場合後面，
+   * DayScene 先找「場合@第幾天#版本」，沒有才找「場合@第幾天」、「場合」
+   */
+  banterTag?: (r: RunState) => string | undefined;
 }
 
 /**
@@ -357,7 +384,8 @@ export function visible(r: RunState, e: Encounter): boolean {
     case 'clue': return !r.evidence.includes(e.evidence) && (!e.needs || r.evidence.includes(e.needs));
     case 'talk': return !r.evidence.includes(e.evidence);
     // 第四章：先鋒押中那條路，小妖已經清掉了（core/procession.ts 的 resolveBet）
-    case 'imp': return !r.flags[`cleared_${e.id}`];
+    // 第四章第三天：傳消息「什麼都不拍」，人少，渡頭路的牽路仔不出現（unlessTag）
+    case 'imp': return !r.flags[`cleared_${e.id}`] && !(e.unlessTag && r.follow?.tags.includes(e.unlessTag));
   }
 }
 
@@ -428,7 +456,13 @@ export function laterSightings(caseId: string, day: number): string[] {
 
 /** 證據跟哪隻鬼有關（顯示用） */
 export function evidenceFor(id: string): string {
-  return CH().cases[CH().evidence[id].ghost].dayName;
+  // 第四章：最後一戰用的證據（ghost 是魔王的 id，不是鬼案）寫魔王的名字
+  return CH().cases[CH().evidence[id].ghost]?.dayName ?? CH().finale.bossName;
+}
+
+/** 這個證據是最後一戰（陣前審問）用的，不屬於任何鬼案（第四章：渾水溪的舊渡頭） */
+export function finaleEvidence(id: string): boolean {
+  return !CH().cases[CH().evidence[id]?.ghost ?? ''];
 }
 
 /** 這隻鬼相關的證據 id */

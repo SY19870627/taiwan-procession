@@ -3,12 +3,13 @@
  * 第四章的信徒（_agent/ch4-baishatun-plan.md §7「信徒五位」）：阿滿姨、阿睿（跟轎台義工；第一章已有阿哲，代號改 arui）、
  * 賢仔、秀枝、阿翰。序章黃曆、擲筊、因果簿、信徒錄。
  *
- * 第一天的字照 _agent/ch4-text-day1.md 第 1、4、6 節（作者尚未定稿）。第二、三天的卡、信徒錄是（待寫）暫代（第 A 輪）。
+ * 第一天的字照 _agent/ch4-text-day1.md 第 1、4、6 節、第二天照 ch4-text-day2.md、第三天與信徒錄照 ch4-text-day3.md（作者尚未定稿）。
  * 選項的花費（時辰、稟報、點心站）是規則，換字時不要動。
  */
 import type { RunState } from '../../state';
 import { gainEvidence } from '../../state';
 import type { Almanac, Card, Epitaph, LedgerLine, Option } from '../believers';
+import { carried3 } from './cases';
 
 
 export function newBelievers4(): Record<string, string> {
@@ -56,15 +57,6 @@ function reportOpt(key: string, who: string, result: string): Option {
   };
 }
 
-/** 第二、三天的稟報（暫代）：不改信徒的狀態（第一天的狀態留給因果簿、信徒錄），只記辦過 */
-function stubReport(key: string, result: string): Option {
-  return {
-    label: '稟報', hours: 0, result,
-    report: { key, stops: () => false, stop: REPORTED, pass: REPORTED },
-    apply: (s) => { s.flags[`done_${key}`] = true; return ''; },
-  };
-}
-
 /**
  * 第二天起的卡：辦過（或稟報過）一次就不再出現（flags.done_<卡>）。
  * believer：辦成記 flags.helped_<信徒>（最後一戰人鏈：幫過的信徒會下水牽人）；ledger：因果簿用哪一種寫法（LEDGER4_2）。
@@ -94,7 +86,6 @@ export const xiuzhiReported = (r: RunState): boolean => r.follow?.reports.xiuzhi
 
 /**
  * 沒辦結果（略過那張卡之後，天亮「昨日」寫的事；見 days.ts 的 dawn4：卡片 id 尾巴的數字＝第幾天）。
- * 第三天的是暫代（還沒有作者的字）。
  */
 export const MISSED4: Record<string, string> = {
   aman1: '阿滿姨天黑才走到省道。她在一間雜貨店的騎樓坐了一夜。',
@@ -114,7 +105,16 @@ export const MISSED4: Record<string, string> = {
   sick2b: '阿公抱著她站在街角的機車上面看。只看到很多人的頭，還有很遠的一點粉紅色。小女孩說有看到。',
   flag2: '後來是一個路過的國小老師幫他穿的線。阿伯到北津的時候，旗上多了一塊補丁。',
   rice2: '阿姨把剩下的油飯分裝，載去北津的廟埕發。發到晚上八點。',
-  xiuzhi3: '（待寫）沒陪秀枝的話，第三天她們怎麼了。',
+  // 第三天（ch4-text-day3.md 第 3、4 節「沒辦結果」；開爐那頁黃曆的「昨日」也列這些，見 finale.ts 的 fordEnd4）
+  aman3: '阿滿姨走到天黑，離堤防還有兩公里。她聽到溪那邊很多人在喊，不知道是在喊什麼。',
+  arui3: '跟轎台那天破了紀錄，十四萬人在線上。服務台的走失登記寫了三張紙。',
+  xianzai3: '拖吊車天黑才來。巴士上的人下車用走的，走到堤防的時候，前面已經起霧了。賢仔後來才聽說是水管，他說那個他閉著眼睛都會換。',
+  xiuzhi3: '轎子起馬的時候，隊尾還沒有動。阿母問了三次到渡頭了沒有，秀枝三次都說快了。',
+  ahan3: '阿翰一路走在幾千個人後面。阿公打來問他講了沒，他說人太多，等一下。',
+  kneel3: '轎子到的時候，轎班喊讓路，那一排人來不及站起來。沒有人受傷，阿嬤的拖鞋被踩掉一隻，後來沒找到。',
+  orange3: '隊尾過去以後，阿伯把兩袋橘子掛回機車的把手。他在路邊多站了一下才發動。',
+  block3: '護理師最後是揹著箱子用跑的過去。中暑的人沒事，在樹下躺了一個鐘頭。',
+  count3: '阿伯一路倒著走到堤防。袋子裡只撿到三個寶特瓶，他說今年的人很乖。',
 };
 
 export const CARDS4: Record<string, (r: RunState) => Card | null> = {
@@ -463,49 +463,222 @@ export const CARDS4: Record<string, (r: RunState) => Card | null> = {
     ignore: '沒有壞處。阿姨會剩兩鍋油飯',
     missed: MISSED4.rice2,
   },
-  // ---------- 第三天（回程・渾水溪；第 A 輪（待寫）） ----------
-  /** 秀枝的那一段（pre・隊尾）：這天的主線 */
-  xiuzhi3: stubCard('xiuzhi3', '秀枝', 'xiuzhi', [{ label: '（待寫）陪她們走到堤防', hours: 1 }, { label: '（待寫）陪她們走，聽她講阿母', hours: 2 }], { report: '把秀枝和她阿母報到轎前。', deadline: '今天' }),
-  aman3: stubCard('aman3', '阿滿姨', 'aman', [{ label: '（待寫）陪她走', hours: 1 }]),
-  /** 堤防邊的老人：記得渾水溪以前有擺渡（最後一戰陣前審問第 1 輪；知道茫渡是擺渡的，喘息時打得更痛） */
-  dukou3: stubCard('dukou3', '堤防邊的老人', '', [{ label: '（待寫）問他溪的事', hours: 1, flag: 'ferry_heard' }]),
-  ahan3: stubCard('ahan3', '阿翰', 'ahan', [{ label: '（待寫）陪他', hours: 1 }]),
-  arui3: stubCard('arui3', '阿睿', 'arui', [{ label: '（待寫）幫他', hours: 1 }]),
-  // 第二天拍入廟 → 人更多；拍秀枝 → 帶病人來求的家屬
-  lost3: stubCard('lost3', '走散的孩子', '', [{ label: '（待寫）幫他找家人', hours: 1 }]),
-  sick3: stubCard('sick3', '帶病人來求的家屬', '', [{ label: '（待寫）幫忙', hours: 2 }]),
+  // ---------- 第三天（字照 _agent/ch4-text-day3.md 第 3、4 節；花費、稟報、給的證據、點心站是規則） ----------
+  /** 3-1 阿滿姨（甲路・渡頭路的大榕樹下）。託飯擔和渡頭路尾的牽路仔用同一攤 */
+  aman3: (r) => {
+    if (r.flags.done_aman3) return null;
+    const late = !amanAtTemple(r);
+    const bride = xinniangWith(r);
+    return {
+      who: '阿滿姨',
+      text: `${late ? '昨天她在廟埕最外面站到人散。今天她天沒亮就出發，走在很前面。' : ''}大榕樹下擺了一排飯擔。阿滿姨沒有坐，站著吃，一手扶著樹。「坐下去我就站不起來了。溪還沒過。」旁邊停著一台香客服務車，司機問了她兩次，她都搖頭。${bride
+        ? '她走在路的右半邊，網袋掛左肩。左邊走著那個穿紅衣的，腳上一雙布鞋已經走髒了。後面的人要超過阿滿姨，不知道為什麼都從右邊繞。'
+        : '她走在路的右半邊，網袋掛左肩。左邊空了一個人的位置，後面的人要超過她，都從右邊繞。'}\n她的膝蓋撐不到堤防。車就在旁邊，她不上。照這個速度，過溪的時候她還在渡頭路。`,
+      deadline: '今天',
+      options: [
+        {
+          label: '派押尾陪她走', hours: 1, result: '她天黑前到得了堤防',
+          apply: (s) => { did(s, 'aman3', 'aman', 'ok'); return '阿滿姨把碗還給飯擔，走了。走得比昨天還慢，一步都沒有停。上堤防那個斜坡，她是側著身體一格一格上去的。'; },
+        },
+        {
+          label: '陪她走，聽她講為什麼回程不坐車', hours: 2, result: '她天黑前到得了堤防；也說了回程的事',
+          apply: (s) => {
+            did(s, 'aman3', 'aman', 'ok');
+            return `「她那年跟我講，去的那一半她沒空，回來這一半陪我走。」阿滿姨換一隻手扶膝蓋。「所以回來這一半我不坐車。坐車的話，她要去哪裡找我。」${xinniangWith(s) ? '\n左邊那個人低頭看自己的鞋，走得更靠近她一點。' : ''}`;
+          },
+        },
+        {
+          label: '託榕樹下的飯擔', hours: 0, stall: '榕樹下的飯擔', result: '有人借她東西撐著走，她會晚一點到堤防',
+          apply: (s) => { did(s, 'aman3', 'aman', 'ok'); return '飯擔的阿嫂從車上抽出一支黑雨傘。「阿姨，這支妳拿去拄。不用還，那是人家忘在我店裡的。」阿滿姨試了兩步，點點頭。'; },
+        },
+        ...report3(r, 'aman3', '把阿滿姨回程不肯坐車的事報到轎前。媽祖會知道；她走不走得到堤防，不保證。',
+          '你在轎前把事情講完。轎子照常往前走。\n押尾：「報了。她還在走。」'),
+      ],
+      ignore: '過溪的時候她還在渡頭路，趕不上；人鏈少一段',
+      missed: MISSED4.aman3,
+    };
+  },
+  /** 3-2 阿睿（pre・省道安全島邊）。選項二給岔路線索一 */
+  arui3: (r) => r.flags.done_arui3 ? null : {
+    who: '阿睿',
+    text: `阿睿站在安全島上，手機一直震。「線上十一萬。留言我看不完了，一半都在找人。『有沒有看到我媽，穿黃色雨衣』『我跟我同學走散了』。」${r.flags.ledger_arui2_ok
+      ? '他把留言往上滑，滑了兩下又滑回來。「……昨天那個阿嬤是剛好在我旁邊。這麼多我怎麼找。」'
+      : '他把留言往上滑。「各位，找人的請打服務台，我這邊是直播。」'}\n走散的人越來越多。留言裡有人在找人，也有人在報自己的位置，兩邊對不起來。`,
+    options: [
+      {
+        label: '讓他的螢幕卡住，停在一則找人的留言上', hours: 1, result: '跟轎台會開始幫人對走散的',
+        apply: (s) => { did(s, 'arui3', 'arui', 'ok'); return '螢幕卡在一則「找我阿公，綠色帽子，重聽」。阿睿拍了兩下手機，抬頭，綠色帽子就在他前面五步。「阿伯！你孫子在找你！」那之後他每十分鐘念一次走散的名單，念得比報人數還大聲。'; },
+      },
+      {
+        label: '讓他念名單，再聽他念其他留言', hours: 2, result: '跟轎台幫人對走散的；他會念到一則講舊路的留言（岔路的線索）',
+        apply: (s) => {
+          did(s, 'arui3', 'arui', 'ok');
+          s.flags.clue_arui3 = true;
+          return '阿睿念完一輪名單，往下滑。「這則很長。『我幫阿嬤打字。她說以前回程不走大路，都彎進渡頭路，在樹下等。』」他又滑了一下。「等什麼？沒打完。阿嬤，妳孫子打字打一半啦。」';
+        },
+      },
+    ],
+    ignore: '今天走散的人只能自己找；過溪的時候沒有人念名字',
+    missed: MISSED4.arui3,
+  },
+  /** 3-3 賢仔（post・堤防下的便道） */
+  xianzai3: (r) => r.flags.done_xianzai3 ? null : {
+    who: '賢仔',
+    text: `堤防下的便道塞住了。最前面一台載香燈腳的中型巴士掀著引擎蓋，白煙一直冒，司機拿著手機在找拖吊。賢仔的貨車卡在後面第六台，車窗關著，收音機開很大聲。他以為只是塞車。${r.flags.missed_xianzai2 ? '他車斗上還有六個背包。帆布蓋得好好的。' : ''}\n巴士上四十個人，一半是老人家。拖吊車要一個半鐘頭才到，那時候轎子早就走了。會修的人就在後面第六台。`,
+    deadline: '今天',
+    options: [
+      {
+        label: '派前哨把那一陣白煙吹到他的擋風玻璃前面', hours: 1, result: '他會下車去看；巴士上的人跟得上隊伍',
+        apply: (s) => { did(s, 'xianzai3', 'xianzai', 'ok'); return '賢仔聞到味道，收音機就關了。他走到巴士前面，看一眼。「水管爆了啦。這個不用拖。」他從貨車的座位底下拖出一個工具箱，二十分鐘。司機拿錢出來，他把手擦在褲子上。「進香的不用。」'; },
+      },
+      {
+        label: '讓他修好車，再聽他講車行的事', hours: 2, result: '巴士修得好；他會講那張「頂讓」',
+        apply: (s) => { did(s, 'xianzai3', 'xianzai', 'ok'); return '巴士發動了，車上的人拍手。賢仔蹲在路邊收工具。「工具本來昨天要整理好賣人的，還好沒賣。」他把箱子扣起來。「頂讓那張被擠歪以後我就沒有貼回去。房東那邊我再去講講看。明年那幾天，鐵門總要有人開。」'; },
+      },
+    ],
+    ignore: '巴士上的人要下車用走的，天黑才到堤防；過溪的時候隊尾會更長',
+    missed: MISSED4.xianzai3,
+  },
+  /**
+   * 3-4 秀枝（停駕點・堤防上的隊尾）：今天的重點卡。前兩天都沒辦過她的事，每個選項多 1 時辰。
+   * 稟報（stops）：轎子起馬的時候回頭（huitou4，DayPlan.follow.rest.leaveStory）；稟報不等於辦成，報了還能辦卡上的事
+   */
+  xiuzhi3: (r) => {
+    if (r.flags.done_xiuzhi3) return null;
+    const lost = r.b.xiuzhi !== 'noted' && !r.flags.ledger_xiuzhi2_ok;
+    const extra = lost ? 1 : 0;
+    return {
+      who: '秀枝',
+      text: `${lost ? '押尾沿著堤防找了很久。那台輪椅在所有人的後面，再後面就是空的路。' : ''}堤防上風很大。隊伍從水門一路坐到看不見的地方，最後面是那台輪椅，煞車拉著。秀枝蹲在旁邊，幫阿母把毯子的角塞好。前面有人回頭跟她招手，叫她往前。她搖手。「沒關係，我們在後面跟就好。前面那麼多人都有事要求。」\n輪椅上的阿母今天醒著，兩隻手抓著一支舊的進香旗，旗桿磨得發亮，旗上的鈴少了一顆。她看著堤防下面，講得很慢。「到渡頭了沒有？」秀枝：「阿母，現在沒有渡頭了。現在都走橋。」\n走這條路走了四十年的是她阿母。秀枝是請假來推輪椅的。阿母想再到轎子旁邊一次，秀枝不敢往前推。轎子歇一下就要起馬了。`,
+      deadline: '轎子起馬以前',
+      options: [
+        {
+          label: '派押尾走在輪椅前面，讓人潮空出一條縫', hours: 1 + extra, result: '她們到得了看得見轎子的地方',
+          apply: (s) => { did(s, 'xiuzhi3', 'xiuzhi', 'ok'); return '坐在堤防上的人不知道為什麼，一個一個把腳收進去。秀枝看著前面空出來的路，站了一下，把煞車放開。她推了三百公尺，推到看得見粉紅色轎頂的地方，就不肯再往前。阿母把旗舉高了一點。「有。有看到。」'; },
+        },
+        {
+          label: '陪她們往前，聽阿母講渡頭', hours: 2 + extra, gives: ['amu_ferry'], result: '她們到得了看得見轎子的地方；阿母會講以前怎麼過溪',
+          apply: (s) => {
+            did(s, 'xiuzhi3', 'xiuzhi', 'told');
+            gainEvidence('amu_ferry');
+            return '秀枝推到看得見轎頂的地方停下來。阿母沒有看轎子，她看堤防下面那片草。「以前到這裡要坐船。撐船的聽到鈴就靠過來，拿旗的不收錢。我阿母牽我坐過，我一路哭，怕水。」\n秀枝：「阿母，妳今天怎麼講這麼多話。」她蹲下去重綁阿母的鞋帶，綁了很久才站起來。';
+          },
+        },
+        ...report3(r, 'xiuzhi3', '把秀枝和她阿母報到轎前。媽祖會知道；轎子會不會往隊尾去，不保證。',
+          '你在轎前把事情講完。轎子停在水門邊，沒有動。\n押尾：「報了。」', true),
+      ],
+      ignore: '轎子起馬的時候她們還在隊尾；阿母今天講的話，沒有人聽到',
+      missed: MISSED4.xiuzhi3,
+    };
+  },
+  /** 3-5 阿翰（pre・省道慢車道）。選項二給岔路線索二、證詞「阿翰阿公的電話」 */
+  ahan3: (r) => {
+    if (r.flags.done_ahan3) return null;
+    const wrapped = ['wrapped', 'told'].includes(r.b.ahan);
+    return {
+      who: '阿翰',
+      // 第一天沒包腳：換掉前面「蹲在路邊幫國中生包腳」那幾句（「轎子在很前面」那句照舊）
+      text: `${wrapped
+        ? '阿翰蹲在路邊，幫一個國中生包腳，包得很醜。「水泡不能這樣放，這個我有經驗。」包完他站起來，看轎子走到哪裡了。'
+        : '阿翰走在慢車道最外面，兩腳的後跟都貼著別人給的藥布。他一直看前面。'}轎子在很前面，中間隔著幾千個人。${r.flags.ledger_ahan2_ride ? '「去的那一段我有坐車。回來這段全部用走的，加起來不知道算不算一趟。」他是對著自己的鞋子講的。' : ''}${r.flags.missed_ahan2 ? '昨天他天快黑才到北津，入廟只看到尾巴。' : ''}\n阿公叫他來，是要他在轎前許願。走了三天，他一次都沒擠到轎子旁邊。過了溪就快到家了，願還沒許。`,
+      deadline: '過溪以前',
+      options: [
+        {
+          label: '派前哨在人潮裡順出一條路', hours: 1, result: '他走得到轎子後面；開不開口，看他自己',
+          apply: (s) => { did(s, 'ahan3', 'ahan', 'ok'); return '前面的人一個一個剛好換邊揹背包。阿翰被一路讓到轎後面十步的地方，不敢再近。他把帽子拿下來，嘴巴動了一下。講了什麼，旁邊的人沒有聽到。走回來的時候他在擦臉，說是汗。'; },
+        },
+        {
+          label: '讓他走到轎後面，再聽他接阿公的電話', hours: 2, gives: ['agong_call'], result: '他走得到轎子後面；阿公會講以前回程怎麼過溪（岔路的線索）',
+          apply: (s) => {
+            did(s, 'ahan3', 'ahan', 'ok');
+            s.flags.clue_ahan3 = true;
+            gainEvidence('agong_call');
+            return '手機響了，是阿公。阿翰開擴音。「講了沒？……有講就好。要過溪了喔？我們那時候回程都在渡頭路的樹下等船。撐船的不收拿旗的錢。」阿翰：「阿公，現在有橋了啦。」阿公：「我知道有橋。我是講以前。」';
+          },
+        },
+        ...report3(r, 'ahan3', '把阿翰還沒許願的事報到轎前。媽祖會知道；他開不開得了口，不保證。',
+          '你在轎前把事情講完。轎子照常往前走，沒有慢下來。\n阿翰在很後面，把帽子拿下來又戴回去。\n押尾：「報了。嘴巴是他的。」'),
+      ],
+      ignore: '過溪以前他擠不到轎子旁邊；願他會留到回宮再講，或者不講',
+      missed: MISSED4.ahan3,
+    };
+  },
+  // 4-1 第二天拍了三進三退 → 專程趕來接轎的人（crowd）：多 2 件事，都是 1 時辰
+  kneel3: (r) => r.flags.done_kneel3 ? null : {
+    who: '跪成一排的一家人',
+    text: '「昨天看直播，說鑽轎腳要先跪好。」一家六口，從阿嬤到抱在手上的，在內側車道跪成一排，後面的人看到也跟著跪，越排越長。轎子什麼時候到、今天開不開放，沒有人知道。對向的車已經在按喇叭了。\n他們跪的地方是車道。轎子走起來很快，前面的人來不及讓，會撞成一團。',
+    options: [
+      {
+        label: '派前哨把義工的哨子聲帶過來', hours: 1, result: '工作人員會過來，把這一排帶到路邊',
+        apply: (s) => { did(s, 'kneel3', '', 'ok'); return '穿背心的義工循著哨子聲跑過來。「阿嬤，這裡不行，這裡是車道。要鑽的等我們喊，排路邊，囡仔抱好。」一家人挪到路肩。阿嬤一直問這樣媽祖還看得到嗎，義工說看得到。'; },
+      },
+    ],
+    ignore: '轎子到的時候這裡會擠成一團，有人會跌倒',
+    missed: MISSED4.kneel3,
+  },
+  orange3: (r) => r.flags.done_orange3 ? null : {
+    who: '提橘子的阿伯',
+    text: '「自己種的，沒有噴藥。我昨天看電視才知道今天會經過。」他想拿給走路的人吃，可是大家走得很快，手上都有東西，沒有人停。兩袋橘子他已經提了一個鐘頭。\n他不知道東西要交給誰。再站下去，隊伍就過完了。',
+    options: [
+      {
+        label: '派押尾把他引到前面的點心站', hours: 1, result: '橘子發得出去；他會留下來幫忙',
+        apply: (s) => { did(s, 'orange3', '', 'ok'); return '阿伯跟著風走了一百公尺，走到一攤點心站。「橘子放這邊，阿伯你幫我們剝好不好？手不夠。」他剝了一下午。晚上他跟著隊伍走到了堤防，袋子是空的。'; },
+      },
+    ],
+    ignore: '橘子他會提回去；晚上他不會跟來',
+    missed: MISSED4.orange3,
+  },
+  // 4-2 第二天拍了賢仔的貨車 → 開車來送水、擺點心的人（helper）：多 1 攤「後車廂的水攤」（今天可以託一次）、多 1 件事。
+  // 水攤的預覽和送水的大哥那句沒有自己的事件，接在這張卡的最前面
+  block3: (r) => r.flags.done_block3 ? null : {
+    who: '醫療車的護理師',
+    text: '路肩停了一排車，後車廂都開著，裡面是一箱一箱的水和運動飲料。\n送水的大哥：「看到那台貨車的影片，想說我也有車。水拿去，冰的在後面那台。」\n來送水的車太多，路肩停滿了，還停到第二排。醫療車卡在後面，護理師下來一台一台敲車窗，車主都在前面發水，車上沒有人。「拜託，哪一台是誰的？前面有人在等我們。」\n前面兩公里有人中暑，醫療車過不去。來幫忙的人不知道自己擋到路。',
+    options: [
+      {
+        label: '派前哨把一台車的警報器吹響', hours: 1, result: '車主會跑回來移車；醫療車過得去',
+        apply: (s) => { did(s, 'block3', '', 'ok'); return '一台車的警報器叫了起來，接著是第二台。發水的人回頭看，看到後面的燈。「欸我們擋到救護的了！移車移車！」三分鐘路肩就空出一線。送水的大哥站在路口幫忙指揮，指到隊尾過完。'; },
+      },
+      {
+        label: '託後車廂的水攤', hours: 0, stall: '後車廂的水攤', result: '攤子上的人會去叫車主',
+        apply: (s) => { did(s, 'block3', '', 'ok'); return '護理師走到水攤問。送水的大哥放下箱子就跑。「阿明！你的車！還有白色那台誰的？」他一路喊過去，喊到沒聲音。'; },
+      },
+    ],
+    ignore: '醫療車會晚二十分鐘才到',
+    missed: MISSED4.block3,
+  },
+  // 4-3 什麼都不拍 → 沒有多的人（quiet）：渡頭路的牽路仔不出現（days.ts 的 unlessTag）；多 1 件可辦可不辦的小事，不辦沒有遺憾
+  count3: (r) => r.flags.done_count3 ? null : {
+    who: '倒著走的阿伯',
+    text: '「我每年都走最後一個。後面沒有人了，我才放心。」他揹著一個撿垃圾的大袋子，走幾步回頭看一次。今年人沒有網路上講的那麼多，他很快就確定後面是空的，反而不知道要做什麼。\n沒有什麼要辦的。他一個人走在最後面，袋子是空的。',
+    options: [
+      {
+        label: '讓押尾陪他走一段', hours: 1, result: '沒有好處，也沒有壞處。押尾會多記一個名字',
+        apply: (s) => { did(s, 'count3', '', 'ok'); return '阿伯走著走著，覺得後面好像還有一個人，回頭看了三次都沒有。「奇怪。算了，有人押尾，我比較好走。」他把袋子換到另一邊肩膀，轉回去面向前面，後來就沒有再回頭。\n押尾：「清福。六十七歲。每年走最後一個。記了。」'; },
+      },
+    ],
+    ignore: '沒有壞處。他照常走最後一個',
+    missed: MISSED4.count3,
+  },
 };
 
+/** 第二夜判新娘「帶回白砂墩」：第三天她跟在阿滿姨左邊走（ch4-text-day3.md 的「新娘有跟著」） */
+export const xinniangWith = (r: RunState): boolean => r.cases.xinniang?.verdict === 'tohome';
+/** 第三天的信徒卡辦成了（稟報不算） */
+export const done3 = (r: RunState, card: 'aman3' | 'arui3' | 'xianzai3' | 'xiuzhi3' | 'ahan3'): boolean => !!r.flags[`done_${card}`];
+/** 第三天稟報過秀枝（轎子起馬時回頭：huitou4） */
+export const xiuzhiReported3 = (r: RunState): boolean => r.follow?.reports.xiuzhi3 !== undefined;
+
 /**
- * 第二、三天的暫代信徒卡：字都是（待寫），花費、給的證據、旗標是規則（換字時不要動）。
- * 辦過一次就不再出現（flags.done_<卡>）；辦成記 flags.helped_<信徒>（最後一戰人鏈：幫過的信徒會下水牽人）。
- * report：多一個「稟報」選項（第二、三天轎子停不停，之後的內容依 follow.reports 決定；暫代一律照常往前走）。
+ * 第三天的稟報（3-6）：報到轎前，卡片不收起來（keepOpen）——稟報不等於辦成，報了以後還能辦卡上的事（兩個都做，兩段都播）。
+ * 報過一次就不再列（follow.reports）。stops：秀枝那張轎子會停（轎子回頭，接在停駕點的事辦完、起馬的時候）。
  */
-function stubCard(
-  id: string, who: string, believer: string,
-  opts: { label: string; hours: number; gives?: string[]; flag?: string }[],
-  extra: { report?: string; deadline?: string } = {},
-): (r: RunState) => Card | null {
-  return (r) => r.flags[`done_${id}`] ? null : {
-    who,
-    text: `（待寫）${who}（${id}）的卡片描述。`,
-    ...(extra.deadline ? { deadline: extra.deadline } : {}),
-    options: [
-      ...opts.map((o): Option => ({
-        label: o.label, hours: o.hours, result: '（待寫）辦成的結果預告', ...(o.gives ? { gives: o.gives } : {}),
-        apply: (s) => {
-          s.flags[`done_${id}`] = true;
-          if (believer) s.flags[`helped_${believer}`] = true;
-          if (o.flag) s.flags[o.flag] = true;
-          for (const g of o.gives ?? []) gainEvidence(g);
-          return `（待寫）${who}：辦成之後的那段話。`;
-        },
-      })),
-      ...(extra.report ? [stubReport(id, `（待寫）${extra.report}媽祖會知道；轎子會不會為他停，不保證。`)] : []),
-    ],
-    ignore: '（待寫）略過的預告',
-    missed: MISSED4[id],
-  };
+function report3(r: RunState, key: string, result: string, text: string, stops = false): Option[] {
+  if (r.follow?.reports[key] !== undefined) return [];
+  return [{
+    label: '稟報', hours: 0, result, keepOpen: true,
+    report: { key, stops: () => stops, stop: text, pass: text },
+    apply: (s) => { s.flags[`ledger_${key}_reported`] = true; return ''; },
+  }];
 }
 
 /** 因果簿（第 4 節「因果簿」兩種寫法：辦成／沒辦） */
@@ -529,7 +702,24 @@ const LEDGER4_2: Record<string, [string, Record<string, string>, string]> = {
   ahan2: ['阿翰', { ride: '阿翰：坐賢仔的車到北津。他跟阿公說「有到」，沒說怎麼到的', walk: '阿翰：背包上車，人用走的，走到了北津' }, '阿翰：沒坐到車，落在隊尾。到北津的時候天快黑了'],
   sick2a: ['拿著襯衫的太太', { ok: '拿著襯衫的太太：捧著先生的衣服鑽了轎腳。她搭末班車回醫院' }, '拿著襯衫的太太：沒擠到前面。她把襯衫舉過頭，舉到轎子進門'],
   sick2b: ['牽孫女的阿公', { ok: '牽孫女的阿公：孫女隔著藥局的玻璃看到轎子。她把手貼在玻璃上' }, '牽孫女的阿公：站在最遠的街角。孫女說有看到，他不確定'],
+  // 第三天（ch4-text-day3.md 第 3、4 節）。秀枝稟報過：換掉原本那一句（reported 排第一）
+  aman3: ['阿滿姨', { ok: '阿滿姨：回程沒有坐車，天黑前走到了堤防' }, '阿滿姨：過溪的時候她還在渡頭路。她是隔天早上走橋過去的'],
+  arui3: ['阿睿', { ok: '阿睿：跟轎台開始念走散的名單。他一整個下午沒有報線上人數' }, '阿睿：線上十四萬。留言裡找人的那些，他沒有時間看'],
+  xianzai3: ['賢仔', { ok: '賢仔：在便道上修好一台巴士，沒有收錢。工具箱他沒賣' }, '賢仔：那天他塞在車陣裡聽收音機。前面拋錨的車，他沒有看到'],
+  xiuzhi3: ['秀枝', {
+    reported: '秀枝：轎子走了一公里的回頭路，停在輪椅前面。大家都說是專程的',
+    told: '秀枝：她阿母講了小時候坐船過溪的事。秀枝說她第一次聽到',
+    ok: '秀枝：把輪椅推到看得見轎頂的地方。她阿母把旗舉起來了',
+  }, '秀枝：轎子起馬的時候她在隊尾。她阿母一直問渡頭到了沒有'],
+  ahan3: ['阿翰', { ok: '阿翰：在轎後面十步的地方把帽子拿下來。講了什麼，沒有人聽到' }, '阿翰：過溪以前沒有擠到轎子旁邊。阿公問他講了沒，他說等一下'],
+  kneel3: ['跪成一排的一家人', { ok: '跪成一排的一家人：挪到路肩等。那天有沒有鑽到，他們說沒關係' }, '跪成一排的一家人：來不及讓路。阿嬤少了一隻拖鞋'],
+  orange3: ['提橘子的阿伯', { ok: '提橘子的阿伯：橘子在點心站發完。他跟著走到了堤防' }, '提橘子的阿伯：兩袋橘子提回家。他說明年要早一點出門'],
+  block3: ['送水的車隊', { ok: '送水的車隊：擋到醫療車，三分鐘內移開了。帶頭的大哥指揮交通指到天黑' }, '送水的車隊：他們後來才知道那天擋到醫療車'],
+  count3: ['倒著走的阿伯', { ok: '倒著走的阿伯：今年他沒有一直回頭' }, '倒著走的阿伯：今年袋子很輕'],
 };
+
+/** 不辦沒有遺憾的小事（因果簿的「沒辦」不算遺憾） */
+const NO_REGRET4 = new Set(['count3']);
 
 export function ledger4(r: RunState): LedgerLine[] {
   const lines = LEDGER4.map(([who, id, good, yes, no]): LedgerLine => {
@@ -538,8 +728,10 @@ export function ledger4(r: RunState): LedgerLine[] {
   });
   for (const [card, [who, yes, no]] of Object.entries(LEDGER4_2)) {
     const how = Object.keys(yes).find((k) => r.flags[`ledger_${card}_${k}`]);
-    if (how) lines.push({ who, state: yes[how], tone: how === 'reported' ? 'bad' : 'good' });
-    else if (r.flags[`missed_${card}`]) lines.push({ who, state: no, tone: 'bad' });
+    // 稟報不等於辦成：只有稟報、沒辦卡上的事，算遺憾（第三天秀枝報了又辦了，寫稟報那句、算辦成）
+    const didIt = Object.keys(yes).some((k) => k !== 'reported' && r.flags[`ledger_${card}_${k}`]);
+    if (how) lines.push({ who, state: yes[how], tone: how === 'reported' && !didIt ? 'bad' : 'good' });
+    else if (r.flags[`missed_${card}`]) lines.push({ who, state: no, tone: NO_REGRET4.has(card) ? 'none' : 'bad' });
   }
   const f = r.follow;
   if (f?.strayed) lines.push({ who: '沒跟上', state: `被牽路仔帶偏的有 ${f.strayed} 位`, tone: 'bad' });
@@ -564,23 +756,35 @@ export function chainSegments4(r: RunState): number {
 }
 
 /**
- * 還在水裡、會被茫渡叫走的人（依序）。幫過的信徒在人鏈上牽人，不在這裡。
- * 名字是暫代（金水伯是第一天被牽路仔帶偏的那位阿伯），（待寫）作者可換。
+ * 還在水裡、會被茫渡叫走的人（依序）。ch4-text-day3.md 7-10：「名字用玩家沒辦成、或被牽路仔帶偏過的人；不夠就用金水伯、美雲、宗翰補」。
+ *  - 沒辦成的信徒：只放阿翰、阿睿（幫過的在人鏈上牽人）。阿滿姨、秀枝、賢仔不放：劇本裡他們沒辦成的時候人不在水裡
+ *   （阿滿姨還在渡頭路、秀枝的輪椅下不了斜坡留在橋頭、賢仔塞在便道的車陣裡）；
+ *  - 被牽路仔帶偏過的人：第一天金水伯、第二天美雲、第三天宗翰（各天略過牽路仔的那一位，排在前面）；
+ *  - 不夠就用金水伯、美雲、宗翰補。
  */
-const STRAGGLERS4: [name: string, believer?: string][] = [
-  ['金水伯'], ['秀枝的阿母', 'xiuzhi'], ['阿滿姨', 'aman'], ['阿翰', 'ahan'], ['阿睿', 'arui'],
-  ['賣蚵嗲的阿桑'], ['揹小孩的香燈腳'], ['推車的香燈腳'],
-];
+const IN_WATER4: [name: string, believer: string][] = [['阿翰', 'ahan'], ['阿睿', 'arui']];
+/** 各天被牽路仔帶偏的那一位（5-3 派兵喊名的字：金水伯、美雲、宗翰） */
+const STRAYED_NAME4: Record<number, string> = { 1: '金水伯', 2: '美雲', 3: '宗翰' };
 
 export function stragglers4(r: RunState): string[] {
   const h = new Set(helped4(r));
-  return STRAGGLERS4.filter(([, b]) => !b || !h.has(b)).map(([n]) => n);
+  const f = r.follow;
+  // 每天的人數（strayedDay）沒有記的舊進度：只知道總數，算在第一天
+  const strayedOn = (d: number) => (f?.strayedDay ? f.strayedDay[d] ?? 0 : d === 1 ? f?.strayed ?? 0 : 0) > 0;
+  const out = [...[1, 2, 3].filter(strayedOn).map((d) => STRAYED_NAME4[d])];
+  for (const [n, b] of IN_WATER4) if (!h.has(b)) out.push(n);
+  for (const n of Object.values(STRAYED_NAME4)) if (!out.includes(n)) out.push(n);
+  return out;
 }
 
-/** 被帶到下游沙洲的人：開爐那頁黃曆「昨日」欄寫的（人沒事，沒趕上回宮） */
+/**
+ * 被帶到下游沙洲的人：開爐那頁黃曆「昨日」欄（7-10「黃曆『昨日』欄的寫法」）。
+ * 三個以上只寫前三個名字＋人數；只有一個人用單人版。開頭的「昨日：」是黃曆上那一欄的【昨日】標題（AlmanacScene 自己會寫），字裡不重複。
+ */
 export function sandbarLines4(names: string[]): string[] {
   if (!names.length) return [];
-  return [`（待寫）天亮，在渾水溪下游的沙洲上找到${names.join('、')}。人都沒事，沒趕上回宮。`];
+  if (names.length === 1) return [`渾水溪夜霧。${names[0]}被帶到下游沙洲，天亮尋獲，人平安。回宮未趕上。香擔的火一路沒有熄。`];
+  return [`渾水溪夜霧。${names.slice(0, 3).join('、')}等 ${names.length} 人被帶到下游沙洲，天亮尋獲，人平安。回宮未趕上。香擔的火一路沒有熄。`];
 }
 
 export function bossEffects4(r: RunState): string[] {
@@ -592,19 +796,75 @@ export function bossEffects4(r: RunState): string[] {
   ];
 }
 
+/**
+ * 信徒錄・五位信徒（ch4-text-day3.md 10-1）：辦成＝第三天那張卡辦成（稟報不算）。
+ * 秀枝辦成又稟報過（轎子回頭）用「轎子回頭」那一版。
+ */
+const EPITAPHS4: Record<string, { card: 'aman3' | 'arui3' | 'xianzai3' | 'xiuzhi3' | 'ahan3'; yes: string; no: string; reported?: string }> = {
+  aman: {
+    card: 'aman3',
+    yes: '走了三十年，今年膝蓋最壞。回程還是用走的，天黑前到了堤防，過溪的時候站在岸邊牽人。開爐那天，她多煮了一碗湯圓。',
+    no: '今年她沒趕上過溪，隔天早上自己走橋過去。她說橋很好走，走到一半有往下看。',
+  },
+  arui: {
+    card: 'arui3',
+    yes: '跟轎台最後一天沒有報線上人數，念了兩百多個走散的名字。他說明年還要當義工，問可不可以不拿手機。',
+    no: '跟轎台三天累計一百多萬人次。他回家把影片從頭看了一遍，看到自己腳邊站過誰。',
+  },
+  xianzai: {
+    card: 'xianzai3',
+    yes: '車行沒有收。鐵門上那張「頂讓」換成一張紙板，寫「進香那幾天不打烊」。後面那口灶，他裝了一盞燈。',
+    no: '車行月底還是收了。交屋那天他跟新房東講，後面那口灶不能打，進香那幾天鐵門留一半。',
+  },
+  xiuzhi: {
+    card: 'xiuzhi3',
+    yes: '她推著阿母到了看得見轎子的地方。回來以後阿母話又少了，可是那支旗一直放在床邊。秀枝說明年假她先請好。',
+    reported: '大家都說，那天轎子是專程回頭的。秀枝不講這個，她只講阿母那天說了很多話。',
+    no: '她推著輪椅走完三天，一直在最後面。有人問她求了什麼，她說沒有，她是陪阿母來的。',
+  },
+  ahan: {
+    card: 'ahan3',
+    yes: '下個月入伍。願他許了，講什麼他不肯說。阿公說退伍那一趟，要陪他走到渡頭路。',
+    no: '願到回宮都沒有講出口。入伍前一天，他自己騎車到拱辰宮，在殿前站了十分鐘。',
+  },
+};
+
 export function epitaphs4(r: RunState): Epitaph[] {
-  const h = new Set(helped4(r));
-  return Object.entries(BELIEVER_NAMES4).map(([id, who]) => ({ who, text: `（待寫）${who}回宮之後。`, good: h.has(id) }));
+  return Object.entries(BELIEVER_NAMES4).map(([id, who]) => {
+    const e = EPITAPHS4[id];
+    const good = done3(r, e.card);
+    const text = good ? (e.reported && r.follow?.reports[e.card] !== undefined ? e.reported : e.yes) : e.no;
+    return { who, text, good };
+  });
 }
 
+/** 信徒錄・鬼（10-2 四個鬼案、10-3 小咖鬼）：判對歸處（或第三天帶著過溪）的算圓滿 */
 export function ghostEpitaphs4(r: RunState): Epitaph[] {
-  // 判對歸處的才算圓滿（判決對錯的規則在 core/guihu.ts 的 rightVerdict；這裡照案子的 needs 判斷）
-  const right: Record<string, string> = { caoxie: 'tobeijin', apo: 'here', xinniang: 'tohome', jiajiao: 'leave' };
-  const names: Record<string, string> = { caoxie: '草鞋丁', apo: '點心擔阿婆', xinniang: '沒走成的新娘', jiajiao: '假香燈腳' };
-  return Object.entries(names).map(([id, who]) => ({ who, text: `（待寫）${who}的結局。`, good: r.cases[id]?.verdict === right[id] }));
+  const v = (id: string) => r.cases[id]?.verdict;
+  const left = '還在原來的地方。明年隊伍經過，他還在。';
+  const xn = v('xinniang');
+  return [
+    { who: '草鞋丁', good: v('caoxie') === 'tobeijin', text: v('caoxie') === 'tobeijin' ? '在北津還了願，磕了三個頭，自己走回去了。老路口今年沒有人站。' : '那一趟還是沒有走完。明年轎子過老路口，他還會站在那裡看。' },
+    { who: '點心擔阿婆', good: v('apo') === 'here', text: v('apo') === 'here' ? '留在車行後面的灶邊。賢仔說進香那幾天，灶台摸起來都是溫的。' : '還在找她家的門。門口那棵苦楝，她問了一路。' },
+    {
+      who: '沒走成的新娘', good: xn === 'tohome',
+      text: xn === 'tohome' ? '回程那一半，她走完了。布鞋留在拱辰宮的石階邊，隔天有人收進了失物箱。'
+        : xn === 'tobeijin' ? '約好的地方她到了。回程那一半，阿滿姨還是一個人走的。' : '她還在問路。洗腳的地方沒有站牌。',
+    },
+    { who: '假香燈腳', good: v('jiajiao') === 'leave', text: v('jiajiao') === 'leave' ? '臂章還給了麗卿。揹紅背包的國棟走完了全程，在殿前跪了很久。他後面沒有人了。' : '他還跟著那個紅背包。國棟到現在都覺得後頸涼涼的。' },
+    // 10-3 小咖鬼：沒帶的（或帶錯的）四個共用一句
+    { who: '點人頭的阿伯', good: v('diantou') === 'here', text: v('diantou') === 'here' ? '簿子闔起來了。押尾說今年出門幾個、回來幾個，他那邊也有一本。' : left },
+    { who: '顧旗的囡仔', good: v('guqi') === 'tobeijin', text: v('guqi') === 'tobeijin' ? '看到進火了。他說火很小，可是很多人跪。' : left },
+    { who: '等船的人', good: carried3(r, 'dengchuan'), text: carried3(r, 'dengchuan') ? '用走的過了溪。他說早知道可以用走的，就不用等那麼久。' : left },
+    { who: '提燈的', good: carried3(r, 'tideng'), text: carried3(r, 'tideng') ? '留在堤防的水門邊。那天晚上堤防上的燈很多，他說可以休息了。' : left },
+  ];
 }
 
+/** 信徒錄・茫渡（10-4）：喚回／送回／斬／遺憾（被帶走的人太多，牠還在溪裡） */
 export function mangduEpitaph(r: RunState): Epitaph {
-  const text = r.shijuEnd === 'recall' ? '（待寫）茫渡・喚回：留在溪邊當引路的。' : r.shijuEnd === 'return' ? '（待寫）茫渡・送回：送上對岸，了了。' : '（待寫）茫渡・斬。';
+  // 劇本每句開頭的「茫渡：」是信徒錄那一欄的名字（EndScene 自己寫），字裡不重複
+  if (r.flags.ford_regret || !r.shijuEnd) return { who: '茫渡', good: false, text: '還在溪裡。橋上每天幾萬人過，沒有人下來。' };
+  const text = r.shijuEnd === 'recall' ? '留在渾水溪。押尾的簿子上寫「渡頭撐船的」，名字那一格先空著，等牠想起來。'
+    : r.shijuEnd === 'return' ? '最後一趟靠了岸。篙還插在對岸的芒草裡。' : '斬了。渾水溪不起霧了，溪底沒有東西。';
   return { who: '茫渡', text, good: r.shijuEnd !== 'slay' };
 }

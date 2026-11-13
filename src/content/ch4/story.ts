@@ -8,7 +8,7 @@
  *  - qitou4：序章擲筊之後（放頭旗與兵馬點名、犒軍、深夜起駕）
  *  - qijia4：qitou4 之後、第一天黃曆之前（拱辰宮起駕；有演出腳本 stage/ch4.ts）
  *  - zhuanjin4：第一天臨時轉進賢仔車行（DayScene 蓋在畫面上播；有演出腳本）
- *  - tianliang4_1：試玩版第一夜天亮（ChapterDef.sliceStory）；舊灶那一句只在阿婆判「就在這裡下」時播
+ *  - tianliang4_1：第一夜天亮（dawnStory[2]）；舊灶那一句只在阿婆判「就在這裡下」時播
  *  第 B1 輪（字照 _agent/ch4-text-day2.md）：
  *  - chufa4_2：第二天起駕之後（ChapterDef.departStory[2]）
  *  - guozun4：第二天乙路走完・過圳（RouteDef.endStory）
@@ -16,16 +16,19 @@
  *  - jinmiao4：第二天入廟三進三退、「進喔！」（stay.story；演出 stage/ch4.ts，轎只用 st_jiao4_carry／st_jiao4_pause）
  *  - jinhuo4：第二夜開審前・進火（ChapterDef.nightStory[2]）
  *  - fangxia_caoxie4：第二夜草鞋丁還願、放下（guihu.releaseStory）
- *  - tianliang4_1：第一夜天亮（dawnStory[2]）；tianliang4_2：第二夜天亮（試玩版：sliceStory，接試玩結束卡；整章模式：dawnStory[3]）
- *  第 A 輪（作者的字還沒到，暫代以「（待寫）」開頭；誰說、播放時機是接點，換字時不要動）：
- *  - qiaotou4：第三天橋頭頓三下、下堤防（detour.story；演出，轎全程 st_jiao4_carry_closed）
- *  - mangdu4：第三夜之後（茫渡現身）
- *  - mangduRecall4／mangduReturn4／mangduSlay4：最後一戰的三種結局（斬只對茫渡）
- *  - huigong4：回宮（八人大轎 st_jiao8_carry，演出）
+ *  - tianliang4_1：第一夜天亮（dawnStory[2]）；tianliang4_2：第二夜天亮（dawnStory[3]，第三天黃曆之前）
+ *  第 B2 輪（字照 _agent/ch4-text-day3.md）：
+ *  - chufa4_3：第三天起駕之後（departStory[3]）；tingjia_dike4：第三天甲路走完、上堤防（RouteDef.endStory）
+ *  - huitou4：稟報過秀枝，停駕點的事辦完、轎子起馬的時候（rest.leaveStory）
+ *  - qiaotou4：第三天日落前・橋頭頓三下、下堤防（stay.story；演出，轎全程 st_jiao4_carry_closed）
+ *  - mangdu4：第三天入夜（不問歸處，直接過溪；FinaleDef.story）
+ *  - mangduRecall4／mangduReturn4／mangduSlay4：最後一戰的三種結局（斬只對茫渡）；mangduRegret4：遺憾（FinaleDef.regretStory）
+ *  - huigong4：回宮（四人小轎 → 換八人大轎 st_jiao8_carry，演出）
  *  - kailu4：開爐（第 12 天的黃曆之後；演出：鏡頭不拍神龕，只拍底下抬頭的臉）
  */
 import type { Cutscene } from '../story';
 import type { RunState } from '../../state';
+import { carried3 } from './cases';
 
 /** 第一夜判「帶去北津」或「帶回白砂墩」：草鞋丁有跟著（同 days.ts 的 caoxieWith；這裡自己寫一份，避免互相 import） */
 const caoxieWith = (r: RunState): boolean => r.cases.caoxie?.verdict === 'tobeijin' || r.cases.caoxie?.verdict === 'tohome';
@@ -33,6 +36,14 @@ const caoxieWith = (r: RunState): boolean => r.cases.caoxie?.verdict === 'tobeij
 const caoxieHome = (r: RunState): boolean => r.cases.caoxie?.verdict === 'tohome';
 /** 第二天稟報過秀枝（入廟第三退多四句；同 believers.ts 的 xiuzhiReported） */
 const xiuzhiReported = (r: RunState): boolean => r.follow?.reports.xiuzhi2 !== undefined;
+/** 第二夜判新娘「帶回白砂墩」：第三天跟著走、回宮時放下（同 believers.ts 的 xinniangWith） */
+const brideWith = (r: RunState): boolean => r.cases.xinniang?.verdict === 'tohome';
+/** 最後一戰是遺憾（被帶走的人太多；BossScene 的 regretEnd 記的） */
+const fordRegret = (r: RunState): boolean => !!r.flags.ford_regret;
+/** 茫渡還在、而且有了去處（喚回、送回）：開爐那天供桌上多一碗 */
+const mangduStays = (r: RunState): boolean => !r.flags.ford_regret && (r.shijuEnd === 'recall' || r.shijuEnd === 'return');
+/** 這個人有趕上回宮（沒有被帶到下游沙洲） */
+const madeIt = (r: RunState, name: string): boolean => !(r.follow?.sandbar ?? []).includes(name);
 
 export const CUTSCENES4: Record<string, Cutscene> = {
   // 1-3 放頭旗與兵馬點名、1-4 犒軍、1-5 深夜起駕
@@ -221,7 +232,7 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'narrator', text: '草鞋丁放下了。旗下空出 1 格。' },
     ],
   },
-  // 12 第二夜天亮 → 第三天黃曆之前（試玩版：試玩結束卡之前，ChapterDef.sliceStory；整章模式：dawnStory[3]）
+  // 12 第二夜天亮 → 第三天黃曆之前（dawnStory[3]）
   // 阿滿姨那句：新娘判「帶回白砂墩」才播
   tianliang4_2: {
     mood: 'dawn', place: '北津朝聖宮・天將亮', temple: 'temple_chaosheng',
@@ -239,73 +250,233 @@ export const CUTSCENES4: Record<string, Cutscene> = {
       { who: 'yawei', text: '跟。' },
     ],
   },
-  // 第三天・橋頭頓三下、下堤防（臨時轉進；DayPlan.follow.detour.story；演出見 stage/ch4.ts，轎全程布幔放下）
+  // ---------- 第三天、最後一戰、回宮、開爐（字照 _agent/ch4-text-day3.md；第 B2 輪） ----------
+  // 1-2 第三天出發過場（ChapterDef.departStory[3]）。最後那句：新娘有跟著才播（岔路線索三同條件）
+  chufa4_3: {
+    mood: 'dawn', place: '省道・回程', temple: 'temple_chaosheng',
+    lines: [
+      { who: 'narrator', text: '回程。省道三個車道都是人，對向的車停在路肩，駕駛下來合掌。' },
+      { who: 'narrator', text: '香擔走最前面。封條貼著，挑擔的人每一步都踩得很實。' },
+      { who: 'arui', text: '線上九萬。今天我不喊分享了，路已經塞到我看不到尾。' },
+      { who: 'qianshao', text: '轎子的布放下來了。這樣走，後面的人看得到什麼？' },
+      { who: 'yawei', text: '看得到轎頂。夠了。' },
+      { who: 'yawei', text: '今天時辰少。辦不到的，名字我先記。' },
+      { who: 'xinniang', text: '阿母以前回來都會講，過溪前在一棵大樹下吃飯擔。她說那裡的菜頭湯沒有她煮的好。', when: brideWith },
+    ],
+  },
+  // 2-8 停駕點：堤防上的水門邊（第三天甲路走完自動播；RouteDef.endStory）
+  tingjia_dike4: {
+    mood: 'dawn', place: '渾水溪堤防・水門邊', temple: 'temple_gongchen',
+    lines: [
+      { who: 'narrator', text: '渡頭路走到底，一個斜坡上堤防。溪面很寬，水是黃的。' },
+      { who: 'narrator', text: '轎子在水門邊落了地。香擔放在上風的地方，四個人圍著顧。' },
+      { who: 'touqi', text: '下馬。歇一下，等後面的。' },
+      { who: 'narrator', text: '隊伍沿著堤防一路坐下去。從水門往回看，看不到最後一個人。' },
+      { who: 'qianshao', text: '橋在那邊，再走十分鐘就到。等一下就上橋了吧。' },
+      { who: 'yawei', text: '隊尾還在渡頭路。秀枝她們在最後面。' },
+    ],
+  },
+  // 3-6 轎子回頭（今天稟報過秀枝才播：停駕點的事辦完、轎子起馬的時候，接在 post 之前；DayPlan.follow.rest.leaveStory）
+  // 不用 flash、不用 shake。媽祖不出現，畫面上只有轎子
+  huitou4: {
+    mood: 'dawn', place: '渾水溪堤防・隊尾', temple: 'temple_gongchen',
+    lines: [
+      { who: 'touqi', text: '起馬。' },
+      { who: 'narrator', text: '轎子起來，沒有往橋頭走。轎子掉頭，沿著堤防往回走。' },
+      { who: 'narrator', text: '坐著的人一段一段站起來，往兩邊讓。讓了快一公里。' },
+      { who: 'qianshao', text: '領隊，轎子在走回頭路。我第一次看到。' },
+      { who: 'narrator', text: '轎子走到隊尾，在那台輪椅前面停住。' },
+      { who: 'xiuzhi', text: '不是，我們沒有要擋路。阿母，我們往旁邊，往旁邊。' },
+      { who: 'narrator', text: '輪椅的煞車還拉著，她推不動。轎子沒有繞過去。' },
+      { who: 'narrator', text: '轎槓往下低了三次。粉紅色的布，離阿母的膝蓋不到一個手掌。' },
+      { who: 'xiuzhiamu', text: '有啦。我有來。今年也有來。' },
+      { who: 'narrator', text: '轎子退了三步，轉回去，往橋頭走。秀枝蹲在輪椅旁邊，很久沒有站起來。' },
+      { who: 'narrator', text: '大家都說，那天轎子是專程回頭的。' },
+      { who: 'qianshao', text: '是因為我們報了嗎？' },
+      { who: 'yawei', text: '不知道。報是我們的事。' },
+    ],
+  },
+  // 6 橋頭過場（日落前；DayPlan.follow.stay.story；演出見 stage/ch4.ts，轎全程布幔放下 st_jiao4_carry_closed）
+  // 轎子為什麼不上橋，這裡不解釋（兵馬在最後一戰的結局才自己猜）
   qiaotou4: {
-    mood: 'dawn', place: '渾水溪橋頭', temple: 'temple_gongchen',
+    mood: 'dawn', place: '渾水溪大橋・橋頭', temple: 'temple_gongchen',
     lines: [
-      { who: 'narrator', text: '（待寫）渾水溪橋頭。橋上的車一台接一台，香燈腳排到看不到尾。' },
-      { who: 'narrator', text: '（待寫）轎子在橋頭停住，頓了一下。' },
-      { who: 'narrator', text: '（待寫）又頓了一下。' },
-      { who: 'narrator', text: '（待寫）第三下。轎班的腳轉向堤防。' },
-      { who: 'qianshao', text: '（待寫）……不走橋？' },
-      { who: 'narrator', text: '（待寫）轎子下了堤防，往溪邊去了。' },
-      { who: 'yawei', text: '（待寫）跟。' },
+      { who: 'narrator', text: '傍晚。隊伍沿著堤防走到底，前面就是橋頭。橋上封了一線車道，兩邊的欄杆趴滿了人。' },
+      { who: 'yijing4', text: '來了來了！橋上的往兩邊靠，中間空出來！' },
+      { who: 'arui', text: '各位，要上橋了。橋很長，我先說，等一下我會喘。' },
+      { who: 'narrator', text: '香擔到了橋頭，停住。挑擔的人沒有踩上橋面。' },
+      { who: 'narrator', text: '轎子跟上來，在橋頭頓了一下。', fx: 'shake' },
+      { who: 'narrator', text: '又頓了一下。橋上沒有人講話了。' },
+      { who: 'narrator', text: '第三下。轎班的肩膀跟著轎槓往右轉。' },
+      { who: 'narrator', text: '轎子離開橋頭，下了堤防的斜坡。芒草比人高，粉紅色的轎頂在草上面一晃一晃，往溪邊去。' },
+      { who: 'xiangdeng', text: '下去了！不走橋！轎子要過溪！' },
+      { who: 'yijing4', text: '蛤？下面是水欸。……橋上的不要動！不要用跳的！走斜坡下去，一個一個來！' },
+      { who: 'qianshao', text: '橋就在旁邊。燈都點好了，路也封好了。' },
+      { who: 'yawei', text: '跟。隊尾下來要很久，我走最後面。' },
     ],
   },
-  // 第三夜之後・茫渡現身（最後一戰前）
+  // 7-1 開戰過場（入夜；FinaleDef.story）。提燈的兩句：今天有帶著他才播（5-2，過溪的時候）
   mangdu4: {
-    mood: 'demon', place: '渾水溪・夜', temple: 'temple_gongchen',
+    mood: 'demon', place: '渾水溪・入夜', temple: 'temple_gongchen',
     lines: [
-      { who: 'narrator', text: '（待寫）轎子先過去了。霧裡只剩對岸一點粉紅色。' },
-      { who: 'mangdu', text: '（待寫）橋上那麼多人，一個都不下來。今天總算有人走我這裡。' },
-      { who: 'yawei', text: '（待寫）押尾：水裡還有人。一個一個帶過去。' },
+      { who: 'narrator', text: '天黑了。溪水到大腿，底下是沙，踩下去會陷。' },
+      { who: 'narrator', text: '香擔走在最前面。挑擔的人把擔子扛上肩，旁邊四個人用身體擋水花。' },
+      { who: 'narrator', text: '轎子跟在後面。轎班沒有人回頭，一步一步踩過去。' },
+      { who: 'narrator', text: '香擔上了對岸。轎子上了對岸。' },
+      { who: 'qianshao', text: '過去了！火沒事，轎子也沒事。剩下後面的……' },
+      { who: 'narrator', text: '溪面起霧了。霧是從下游上來的，貼著水面走。' },
+      { who: 'qianshao', text: '後面還有幾個？' },
+      { who: 'yawei', text: '水裡四千三百多。堤防上還有人在下來。' },
+      { who: 'narrator', text: '堤防上有很多人打開手機的燈，往溪裡照。提燈的站在他們中間，把他那一盞舉得最高。', when: (r) => carried3(r, 'tideng') },
+      { who: 'tideng', text: '夠亮了。今天晚上不用我的。', when: (r) => carried3(r, 'tideng') },
+      { who: 'narrator', text: '霧裡有人在喊。聲音很熟，像自己家裡的人。' },
+      { who: 'mangdu', text: '要過溪的，這邊。船在這邊。' },
+      { who: 'qianshao', text: '領隊，隊伍中間有人往下游走了。那邊沒有岸，那邊是沙洲。' },
+      { who: 'yawei', text: '牠沒有碰人。牠在叫人。' },
+      { who: 'mangdu', text: '橋上那麼多人，一個都不下來。今天總算有人走我這裡。' },
+      { who: 'yawei', text: '領隊，轎子和火在對岸了，那邊不用我們。我們顧水裡的。' },
     ],
   },
-  // 最後一戰的三種結局（斬只對茫渡）
+  // 7-7 結局：喚回（天將亮；媽祖不出現）。等船的人那句：今天有帶著他才播（5-1，過溪以後）
   mangduRecall4: {
     mood: 'dawn', place: '渾水溪・天將亮', temple: 'temple_gongchen',
     lines: [
-      { who: 'mangdu', text: '（待寫）茫渡・喚回：他答應留在溪邊當引路的。' },
-      { who: 'qianshao', text: '（待寫）難怪不走橋。' },
-      { who: 'narrator', text: '（待寫）喚回的收尾。' },
+      { who: 'narrator', text: '天快亮了。霧退到下游，溪面看得到對岸。' },
+      { who: 'yawei', text: '撐船的。明年這一隊如果又下來，你在前面帶。哪裡沙會陷、哪裡水急，你比誰都清楚。' },
+      { who: 'mangdu', text: '用走的，不坐船喔？' },
+      { who: 'qianshao', text: '你船都沒了，還在想載人。走前面帶路啦，一樣是送人過溪。' },
+      { who: 'mangdu', text: '……帶路我會。不收錢。' },
+      { who: 'narrator', text: '牠把斗笠戴正，走到隊伍前面。牠踩過的地方水比較淺，隊尾跟著那條路上了岸。' },
+      { who: 'yawei', text: '四千三百一十六。到齊。' },
+      { who: 'dengchuan', text: '到對岸了。我用走的到的。他那一趟，不用回頭接我了。', when: (r) => carried3(r, 'dengchuan') },
+      { who: 'narrator', text: '對岸，粉紅色的轎頂動了一下，往北走了。隊伍都上岸了，它才走的。' },
+      { who: 'qianshao', text: '領隊，我在想一件事。橋上那幾萬人，沒有一個會下來看牠。走橋的話，今天晚上跟以前每一年一樣。' },
+      { who: 'qianshao', text: '難怪不走橋。' },
+      { who: 'yawei', text: '是不是這樣，我不知道。轎子沒有講。' },
+      { who: 'qianshao', text: '我知道轎子沒有講。我自己猜的不行喔。' },
+      { who: 'narrator', text: '茫渡留在渾水溪引路。明年涉水的人，有人帶。' },
     ],
   },
+  // 7-8 結局：送回
   mangduReturn4: {
     mood: 'dawn', place: '渾水溪・天將亮', temple: 'temple_gongchen',
     lines: [
-      { who: 'mangdu', text: '（待寫）茫渡・送回：送上對岸，了了。' },
-      { who: 'narrator', text: '（待寫）送回的收尾。' },
+      { who: 'narrator', text: '天快亮了。霧退到下游。牠腳下那條船浮上來了，船底長滿青苔。' },
+      { who: 'mangdu', text: '最後那一趟，我載到溪中間就翻了。那一趟沒有靠岸。' },
+      { who: 'yawei', text: '現在靠。對岸在那裡。' },
+      { who: 'narrator', text: '牠撐了一篙。船是空的，走得很慢。水裡的香燈腳以為是一陣風，都把旗子按住。' },
+      { who: 'qianshao', text: '到了啦。船頭都碰到岸了，可以下來了。' },
+      { who: 'mangdu', text: '……到了。這一趟有夠久。' },
+      { who: 'narrator', text: '牠把篙插在岸邊，上了岸，斗笠拿在手上。船沉回水裡，沒有聲音。' },
+      { who: 'yawei', text: '隊尾上岸了。四千三百一十六，到齊。' },
+      { who: 'dengchuan', text: '到對岸了。我用走的到的。他那一趟，不用回頭接我了。', when: (r) => carried3(r, 'dengchuan') },
+      { who: 'narrator', text: '牠朝粉紅色轎頂的方向站了一下，就不見了。轎子這時候才動，往北走了。' },
+      { who: 'qianshao', text: '所以轎子下來，是來讓牠把那一趟走完？' },
+      { who: 'yawei', text: '不知道。我只知道，走橋的話，牠今天晚上還是等不到人。' },
+      { who: 'qianshao', text: '難怪不走橋。……明年如果又走下面，就沒有牠了。' },
+      { who: 'yawei', text: '明年走哪裡，明年才知道。' },
+      { who: 'narrator', text: '茫渡上了對岸，了了。渾水溪沒有擺渡的了。' },
     ],
   },
+  // 7-9 結局：斬（不用 firecracker；斬的那一下 flash，短。兵馬不慶祝）。押尾那句：第三輪押尾問過名字就換一句
   mangduSlay4: {
     mood: 'dawn', place: '渾水溪・天將亮', temple: 'temple_gongchen',
     lines: [
-      { who: 'narrator', text: '（待寫）茫渡・斬。' },
-      { who: 'yawei', text: '（待寫）押尾的那句。' },
+      { who: 'qianshao', text: '領隊說斬。……這一章頭一次。' },
+      { who: 'mangdu', text: '斬我？我又沒有打人。我是叫他們坐船。' },
+      { who: 'yawei', text: '你叫走的那些，今晚差一點過不了溪。' },
+      { who: 'narrator', text: '前哨的刀落下去。霧一下子散了，溪面很亮。', fx: 'flash' },
+      { who: 'narrator', text: '沙洲上坐著的人站起來，不知道自己怎麼會走到這裡。岸上的人喊，他們就往回走。' },
+      { who: 'yawei', text: '四千三百一十六。到齊。' },
+      { who: 'dengchuan', text: '到對岸了。我用走的到的。他那一趟，不用回頭接我了。', when: (r) => carried3(r, 'dengchuan') },
+      { who: 'narrator', text: '對岸，粉紅色的轎頂停了很久才動，往北走了。' },
+      { who: 'qianshao', text: '霧散了，人也都到了。為什麼我不太想講話。' },
+      { who: 'yawei', text: '牠叫什麼名字，我沒有問到。', when: (r) => !r.flags.finale_yawei },
+      { who: 'yawei', text: '「渡頭撐船的」。我記了。現在要劃掉。', when: (r) => !!r.flags.finale_yawei },
+      { who: 'qianshao', text: '橋就在旁邊，燈都點好了。轎子不走橋，硬要下來走這裡。這裡只有牠。' },
+      { who: 'qianshao', text: '難怪不走橋。……領隊，轎子下來，應該不是叫我們來做這個的吧？' },
+      { who: 'yawei', text: '不知道。轎子沒有講。斬是我們斬的。' },
+      { who: 'narrator', text: '茫渡斬了。渾水溪的霧散了。溪底沒有了。' },
     ],
   },
-  // 回宮（結局之後；FinaleDef.closeStory；演出見 stage/ch4.ts：八人大轎 st_jiao8_carry）
-  huigong4: {
-    mood: 'temple', place: '白砂墩拱辰宮・回宮', temple: 'temple_gongchen',
+  // 7-10 遺憾（被帶走的人超過上限；沒有人死、沒有人受傷，火沒有事，茫渡還在溪裡）。之後照常接回宮（遺憾版那兩句）
+  mangduRegret4: {
+    mood: 'dawn', place: '渾水溪・下游的沙洲', temple: 'temple_gongchen',
     lines: [
-      { who: 'narrator', text: '（待寫）通汐到白砂墩，飯擔擺滿路邊。' },
-      { who: 'narrator', text: '（待寫）換了八人大轎。頭旗、香擔先進廟。' },
-      { who: 'xiangdeng', text: '（待寫）回來了！' },
-      { who: 'narrator', text: '（待寫）大轎入廟。布幔還是放下的。' },
-      { who: 'yawei', text: '（待寫）押尾的那句。' },
+      { who: 'narrator', text: '霧太厚了。喊回來一個，後面又走掉兩個。' },
+      { who: 'yawei', text: '領隊，我點不到人。少了。' },
+      { who: 'narrator', text: '天亮，霧自己散了。下游的沙洲上坐著一排人，鞋都還穿著，旗子抱在胸前。' },
+      { who: 'jinshui', text: '我聽到我太太叫我。我就一直走，走到這裡她說坐一下。……然後天就亮了。' },
+      { who: 'yijing4', text: '人都在！沒有受傷！毯子拿過來，一個一個上船！' },
+      { who: 'dengchuan', text: '到對岸了。我用走的到的。他那一趟，不用回頭接我了。', when: (r) => carried3(r, 'dengchuan') },
+      { who: 'narrator', text: '對岸的路是空的。香擔和轎子天沒亮就起馬了，回宮的時辰不能等。' },
+      { who: 'qianshao', text: '火有顧到，轎子也過去了。人都平安。……可是他們趕不上了。' },
+      { who: 'yawei', text: '他們的名字我有。回去我念給廟裡聽。' },
+      { who: 'narrator', text: '溪面很平。下游那邊，還有一點霧沒有散。' },
+      { who: 'narrator', text: '有人被帶到下游的沙洲，天亮找到，人都平安。他們沒有趕上回宮。茫渡還在溪裡。' },
     ],
   },
-  // 開爐（第 12 天；回宮之後的黃曆 → 這段 → 信徒錄）：布幔打開，鏡頭不拍神龕，只拍底下抬頭的臉（演出見 stage/ch4.ts）
+  // 8 回宮（結局之後；FinaleDef.closeStory；演出見 stage/ch4.ts：前半四人小轎、換轎以後八人大轎 st_jiao8_carry，布幔放下）
+  // 後面幾段依狀態接上（新娘放下、其他版本、遺憾版）；媽祖不出現
+  huigong4: {
+    mood: 'temple', place: '通汐 → 白砂墩拱辰宮・回宮', temple: 'temple_gongchen',
+    lines: [
+      { who: 'narrator', text: '三月初九，下午。隊伍回到通汐。防風林邊，八人大轎已經等在那裡了。' },
+      { who: 'narrator', text: '換轎的時候，四周拉起布圍著。外面的人都把頭低下去。' },
+      { who: 'qianshao', text: '換大的了。八個人扛。走了三天的那一頂呢？' },
+      { who: 'yawei', text: '收起來。明年還是它。' },
+      { who: 'narrator', text: '從通汐到白砂墩，路兩邊擺滿了飯擔。家家戶戶把桌子搬到門口，鍋蓋都掀著。' },
+      { who: 'cunbo', text: '回來了回來了！吃飽才准進去！這鍋是你們的，那鍋是兵將的！' },
+      { who: 'qianshao', text: '領隊，他說那鍋是我們的。那我可以先聞嗎？' },
+      { who: 'narrator', text: '拱辰宮的廟埕空出一條路。頭旗手站定，旗桿握在胸前。' },
+      { who: 'touqi', text: '頭旗、香擔，先進！' },
+      { who: 'narrator', text: '頭旗衝進廟門。香擔跟在後面，封條還貼著，跨過門檻的時候，挑擔的人把腳抬得很高。', fx: 'firecracker' },
+      { who: 'zhongren', text: '進喔！進喔！進喔！' },
+      { who: 'narrator', text: '大轎三進三退，進了廟門。鞭炮從廟口炸到海堤，跟出門那一晚一樣。', fx: 'firecracker' },
+      { who: 'yawei', text: '出門兩百一十七個。回來的我記到六萬多，後面還在進來。領隊，到了。' },
+      // 阿滿姨第三天沒辦，隔天才過溪（新娘跟著的話，下面「新娘放下」照播，只是時間在傍晚：這句放在前面）
+      { who: 'narrator', text: '阿滿姨到廟埕的時候，鞭炮的紙已經掃成一堆了。她在廟門口合掌，站了很久。', when: (r) => !r.flags.done_aman3 },
+      // 新娘放下（判「帶回白砂墩」）
+      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住。她把網袋從左肩卸下來，朝左邊講了一句。', when: brideWith },
+      { who: 'aman', text: '到了。', when: brideWith },
+      { who: 'narrator', text: '她每年走到這裡，都對著左邊講這一句。', when: brideWith },
+      { who: 'xinniang', text: '到了。阿母，回來這一半我有走完。', when: brideWith },
+      { who: 'narrator', text: '新娘蹲下去，把那雙布鞋脫了，併好，放在石階旁邊。鞋尖朝廟門。', when: brideWith },
+      { who: 'aman', text: '奇怪，今年回來腳比較不痠。', when: brideWith },
+      { who: 'narrator', text: '新娘放下了。旗下空出 1 格。', when: brideWith },
+      // 其他版本（短）
+      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，朝左邊講了一句「到了」。左邊沒有人。', when: (r) => r.cases.xinniang?.verdict === 'tobeijin' },
+      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。北津那一趟，他明年還要再想辦法。', when: caoxieHome },
+      { who: 'apo', text: '這裡不是我家。……你們吃飽沒有？沒有的話我在這邊煮也可以。', when: (r) => r.cases.apo?.verdict === 'tohome' },
+      { who: 'narrator', text: '假香燈腳站在廟埕邊，看那個揹紅背包的男人進廟。這次他沒有跟進去。', when: (r) => r.cases.jiajiao?.verdict === 'tohome' },
+      // 遺憾結局
+      { who: 'narrator', text: '進廟的時候，廟埕邊空了幾個位置。旁邊的人把他們的進香旗先請進去，插在供桌邊等。', when: fordRegret },
+      { who: 'yawei', text: '沒趕上的那幾個，傍晚會坐車到。我在廟口等。', when: fordRegret },
+    ],
+  },
+  // 9 開爐（第 12 天；回宮之後的黃曆 → 這段 → 信徒錄）。鏡頭在神龕的位置往外看：整段不拍神龕、不拍神像，只拍底下一排一排抬頭的臉
+  // （演出見 stage/ch4.ts）。三位信徒各一小句：沒趕上回宮（被帶到下游沙洲）的就拿掉那一句。
+  // 最後兩句只在茫渡喚回或送回時播；斬和遺憾換成「剛好。沒有多。」
   kailu4: {
     mood: 'dawn', place: '白砂墩拱辰宮・開爐',
     lines: [
-      { who: 'narrator', text: '（待寫）回宮後第十二天，開爐。' },
-      { who: 'narrator', text: '（待寫）布幔打開了。' },
-      { who: 'aman', text: '（待寫）湯圓多煮一碗，放那邊。' },
-      { who: 'xiuzhi', text: '（待寫）秀枝的那句。' },
-      { who: 'ahan', text: '（待寫）阿翰的那句。' },
-      { who: 'arui', text: '（待寫）阿睿的那句。' },
-      { who: 'yawei', text: '（待寫）押尾的那句。' },
+      { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等。' },
+      { who: 'narrator', text: '時辰到。神龕的布幔往兩邊拉開。' },
+      { who: 'narrator', text: '殿裡的人一起抬頭。沒有人講話。' },
+      { who: 'narrator', text: '阿滿姨抬著頭，嘴巴動了動。', when: (r) => madeIt(r, '阿滿姨') },
+      { who: 'narrator', text: '阿翰把帽子拿在手上。', when: (r) => madeIt(r, '阿翰') },
+      { who: 'narrator', text: '賢仔站在門邊，褲子後面的口袋還插著那支扳手。', when: (r) => madeIt(r, '賢仔') },
+      { who: 'narrator', text: '秀枝把輪椅的椅背搖高。她阿母看了很久，手上的旗沒有放下來。' },
+      { who: 'narrator', text: '阿睿站在最後面。他的手機在口袋裡，今天沒有拿出來。' },
+      { who: 'narrator', text: '香擔的封條撕開。帶回來的火，一勺一勺添進殿裡的爐。' },
+      { who: 'qianshao', text: '火從北津一路顧回來，沒有熄。' },
+      { who: 'yawei', text: '挑擔的那幾個，這幾天沒有好好睡。' },
+      { who: 'cunbo', text: '湯圓好了！紅的白的都有，自己舀，吃了才圓滿！' },
+      { who: 'aman', text: '湯圓多煮一碗，放那邊。' },
+      { who: 'qianshao', text: '領隊，供桌上那一排是我們的。我數過了，我們幾個，就幾碗。' },
+      { who: 'yawei', text: '多一碗。', when: mangduStays },
+      { who: 'qianshao', text: '多的那碗給誰？……喔。溪邊那個。', when: mangduStays },
+      { who: 'yawei', text: '剛好。沒有多。', when: (r) => !mangduStays(r) },
     ],
   },
 };

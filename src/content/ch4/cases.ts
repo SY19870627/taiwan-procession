@@ -48,7 +48,15 @@ export const EVIDENCE4: Record<string, Evidence> = {
   armband: { id: 'armband', kind: '物證', name: '撿來的臂章', text: '今年的臂章，戴反了。背面用奇異筆寫著「麗卿」和一支手機號碼。', ghost: 'jiajiao', where: '叫他站到旗後面的時候看到的（第二天・北津派出所前）' },
   arui_replay: { id: 'arui_replay', kind: '證詞', name: '阿睿的回放（一直回頭的人）', text: '「聊天室有人問，那個揹紅背包的大哥怎麼一直回頭。我倒回去看，他後面明明沒人。」', ghost: 'jiajiao', where: '阿睿（第二天・北津派出所前，幫完阿嬤再聽他念留言）' },
   xian_truck: { id: 'xian_truck', kind: '證詞', name: '賢仔的話（不肯上車的人）', text: '「有個揹紅背包的，腳都磨破了，叫他上車他不要。他說他不能坐車，他這趟是來還的。」', ghost: 'jiajiao', where: '賢仔（第二天・北津街上，領完背包再聽他講）' },
+  // 最後一戰・茫渡（ch4-text-day3.md 總註、2-8、3-4、3-5）：陣前審問用，不屬於任何鬼案（ghost 寫魔王的 id：MANGDU_EVIDENCE）
+  dutou_doc: { id: 'dutou_doc', kind: '文獻', name: '渾水溪舊聞・渡頭', text: '橋還沒蓋的時候，渾水溪靠擺渡。進香的隊伍回程到了溪邊，在渡頭的樹下等船。撐船的聽到旗上的鈴，就把船靠過來，一趟一趟載到半夜。', ghost: 'mangdu', where: '第三天的黃曆' },
+  mooring: { id: 'mooring', kind: '物證', name: '繫船的石樁', text: '堤防下的一根石樁，半人高，打歪了。樁身被纜繩磨出一圈一圈的溝。離現在的水邊很遠。', ghost: 'mangdu', where: '第三天・堤防下，水門旁的草叢' },
+  agong_call: { id: 'agong_call', kind: '證詞', name: '阿翰阿公的電話', text: '「我們那時候回程都在渡頭路的樹下等船。撐船的不收拿旗的錢。」', ghost: 'mangdu', where: '阿翰（第三天・省道，讓他走到轎後面、再聽他接電話）' },
+  amu_ferry: { id: 'amu_ferry', kind: '證詞', name: '秀枝阿母的話（撐船的不收錢）', text: '「以前到這裡要坐船。撐船的聽到鈴就靠過來，拿旗的不收錢。我阿母牽我坐過，我一路哭，怕水。」', ghost: 'mangdu', where: '秀枝的阿母（第三天・堤防上，陪她們往前、聽阿母講）' },
 };
+
+/** 最後一戰用的證據寫的「鬼」：魔王茫渡（不是鬼案；DayScene 的證物袋另列一欄） */
+export const MANGDU_EVIDENCE = 'mangdu';
 
 /** 第二夜的按鈕小字（11-3：今晚人已經在北津，「帶去北津」＝跟頭旗進廟門，當晚放下） */
 const SMALL2: Record<'tobeijin' | 'tohome' | 'here' | 'leave', string> = {
@@ -306,4 +314,45 @@ export const CASES4: Record<string, GhostCase> = {
       tobeijin: '前哨：「旗有人領回去了。你可以放手了。」\n顧旗的囡仔：「那我可以進去看一下嗎？我沒有看過進火。」',
     }),
   },
+  // ---------- 第三天的小咖鬼（ch4-text-day3.md 5-1、5-2）：第三天沒有問歸處——帶著走的，過溪的時候交代去處（過場的 when），不問 ----------
+  // 下面的 statements／press／verdicts 只是讓資料完整（第三夜不開審，播不到）；字都取自 5-1、5-2
+  dengchuan: {
+    id: 'dengchuan', name: '等船的人', dayName: '等船的人', shortName: '等船的', tex: 'folk2',
+    daySight: '榕樹的另一邊坐著一個人影，腳邊一個布包袱，臉朝著堤防。\n「船等一下就來。撐船的說他再載一趟就回頭接我。」',
+    harm: '他繼續坐在樹下等',
+    affects: '', payoff: '過了溪就放下',
+    timid: 1, innocent: true,
+    meet: {
+      take: '帶在頭旗後面走', takeResult: '',
+      taken: '他把包袱揹起來，一直回頭看樹下。「我要是走了，他回頭找不到我怎麼辦？」',
+      skip: '不帶', left: '隊伍過完了，他還坐著。飯擔收攤的時候，有人覺得樹的那一邊特別涼。',
+    },
+    statements: ['船等一下就來。撐船的說他再載一趟就回頭接我。'],
+    pressQ: [''],
+    press: ['「我要是走了，他回頭找不到我怎麼辦？」'],
+    truths: [],
+    wrong: '「我要是走了，他回頭找不到我怎麼辦？」',
+    verdicts: dests('here', [], {}),
+  },
+  tideng: {
+    id: 'tideng', name: '提燈的', dayName: '提燈的', shortName: '提燈的', tex: 'folk4',
+    daySight: '水門的另一頭站著一個人影，提著一盞沒點的燈，對著溪面。\n「天黑過溪要有人照。我的燈沒油了，你們有帶嗎？」',
+    harm: '他繼續提著燈站在水門邊',
+    affects: '', payoff: '過溪的時候放下',
+    timid: 1, innocent: true,
+    meet: {
+      take: '帶在頭旗後面走', takeResult: '',
+      taken: '他把燈提高，走在旗後面。「沒油也要提著。提著，人家知道這裡有人。」',
+      skip: '不帶', left: '他站回水門邊。晚上起霧的時候，他還提著那盞燈，沒有人看到。',
+    },
+    statements: ['天黑過溪要有人照。我的燈沒油了，你們有帶嗎？'],
+    pressQ: [''],
+    press: ['「沒油也要提著。提著，人家知道這裡有人。」'],
+    truths: [],
+    wrong: '「沒油也要提著。提著，人家知道這裡有人。」',
+    verdicts: dests('here', [], {}),
+  },
 };
+
+/** 第三天的小咖鬼有沒有帶著走（過溪的時候交代去處；第三天不問歸處，帶著就是還在頭旗下） */
+export const carried3 = (r: import('../../state').RunState, id: 'dengchuan' | 'tideng'): boolean => r.held.some((h) => h.id === id);

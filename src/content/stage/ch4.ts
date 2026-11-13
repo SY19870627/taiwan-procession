@@ -2,7 +2,7 @@
 /**
  * 第四章（白砂墩・媽祖徒步進香）的演出腳本：qijia4（拱辰宮起駕）、zhuanjin4（臨時轉進賢仔車行）；
  * 第 B1 輪：jinmiao4（入廟三進三退，原 sanjin4；台詞照 _agent/ch4-text-day2.md 第 8 節）。
- * 第 A 輪（台詞還沒到，暫代）：qiaotou4（橋頭頓三下下堤防）、huigong4（回宮・八人大轎）、kailu4（開爐）。
+ * 第 B2 輪（台詞照 _agent/ch4-text-day3.md 第 6、8、9 節）：qiaotou4（橋頭頓三下下堤防）、huigong4（回宮・換八人大轎）、kailu4（開爐）。
  * 台詞照抄 content/ch4/story.ts（src 標第幾句）；走位照 _agent/ch4-text-day1.md 的（演出：……），沒有補寫的拍子。
  *
  * 媽祖全章不露臉：畫面上只有轎子（四人小轎 st_jiao4_carry，落地換 st_jiao4），沒有旨意、沒有神明說話。
@@ -143,7 +143,7 @@ export const STAGES4: Record<string, StageScript> = {
       { at: 'yawei', who: 'yawei', text: '跟。', src: 9 },
     ],
   },
-  // ---------- 第 A 輪（台詞全部（待寫），照 ch4/story.ts 的 src；換字只改 story.ts 與這裡的 text，走位不用動） ----------
+  // ---------- 第二天（台詞照 ch4/story.ts 的 src；換字只改 story.ts 與這裡的 text，走位不用動） ----------
   // 第二天・入廟三進三退（ch4-text-day2.md 第 8 節；北津朝聖宮廟埕，傍晚）。
   // 廟門在畫面中間偏左（播放器把廟放在 W/2+60），轎從右邊往左衝向廟門、退回右邊，三次；第三退退到巷口（畫面右邊），最後衝進廟門淡出。
   // 轎只用 st_jiao4_carry（衝）／st_jiao4_pause（退、頓），往左走所以 flip。媽祖沒有立繪，畫面只有轎。
@@ -223,37 +223,70 @@ export const STAGES4: Record<string, StageScript> = {
       { at: 'yawei', who: 'yawei', text: '到了。', src: 20, cam: { x: 420, y: -100, zoom: 1, ms: 700 } },
     ],
   },
-  // 第三天・渾水溪橋頭（回程：轎全程布幔放下 st_jiao4_carry_closed，不換頓住／轉彎圖；頓三下用上下跳表現），之後下堤防
+  // ---------- 第 B2 輪（台詞照 _agent/ch4-text-day3.md，走位照（演出：……）） ----------
+  // 6 第三天・渾水溪大橋橋頭（傍晚）：香擔、頭旗、轎從左往右走；香擔停在橋頭前一步、轎在橋頭頓三下（上下跳＋「頓！」），
+  // 第三下轎身轉向右下，下堤防的斜坡走進芒草（只露轎頂）；香擔、頭旗跟著轉下去走到轎前面；香燈腳一串一串轉下斜坡。
+  // 回程：轎全程布幔放下 st_jiao4_carry_closed（不換頓住／轉彎圖：那兩張是布幔拉開的）。往右走，圖本來就朝右，不 flip。
   qiaotou4: {
     id: 'qiaotou4',
-    place: '渾水溪橋頭',
+    place: '渾水溪大橋・橋頭',
     mood: 'dawn',
     sky: [0x2a2a4a, 0xd88a5a],
     far: 'seaFar',
     ground: 0x4a4048,
     fore: 'none',
     actors: [
-      { id: 'jiao', tex: 'st_jiao4_carry_closed', x: 540, y: 20, scale: 0.5, flip: true },
-      { id: 'qianshao', tex: 'folk1', x: 120, y: 70, scale: 1.5 },
-      { id: 'yawei', tex: 'folk2', x: 660, y: 80, scale: 1.5 },
-      { id: 'xd0', tex: 'st_xiangdeng_e', x: 640, y: 120, scale: 0.3 },
-      { id: 'xd1', tex: 'st_xiangdeng_a', x: 300, y: 125, scale: 0.3 },
+      { id: 'jiao', tex: 'st_jiao4_carry_closed', x: 120, y: 20, scale: 0.5 },
+      { id: 'xiangdan', tex: 'st_xiangdan', x: 300, y: 30, scale: 0.4 },
+      { id: 'touqi', tex: 'st_touqi', x: 250, y: 25, scale: 0.4 },
+      { id: 'qianshao', tex: 'folk1', x: 60, y: 80, scale: 1.4 },
+      { id: 'yawei', tex: 'folk2', x: 30, y: 95, scale: 1.4 },
+      { id: 'arui', tex: 'folk1', x: 400, y: 100, scale: 1.3, tint: 0xffe0b0 },
+      { id: 'yijing', tex: 'folk2', x: 640, y: 40, scale: 1.4, tint: 0xd8f0ff },
+      { id: 'xd0', tex: 'st_xiangdeng_e', x: 170, y: 120, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_a', x: 90, y: 130, scale: 0.3 },
+      { id: 'xd2', tex: 'st_xiangdeng_c', x: 10, y: 125, scale: 0.3 },
     ],
     beats: [
-      { who: 'narrator', text: '（待寫）渾水溪橋頭。橋上的車一台接一台，香燈腳排到看不到尾。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 1200 } },
-      { who: 'narrator', text: '（待寫）轎子在橋頭停住，頓了一下。', src: 1, moves: [{ id: 'jiao', x: 430, hop: true, ms: 900 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
-      { who: 'narrator', text: '（待寫）又頓了一下。', src: 2, moves: [{ id: 'jiao', y: 30, hop: true, ms: 500 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
-      { who: 'narrator', text: '（待寫）第三下。轎班的腳轉向堤防。', src: 3, cam: { x: 380, y: -90, zoom: 1.1, ms: 600 }, moves: [{ id: 'jiao', y: 20, hop: true, ms: 500 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
-      { at: 'qianshao', who: 'qianshao', text: '（待寫）……不走橋？', src: 4, cam: { x: 300, y: -90, zoom: 1.05, ms: 600 }, moves: [{ id: 'qianshao', x: 170, hop: true, ms: 400 }] },
-      // 下堤防：往左下走（y 變大＝往畫面下方）
-      { who: 'narrator', text: '（待寫）轎子下了堤防，往溪邊去了。', src: 5, cam: { x: 360, y: -100, zoom: 1, ms: 800 }, moves: [{ id: 'jiao', x: 220, y: 110, hop: true, ms: 2200 }, { id: 'xd1', x: 160, y: 140, hop: true, ms: 2400 }] },
-      { at: 'yawei', who: 'yawei', text: '（待寫）跟。', src: 6 },
+      // 香擔、頭旗、轎從左往右走
+      {
+        who: 'narrator', text: '傍晚。隊伍沿著堤防走到底，前面就是橋頭。橋上封了一線車道，兩邊的欄杆趴滿了人。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 1200 },
+        moves: [{ id: 'xiangdan', x: 460, hop: true, ms: 2000 }, { id: 'touqi', x: 410, hop: true, ms: 2000 }, { id: 'jiao', x: 300, hop: true, ms: 2200 }],
+      },
+      { at: 'yijing', who: 'yijing4', text: '來了來了！橋上的往兩邊靠，中間空出來！', src: 1 },
+      { at: 'arui', who: 'arui', text: '各位，要上橋了。橋很長，我先說，等一下我會喘。', src: 2 },
+      // 香擔停在橋頭前一步；頭旗手回頭看轎子
+      { who: 'narrator', text: '香擔到了橋頭，停住。挑擔的人沒有踩上橋面。', src: 3, moves: [{ id: 'xiangdan', x: 520, ms: 800 }, { id: 'touqi', x: 470, flip: true, ms: 800 }] },
+      // 頓三下（很輕的 shake；橋上的人聲小下去）
+      { who: 'narrator', text: '轎子跟上來，在橋頭頓了一下。', src: 4, fx: 'shake', cam: { x: 400, y: -90, zoom: 1.1, ms: 600 }, moves: [{ id: 'jiao', x: 400, y: 30, hop: true, ms: 900 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { who: 'narrator', text: '又頓了一下。橋上沒有人講話了。', src: 5, moves: [{ id: 'jiao', y: 20, hop: true, ms: 500 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { who: 'narrator', text: '第三下。轎班的肩膀跟著轎槓往右轉。', src: 6, moves: [{ id: 'jiao', y: 30, hop: true, ms: 700 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      // 轎往右下走進芒草（y 變大＝往畫面下方）；香擔、頭旗跟著轉下去，走到轎的前面
+      {
+        who: 'narrator', text: '轎子離開橋頭，下了堤防的斜坡。芒草比人高，粉紅色的轎頂在草上面一晃一晃，往溪邊去。', src: 7, cam: { x: 420, y: -80, zoom: 1, ms: 900 },
+        moves: [
+          { id: 'jiao', x: 560, y: 140, hop: true, ms: 2600 },
+          { id: 'xiangdan', x: 660, y: 150, hop: true, ms: 2400 }, { id: 'touqi', x: 620, y: 145, flip: false, hop: true, ms: 2400 },
+        ],
+      },
+      { at: 'xd0', who: 'xiangdeng', text: '下去了！不走橋！轎子要過溪！', src: 8 },
+      { at: 'yijing', who: 'yijing4', text: '蛤？下面是水欸。……橋上的不要動！不要用跳的！走斜坡下去，一個一個來！', src: 9 },
+      { at: 'qianshao', who: 'qianshao', text: '橋就在旁邊。燈都點好了，路也封好了。', src: 10, moves: [{ id: 'qianshao', x: 200, hop: true, ms: 500 }] },
+      // 香燈腳小人一串一串從橋頭轉下斜坡；押尾走最後面。鏡頭拉遠
+      {
+        at: 'yawei', who: 'yawei', text: '跟。隊尾下來要很久，我走最後面。', src: 11, cam: { x: 360, y: -100, zoom: 1, ms: 1600 },
+        moves: [
+          { id: 'xd0', x: 420, y: 150, hop: true, ms: 2200 }, { id: 'xd1', x: 340, y: 150, hop: true, ms: 2600 }, { id: 'xd2', x: 260, y: 150, hop: true, ms: 3000 },
+          { id: 'yawei', x: 120, hop: true, ms: 1600 },
+        ],
+      },
     ],
   },
-  // 回宮：通汐 → 白砂墩，換八人大轎（st_jiao8_carry，布幔放下）；頭旗、香擔先進廟
+  // 8 回宮：前半在通汐的防風林邊換轎（四人小轎從右邊進來、布圍起來，布放下以後是八人大轎 st_jiao8_carry，布幔還是放下的），
+  // 後半在拱辰宮廟埕（廟門在畫面左邊；頭旗、香擔先往左衝進廟門，大轎最後）。後面有條件的那幾拍（遺憾、新娘放下、其他版本）不放轎的走位
   huigong4: {
     id: 'huigong4',
-    place: '白砂墩拱辰宮・回宮',
+    place: '通汐 → 白砂墩拱辰宮・回宮',
     mood: 'temple',
     sky: [0x2a2a4a, 0xd88a5a],
     far: 'seaFar',
@@ -261,26 +294,65 @@ export const STAGES4: Record<string, StageScript> = {
     ground: 0x2a2632,
     fore: 'temple',
     actors: [
-      { id: 'jiao8', tex: 'st_jiao8_carry', x: 600, y: 30, scale: 0.5, flip: true },
+      { id: 'jiao4', tex: 'st_jiao4_carry_closed', x: 780, y: 30, scale: 0.5, flip: true },
+      { id: 'jiao8', tex: 'st_jiao8_carry', x: 560, y: 30, scale: 0.5, flip: true, alpha: 0 },
       { id: 'touqi', tex: 'st_touqi', x: 470, y: 30, scale: 0.4 },
-      { id: 'xiangdan', tex: 'st_xiangdan', x: 540, y: 40, scale: 0.4 },
+      { id: 'xiangdan', tex: 'st_xiangdan', x: 520, y: 40, scale: 0.4 },
+      { id: 'qianshao', tex: 'folk1', x: 120, y: 75, scale: 1.4 },
       { id: 'yawei', tex: 'folk2', x: 670, y: 90, scale: 1.4 },
+      { id: 'cunbo', tex: 'folk2', x: 220, y: 100, scale: 1.4, tint: 0xffe8c8 },
+      { id: 'aman', tex: 'folk3', x: 300, y: 110, scale: 1.3 },
+      { id: 'xinniang', tex: 'folk5', x: 250, y: 110, scale: 1.3, tint: 0x9ad0ff, alpha: 0.75 },
+      { id: 'apo', tex: 'folk3', x: 600, y: 120, scale: 1.3, tint: 0x9ad0ff, alpha: 0.75 },
       { id: 'xd0', tex: 'st_xiangdeng_c', x: 110, y: 125, scale: 0.3 },
-      { id: 'xd1', tex: 'st_xiangdeng_d', x: 250, y: 130, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_d', x: 400, y: 130, scale: 0.3 },
     ],
     beats: [
-      { who: 'narrator', text: '（待寫）通汐到白砂墩，飯擔擺滿路邊。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 1500 } },
-      // 頭旗、香擔先進廟（往廟門走、淡出）
+      // 四人小轎從右邊進來，停在大轎旁邊
+      { who: 'narrator', text: '三月初九，下午。隊伍回到通汐。防風林邊，八人大轎已經等在那裡了。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 }, moves: [{ id: 'jiao4', x: 640, hop: true, ms: 2000 }, { id: 'jiao8', alpha: 1, ms: 800 }] },
+      // 布圍起來：小轎淡出，只看得到大轎
+      { who: 'narrator', text: '換轎的時候，四周拉起布圍著。外面的人都把頭低下去。', src: 1, moves: [{ id: 'jiao4', alpha: 0, ms: 1400 }, { id: 'jiao8', x: 600, ms: 1400 }] },
+      { at: 'qianshao', who: 'qianshao', text: '換大的了。八個人扛。走了三天的那一頂呢？', src: 2 },
+      { at: 'yawei', who: 'yawei', text: '收起來。明年還是它。', src: 3 },
+      // 鏡頭往左搖，路邊一桌接一桌
+      { who: 'narrator', text: '從通汐到白砂墩，路兩邊擺滿了飯擔。家家戶戶把桌子搬到門口，鍋蓋都掀著。', src: 4, cam: { x: 260, y: -90, zoom: 1.05, ms: 1400 }, moves: [{ id: 'xd0', x: 160, hop: true, ms: 900 }] },
+      { at: 'cunbo', who: 'cunbo', text: '回來了回來了！吃飽才准進去！這鍋是你們的，那鍋是兵將的！', src: 5 },
+      { at: 'qianshao', who: 'qianshao', text: '領隊，他說那鍋是我們的。那我可以先聞嗎？', src: 6, moves: [{ id: 'qianshao', x: 190, hop: true, ms: 400 }] },
+      { who: 'narrator', text: '拱辰宮的廟埕空出一條路。頭旗手站定，旗桿握在胸前。', src: 7, cam: { x: 420, y: -100, zoom: 1, ms: 900 } },
+      { at: 'touqi', who: 'touqi', text: '頭旗、香擔，先進！', src: 8, moves: [{ id: 'touqi', y: 20, hop: true, ms: 400 }] },
+      // 頭旗、香擔先後往左衝進廟門（淡出）
       {
-        who: 'narrator', text: '（待寫）換了八人大轎。頭旗、香擔先進廟。', src: 1,
-        moves: [{ id: 'touqi', x: 370, y: 0, alpha: 0, hop: true, ms: 1500 }, { id: 'xiangdan', x: 390, y: 10, alpha: 0, hop: true, ms: 1800 }],
+        who: 'narrator', text: '頭旗衝進廟門。香擔跟在後面，封條還貼著，跨過門檻的時候，挑擔的人把腳抬得很高。', src: 9, fx: 'firecracker',
+        moves: [{ id: 'touqi', x: 410, y: 0, alpha: 0, hop: true, ms: 1400 }, { id: 'xiangdan', x: 420, y: 10, alpha: 0, hop: true, ms: 1900 }],
+        sfx: { text: '劈哩啪啦！', at: 'xd1' },
       },
-      { at: 'xd0', who: 'xiangdeng', text: '（待寫）回來了！', src: 2 },
-      { who: 'narrator', text: '（待寫）大轎入廟。布幔還是放下的。', src: 3, moves: [{ id: 'jiao8', x: 380, y: 10, hop: true, ms: 2200 }] },
-      { at: 'yawei', who: 'yawei', text: '（待寫）押尾的那句。', src: 4 },
+      { at: 'xd0', who: 'zhongren', text: '進喔！進喔！進喔！', src: 10, sfx: { text: '進喔！', at: 'jiao8', color: 0xffd76a } },
+      // 大轎衝進廟門
+      { who: 'narrator', text: '大轎三進三退，進了廟門。鞭炮從廟口炸到海堤，跟出門那一晚一樣。', src: 11, fx: 'firecracker', moves: [{ id: 'jiao8', x: 420, y: 10, alpha: 0, hop: true, ms: 2400 }], sfx: { text: '劈哩啪啦！', at: 'xd1' } },
+      { at: 'yawei', who: 'yawei', text: '出門兩百一十七個。回來的我記到六萬多，後面還在進來。領隊，到了。', src: 12 },
+      // 有條件的幾拍（阿滿姨第三天沒辦）
+      { who: 'narrator', text: '阿滿姨到廟埕的時候，鞭炮的紙已經掃成一堆了。她在廟門口合掌，站了很久。', src: 13, cam: { x: 300, y: -100, zoom: 1.1, ms: 700 } },
+      // 新娘放下（判帶回白砂墩）：新娘小人淡出，石階邊留一雙鞋（鞋沒有圖，只淡出）
+      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住。她把網袋從左肩卸下來，朝左邊講了一句。', src: 14, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
+      { at: 'aman', who: 'aman', text: '到了。', src: 15 },
+      { who: 'narrator', text: '她每年走到這裡，都對著左邊講這一句。', src: 16 },
+      { at: 'xinniang', who: 'xinniang', text: '到了。阿母，回來這一半我有走完。', src: 17 },
+      { who: 'narrator', text: '新娘蹲下去，把那雙布鞋脫了，併好，放在石階旁邊。鞋尖朝廟門。', src: 18, moves: [{ id: 'xinniang', alpha: 0, ms: 1600 }] },
+      { at: 'aman', who: 'aman', text: '奇怪，今年回來腳比較不痠。', src: 19 },
+      { who: 'narrator', text: '新娘放下了。旗下空出 1 格。', src: 20 },
+      // 其他版本（短）
+      { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，朝左邊講了一句「到了」。左邊沒有人。', src: 21, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
+      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。北津那一趟，他明年還要再想辦法。', src: 22, cam: { x: 400, y: -100, zoom: 1, ms: 700 } },
+      { at: 'apo', who: 'apo', text: '這裡不是我家。……你們吃飽沒有？沒有的話我在這邊煮也可以。', src: 23 },
+      { who: 'narrator', text: '假香燈腳站在廟埕邊，看那個揹紅背包的男人進廟。這次他沒有跟進去。', src: 24 },
+      // 遺憾結局
+      { who: 'narrator', text: '進廟的時候，廟埕邊空了幾個位置。旁邊的人把他們的進香旗先請進去，插在供桌邊等。', src: 25, cam: { x: 400, y: -100, zoom: 1, ms: 700 } },
+      { at: 'yawei', who: 'yawei', text: '沒趕上的那幾個，傍晚會坐車到。我在廟口等。', src: 26 },
     ],
   },
-  // 開爐（第 12 天）：布幔打開。鏡頭不拍神龕（沒有廟、沒有轎），只拍底下抬頭的臉——一排信徒，鏡頭一個一個拉近
+  // 9 開爐（第 12 天）：鏡頭在神龕的位置往外看——整段不拍神龕、不拍神像、沒有轎，畫面上是殿裡一排一排抬頭的臉。
+  // 布幔只用「鏡頭往上抬、光照到臉上」表現（不用 flash）。阿滿姨前排左、阿翰中間、賢仔在門邊、秀枝和輪椅在右邊柱子旁、阿睿在最後面；
+  // 前哨、押尾在殿門外。三位信徒各一小句、最後兩句是有條件的拍子（沒趕上回宮的、斬與遺憾的版本會跳過）
   kailu4: {
     id: 'kailu4',
     place: '白砂墩拱辰宮・開爐',
@@ -290,23 +362,39 @@ export const STAGES4: Record<string, StageScript> = {
     ground: 0x3a2e28,
     fore: 'none',
     actors: [
-      { id: 'aman', tex: 'folk3', x: 140, y: 60, scale: 1.5 },
-      { id: 'xiuzhi', tex: 'folk4', x: 270, y: 70, scale: 1.5 },
-      { id: 'ahan', tex: 'folk1', x: 400, y: 65, scale: 1.5 },
-      { id: 'arui', tex: 'folk1', x: 530, y: 60, scale: 1.5, tint: 0xffe0b0 },
-      { id: 'yawei', tex: 'folk2', x: 650, y: 90, scale: 1.4 },
-      { id: 'xd0', tex: 'st_xiangdeng_f', x: 70, y: 120, scale: 0.3 },
-      { id: 'xd1', tex: 'st_xiangdeng_b', x: 340, y: 125, scale: 0.3 },
+      { id: 'aman', tex: 'folk3', x: 120, y: 70, scale: 1.5 },
+      { id: 'ahan', tex: 'folk1', x: 300, y: 60, scale: 1.5 },
+      { id: 'xianzai', tex: 'folk2', x: 640, y: 50, scale: 1.4, tint: 0xd8e0ff },
+      { id: 'xiuzhi', tex: 'folk4', x: 500, y: 65, scale: 1.5 },
+      { id: 'amu', tex: 'folk3', x: 550, y: 75, scale: 1.2, tint: 0xe8d8c8 },
+      { id: 'arui', tex: 'folk1', x: 380, y: 20, scale: 1.2, tint: 0xffe0b0 },
+      { id: 'cunbo', tex: 'folk2', x: 200, y: 110, scale: 1.3, tint: 0xffe8c8 },
+      { id: 'qianshao', tex: 'folk1', x: 690, y: 110, scale: 1.3 },
+      { id: 'yawei', tex: 'folk2', x: 40, y: 115, scale: 1.3 },
+      { id: 'xd0', tex: 'st_xiangdeng_f', x: 230, y: 30, scale: 0.3 },
+      { id: 'xd1', tex: 'st_xiangdeng_b', x: 440, y: 35, scale: 0.3 },
     ],
     beats: [
-      { who: 'narrator', text: '（待寫）回宮後第十二天，開爐。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
-      // 布幔打開：鏡頭往上抬到臉的高度（畫面裡沒有神龕）
-      { who: 'narrator', text: '（待寫）布幔打開了。', src: 1, cam: { x: 360, y: -150, zoom: 1.1, ms: 1600 } },
-      { at: 'aman', who: 'aman', text: '（待寫）湯圓多煮一碗，放那邊。', src: 2, cam: { x: 180, y: -140, zoom: 1.3, ms: 700 } },
-      { at: 'xiuzhi', who: 'xiuzhi', text: '（待寫）秀枝的那句。', src: 3, cam: { x: 280, y: -140, zoom: 1.3, ms: 700 } },
-      { at: 'ahan', who: 'ahan', text: '（待寫）阿翰的那句。', src: 4, cam: { x: 400, y: -140, zoom: 1.3, ms: 700 } },
-      { at: 'arui', who: 'arui', text: '（待寫）阿睿的那句。', src: 5, cam: { x: 520, y: -140, zoom: 1.3, ms: 700 } },
-      { at: 'yawei', who: 'yawei', text: '（待寫）押尾的那句。', src: 6, cam: { x: 360, y: -100, zoom: 1, ms: 900 } },
+      { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
+      // 上緣的布往兩邊拉開，一道光由上往下照在人臉上：鏡頭往上抬到臉的高度（畫面裡沒有神龕）
+      { who: 'narrator', text: '時辰到。神龕的布幔往兩邊拉開。', src: 1, cam: { x: 360, y: -150, zoom: 1.1, ms: 1600 } },
+      { who: 'narrator', text: '殿裡的人一起抬頭。沒有人講話。', src: 2 },
+      { who: 'narrator', text: '阿滿姨抬著頭，嘴巴動了動。', src: 3, cam: { x: 140, y: -140, zoom: 1.3, ms: 700 } },
+      { who: 'narrator', text: '阿翰把帽子拿在手上。', src: 4, cam: { x: 300, y: -140, zoom: 1.3, ms: 700 } },
+      { who: 'narrator', text: '賢仔站在門邊，褲子後面的口袋還插著那支扳手。', src: 5, cam: { x: 620, y: -140, zoom: 1.3, ms: 700 } },
+      { who: 'narrator', text: '秀枝把輪椅的椅背搖高。她阿母看了很久，手上的旗沒有放下來。', src: 6, cam: { x: 520, y: -140, zoom: 1.3, ms: 700 } },
+      { who: 'narrator', text: '阿睿站在最後面。他的手機在口袋裡，今天沒有拿出來。', src: 7, cam: { x: 380, y: -150, zoom: 1.2, ms: 700 } },
+      // 畫面下方一點火光，從右移到左（火光沒有圖：只拉遠鏡頭）
+      { who: 'narrator', text: '香擔的封條撕開。帶回來的火，一勺一勺添進殿裡的爐。', src: 8, cam: { x: 360, y: -100, zoom: 1, ms: 1200 } },
+      { at: 'qianshao', who: 'qianshao', text: '火從北津一路顧回來，沒有熄。', src: 9 },
+      { at: 'yawei', who: 'yawei', text: '挑擔的那幾個，這幾天沒有好好睡。', src: 10 },
+      { at: 'cunbo', who: 'cunbo', text: '湯圓好了！紅的白的都有，自己舀，吃了才圓滿！', src: 11 },
+      // 阿滿姨把一碗湯圓放在廟埕的石階上
+      { at: 'aman', who: 'aman', text: '湯圓多煮一碗，放那邊。', src: 12, moves: [{ id: 'aman', x: 160, y: 100, hop: true, ms: 800 }] },
+      { at: 'qianshao', who: 'qianshao', text: '領隊，供桌上那一排是我們的。我數過了，我們幾個，就幾碗。', src: 13 },
+      { at: 'yawei', who: 'yawei', text: '多一碗。', src: 14 },
+      { at: 'qianshao', who: 'qianshao', text: '多的那碗給誰？……喔。溪邊那個。', src: 15 },
+      { at: 'yawei', who: 'yawei', text: '剛好。沒有多。', src: 16 },
     ],
   },
 };

@@ -20,8 +20,11 @@ describe('三章的 ChapterDef', () => {
       expect(ch.finale.rounds.length, ch.id).toBe(3);
       expect(ch.finale.ends.map((e) => e.kind).sort(), ch.id).toEqual(['recall', 'return', 'slay']);
       expect(ch.band(1).length, ch.id).toBeGreaterThan(0);
-      // 每個證據都屬於這一章的某個鬼
-      for (const e of Object.values(ch.evidence)) expect(ch.cases[e.ghost], `${ch.id}：${e.id}`).toBeTruthy();
+      // 每個證據都屬於這一章的某個鬼（第四章第 B2 輪：渾水溪渡頭的四件屬於最後一戰的茫渡，陣前審問用）
+      for (const e of Object.values(ch.evidence)) {
+        if (ch.id === 'baishadun' && e.ghost === 'mangdu') continue;
+        expect(ch.cases[e.ghost], `${ch.id}：${e.id}`).toBeTruthy();
+      }
     }
   });
 

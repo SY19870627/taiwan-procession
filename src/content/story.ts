@@ -13,7 +13,9 @@ export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCa
   | 'qianshao' | 'yawei' | 'touqi' | 'arui' | 'aman' | 'xianzai' | 'xiuzhi' | 'ahan' | 'caoxie' | 'apo'
   | 'xiangdeng' | 'xiangdengbo' | 'jiaoban4' | 'cunbo' | 'qianlu' | 'chashui' | 'oajian' | 'mangdu'
   // 第四章第二天
-  | 'xinniang' | 'jiajiao' | 'zhongren' | 'jingyuan' | 'zunama' | 'qiaoren' | 'yijing' | 'dianxin' | 'xuesheng' | 'diantou' | 'guqi';
+  | 'xinniang' | 'jiajiao' | 'zhongren' | 'jingyuan' | 'zunama' | 'qiaoren' | 'yijing' | 'dianxin' | 'xuesheng' | 'diantou' | 'guqi'
+  // 第四章第三天
+  | 'xiuzhiamu' | 'yijing4' | 'fandan' | 'dengchuan' | 'tideng' | 'jinshui';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -81,6 +83,13 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   xuesheng: { name: '擺攤的學生', tex: 'folk1', side: 'right', scale: 1.8 },
   diantou: { name: '點人頭的阿伯', tex: 'folk2', side: 'right', scale: 1.8 },
   guqi: { name: '顧旗的囡仔', tex: 'folk5', side: 'right', scale: 1.8 },
+  // 第四章第三天（_agent/ch4-text-day3.md 總註的新說話者；秀枝的阿母沒有名字）＋遺憾結局的金水伯
+  xiuzhiamu: { name: '秀枝的阿母', tex: 'folk3', side: 'right', scale: 1.8 },
+  yijing4: { name: '橋頭的義警', tex: 'folk2', side: 'right', scale: 1.8 },
+  fandan: { name: '飯擔的阿嫂', tex: 'folk3', side: 'right', scale: 1.8 },
+  dengchuan: { name: '等船的人', tex: 'folk2', side: 'right', scale: 1.8 },
+  tideng: { name: '提燈的', tex: 'folk4', side: 'right', scale: 1.8 },
+  jinshui: { name: '金水伯', tex: 'folk2', side: 'right', scale: 1.8 },
 };
 
 /** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */

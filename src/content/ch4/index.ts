@@ -8,17 +8,16 @@
  * 媽祖全章不露臉：畫面上只有四人小轎、粉紅遮雨布和布幔；稱呼「媽祖」，這一尊叫白砂墩媽。有手機和直播（跟轎台）。
  * 對鬼不斬（只有魔王茫渡可以斬），這一章關掉威名（不設 slayRule）。
  *
- * 試玩版做到第二夜（playableDays 2）：序章 → 起駕 → 第一天 → 第一夜問歸處 → 天亮 → 第二天 → 第二夜（進火）→ 天亮 → 試玩結束畫面。
- * 第一天的字照 _agent/ch4-text-day1.md＋ch4-text-fixes.md、第二天照 ch4-text-day2.md（作者尚未定稿）。
- * 第 A 輪：第二天（北津派出所等集結、入廟三進三退、進火、草鞋丁放下）、第三天（布幔放下、橋頭下堤防）、
- * 最後一戰 ford（渾水溪・茫渡、人鏈）、回宮、開爐的引擎都接好了，字是（待寫）暫代。整章模式：網址 &full=1。
+ * 整章：序章 → 起駕 → 第一天 → 第一夜問歸處 → 天亮 → 第二天 → 第二夜（進火）→ 天亮 → 第三天（回程）→ 入夜直接過溪：
+ * 最後一戰 ford（渾水溪・茫渡、人鏈）→ 結局（喚回／送回／斬，或遺憾）→ 回宮 → 開爐的黃曆 → 開爐 → 信徒錄。
+ * 第一天的字照 _agent/ch4-text-day1.md＋ch4-text-fixes.md、第二天照 ch4-text-day2.md、第三天以後照 ch4-text-day3.md（作者尚未定稿）。
  */
 import type { ChapterDef } from '../chapter';
 import { bandLine4 } from '../../art/baishadunSpec';
 import { CASES4, EVIDENCE4 } from './cases';
 import { CARDS4, PROLOGUE4, PROLOGUE_JIAO4, bossEffects4, epitaphs4, ghostEpitaphs4, ledger4, mangduEpitaph, newBelievers4 } from './believers';
 import { DAY_PLANS4, UNLOCKS4, dawn4, endOfDay3_4, verdictEffects4 } from './days';
-import { FINALE_ROUNDS4, FINALE_WRONG4, GHOST_MEMBERS4, MEMBER_STATS4, finaleSetup4, fordEnd4 } from './finale';
+import { FINALE_ROUNDS4, FINALE_WRONG4, GHOST_MEMBERS4, MEMBER_STATS4, chainLines4, finaleSetup4, fordChatKey4, fordEnd4 } from './finale';
 import { BANTER4 } from './banter';
 
 /** 頭旗下 4 格（鬼是「跟在頭旗後面走」） */
@@ -90,42 +89,61 @@ export const CHAPTER4: ChapterDef = {
     nightNote: { 2: '今晚人已經在北津。「帶去北津」就是今晚跟著頭旗進廟門，當晚放下。' },
   },
   finale: {
-    // 第 A 輪：ford（core/boss.ts）＝顧人過溪、人鏈、茫渡起霧叫人往下游（finale.ts）。字（待寫）
+    // ford（core/boss.ts）＝顧人過溪、人鏈、茫渡起霧叫人往下游（finale.ts）。字照 ch4-text-day3.md 第 7 節
+    // 第三天沒有問歸處：日落之後直接播 mangdu4 → 戰鬥（DayPlan.follow.stay.finale）
     story: 'mangdu4', cutTitle: '茫渡現身', cutSub: '最後一戰・渾水溪',
+    // 7-1 戰鬥說明卡（開打前蓋在操作面板上，按了才開始）
+    briefing: {
+      title: '顧人過溪',
+      text: '茫渡不打人。牠學人講話，把人往下游的沙洲帶。被帶走的人太多，今晚就有人過不了溪。\n前哨守隊伍前段，押尾守隊尾，可以換位。前兩天你幫過的人會下水牽人，幫過幾位就有幾段人鏈。\n香擔和轎子已經在對岸。牠碰不到。',
+    },
     title: '最後一戰・渾水溪', place: '渾水溪', bossName: '茫渡', bossFrom: '茫渡在霧裡 ▶',
     setup: finaleSetup4,
     rounds: FINALE_ROUNDS4,
     wrong: FINALE_WRONG4,
     members: MEMBER_STATS4,
     ghostMembers: GHOST_MEMBERS4,
-    // 斬只對茫渡（對鬼不斬）
+    // 7-6：喚回要問完三輪、送回要問完第二輪、斬一開始就能選（斬只對茫渡；威名關掉，斬沒有加成）。desc 是按鈕小字
     ends: [
-      { kind: 'recall', label: '喚回', desc: '（待寫）留在溪邊當引路的，明年過溪有人帶', needLast: true },
-      { kind: 'return', label: '送回', desc: '（待寫）送上對岸，了了' },
-      { kind: 'slay', label: '斬', desc: '（待寫）斬了茫渡' },
+      { kind: 'recall', label: '喚回：留在溪邊引路', desc: '牠留在渾水溪。以後有人涉水，牠在前面帶。牠還是在溪底，沒有離開。（要問完三輪）', needLast: true },
+      { kind: 'return', label: '送回：送牠上對岸', desc: '最後一趟靠岸，牠就了了。以後渾水溪沒有擺渡的，明年過溪沒有人帶。', needRound: 2 },
+      { kind: 'slay', label: '斬', desc: '霧馬上散。今晚被叫走的人都找得回來。牠就沒有了，牠是誰也不用再問。這一章只有牠可以斬。' },
     ],
-    winTitle: '（待寫）霧散了',
-    winText: '（待寫）茫渡站在水裡，看著你們。要怎麼判？',
+    winTitle: '過溪了',
+    winText: '隊尾上了對岸。水裡的人，一個都沒有少。',
+    judgeText: '霧停了。水裡的人還在過溪。茫渡站在水面上，等你們講話。',
     recallStory: 'mangduRecall4',
     endStory: { recall: 'mangduRecall4', return: 'mangduReturn4', slay: 'mangduSlay4' },
-    // 結局 → 回宮（八人大轎）→ 開爐的黃曆（第 12 天，「昨日」寫被帶到下游的人）→ 開爐 → 信徒錄
+    // 結局 → 回宮（換八人大轎）→ 開爐的黃曆（第 12 天，「昨日」寫被帶到下游的人）→ 開爐 → 信徒錄
     closeStory: 'huigong4',
     afterClose: { key: 'almanac', data: { epilogue: true } },
-    onEnd: (r, b) => fordEnd4(r, b),
-    loseText: '（待寫）水裡的隊伍被霧拉回去了。重整再過一次：被拉住的換下來就掙開；有人被叫走就喊名。',
-    dawnText: '（待寫）天亮了，霧還沒散。再過一次。',
+    onEnd: (r, b, kind) => fordEnd4(r, b, kind),
+    // 7-10 遺憾：被帶走的人超過上限（或天亮了霧還沒散）。可以再試一次，也可以就這樣回宮
+    loseTitle: '霧沒有散',
+    loseText: '有人被帶到下游的沙洲。天亮會找到，人沒事，可是趕不上回宮。香擔和轎子已經在對岸，火沒有事。',
+    dawnText: '有人被帶到下游的沙洲。天亮會找到，人沒事，可是趕不上回宮。香擔和轎子已經在對岸，火沒有事。',
+    regretStory: 'mangduRegret4',
+    retryLabel: '再試一次',
+    retryNote: '回到下水的時候，再顧一次。茫渡喊了一夜，聲音會小一點。',
+    acceptLabel: '就這樣回宮',
+    acceptNote: '接受這個結果。沒趕上的人，名字會寫在黃曆的昨日欄。',
+    chainLines: chainLines4,
+    chatKey: fordChatKey4,
   },
-  // 開爐（第 12 天）：收尾的黃曆，按鈕播開爐過場（kailu4），之後信徒錄
+  // 開爐（第 12 天）：收尾的黃曆，按鈕播開爐過場（kailu4），之後信徒錄。
+  // 劇本沒有這一頁的宜忌與舊聞：只寫日子（三月二十，回宮後第十二天）與「開爐」，其他欄空著
   epilogue: {
     title: '開爐', area: '白砂墩拱辰宮・回宮後第十二天', button: '開　爐', story: 'kailu4',
-    almanac: () => ({ lunar: '（待寫）三月二十', yi: '（待寫）開爐', ji: '（待寫）', source: '（待寫）拱辰宮誌', text: '（待寫）開爐這一天的黃曆舊聞（布幔打開，吃湯圓）。' }),
+    almanac: () => ({ lunar: '三月二十', yi: '開爐', ji: '', source: '', text: '' }),
   },
   // 第二夜開審前：進火
   nightStory: { 2: 'jinhuo4' },
-  // 第二天黃曆「起駕」之後：出發過場（ch4-text-day2.md 第 2 節）
-  departStory: { 2: 'chufa4_2' },
-  // 天亮過場：第一夜 → 第二天黃曆之前播 tianliang4_1；第二夜 → tianliang4_2（試玩版在第二夜結束，走 sliceStory 同一段）
+  // 黃曆「起駕」之後：出發過場（第二天 ch4-text-day2.md 第 2 節、第三天 ch4-text-day3.md 1-2）
+  departStory: { 2: 'chufa4_2', 3: 'chufa4_3' },
+  // 天亮過場：第一夜 → 第二天黃曆之前播 tianliang4_1；第二夜 → 第三天黃曆之前播 tianliang4_2
   dawnStory: { 2: 'tianliang4_1', 3: 'tianliang4_2' },
+  // 第三天：新娘有跟著，堤防上那一組互嗆換成她那一組（banter.ts 的 rest@3#xinniang）
+  banterTag: (r) => (r.cases.xinniang?.verdict === 'tohome' ? 'xinniang' : undefined),
   temple: 'temple_gongchen',
   endSub: '白砂墩媽祖徒步進香・回宮之後',
   // ----- 第四章的規則 -----
@@ -135,17 +153,9 @@ export const CHAPTER4: ChapterDef = {
   banter: BANTER4,
   prologueStory: 'qitou4',
   openingStory: 'qijia4',
-  // 試玩版最後一夜（第二夜）天亮之後、試玩結束卡之前
-  sliceStory: 'tianliang4_2',
   follow: { reportLabel: '稟報', reportVerb: '稟報' },
   // 草鞋丁（帶去北津）第二夜到北津放下時播 fangxia_caoxie4
   guihu: { dests: { beijin: { name: '北津', night: 2 }, home: { name: '白砂墩', night: 4 } }, releaseStory: { caoxie: 'fangxia_caoxie4' } },
-  // 第 B1 輪：第二天的字到了，試玩版開到第二夜天亮（第一夜 → 第二天 → 第二夜 → 天亮 → 試玩結束卡）。
-  // 第三天、最後一戰、回宮、開爐還是暫代：要整章走到底，網址加 &full=1（BootScene → playOverride）；字到齊、驗過之後把這行拿掉。
-  playableDays: 2,
-  sliceEnd: {
-    title: '第四章試玩到這裡',
-    // 系統字（不是劇本）：只把「第二天，往北津」改成第三天
-    text: '試玩到這裡。第三天，回程，待續。',
-  },
+  // 第 B2 輪：第三天、最後一戰、回宮、開爐、信徒錄的字到齊，拿掉試玩版的天數限制（playableDays／sliceEnd／sliceStory）：
+  // 和第一～三章一樣，從序章一路走到開爐、信徒錄。
 };
