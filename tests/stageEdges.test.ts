@@ -14,7 +14,7 @@ import { W } from '../src/theme';
 const HEIGHTS = [1280, Math.round((720 * 844) / 390)];
 
 describe('過場角色不被畫面邊緣裁到（修正第 5 輪）', () => {
-  // 前三章 22 段＋第四章試玩段落 2 段（qijia4、zhuanjin4）＋第四章第 A 輪 4 段（sanjin4、qiaotou4、huigong4、kailu4）
+  // 前三章 22 段＋第四章試玩段落 2 段（qijia4、zhuanjin4）＋第四章第 A 輪 4 段（jinmiao4（原 sanjin4）、qiaotou4、huigong4、kailu4）
   it('28 段過場都有檢查', () => expect(Object.keys(STAGES)).toHaveLength(28));
 
   for (const [id, sc] of Object.entries(STAGES)) {

@@ -98,7 +98,10 @@ export class AlmanacScene extends Phaser.Scene {
     } else {
       const plan = CH().days[day];
       txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
-      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: { key: 'day', data: { day } } }), { size: 32, fill: 0x8a1b14 });
+      // 第四章：起駕之後先播出發的過場（第二天：chufa4_2），再到白天
+      const ds = CH().departStory?.[day];
+      const toDay = ds ? { key: 'story', data: { id: ds, next: { key: 'day', data: { day } } } } : { key: 'day', data: { day } };
+      button(this, W / 2, H - 62, 280, 76, '起　駕', () => go(this, 'cut', { kind: 'depart', title: `${plan.title}・起駕`, sub: plan.area, next: toDay }), { size: 32, fill: 0x8a1b14 });
       const unlock = CH().unlocks?.[day];
       if (unlock) this.time.delayedCall(700, () => this.unlockCard(unlock));
     }

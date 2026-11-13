@@ -102,7 +102,9 @@ export class TrialScene extends Phaser.Scene {
     this.lobby();
     // 第四章：開審前的對話（車行半夜、前哨與押尾）
     const intro = T.intro?.(this.n);
-    const open = () => { if (intro) talk(this, splitStory(intro, undefined, SPEAKER_TEX), () => this.quip('t_open')); };
+    // 有鬼放下的那一夜（第二夜：草鞋丁還願）開場的互嗆換成 t_released
+    const released = before.length > (ns ? 1 : 0);
+    const open = () => { if (intro) talk(this, splitStory(intro, undefined, SPEAKER_TEX), () => this.quip(released ? 't_released' : 't_open')); };
     // 第四章：開審前的過場（第二夜：進火 jinhuo4 → 草鞋丁到北津放下），一段一段蓋在大廳上播，播完才開場對話
     const playNext = (): void => {
       const s = before.shift();
@@ -139,7 +141,7 @@ export class TrialScene extends Phaser.Scene {
     const list = guihu ? pending(run) : run.held;
     if (guihu) {
       const carried = carrying(run).map((h) => `${CH().cases[h.id].name}（往${CH().guihu?.dests[h.dest!]?.name ?? h.dest}）`);
-      const info = [T.note ?? '', ...this.messages.slice(-2), carried.length ? `跟在頭旗後面走：${carried.join('、')}` : ''].filter(Boolean).join('\n');
+      const info = [T.note ?? '', T.nightNote?.[this.n] ?? '', ...this.messages.slice(-2), carried.length ? `跟在頭旗後面走：${carried.join('、')}` : ''].filter(Boolean).join('\n');
       if (info) this.add2(txt(this, W / 2, 180, info, 19, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
     }
     if (!list.length || left <= 0) {
@@ -179,7 +181,7 @@ export class TrialScene extends Phaser.Scene {
 
   private open(k: GhostCase): void {
     this.watch++;
-    this.say(k, CH().trial.open(k.dayName), 'normal');
+    this.say(k, k.openLines ? `${CH().trial.open(k.dayName)}\n${k.openLines}` : CH().trial.open(k.dayName), 'normal');
     // 第四章：問哪個鬼就播那個鬼的互嗆（t_open_<id>），沒有就用 t_open
     const own = `t_open_${k.id}`;
     if (CH().banter?.[own] && this.heldOf(k).grudge < 3) this.quip(own);
@@ -310,7 +312,9 @@ export class TrialScene extends Phaser.Scene {
     held.grudge = Math.min(3, held.grudge + 1);
     this.cameras.main.shake(200, 0.006);
     const tail = held.grudge >= 3 ? '牠怨氣衝天，不肯再開口了。' : T.wrongTail;
-    this.say(k, `【${CH().evidence[evId].name}】\n${k.wrong}\n（${tail}）`, 'angry');
+    // 第四章：出示錯的反應有幾句就輪流用（第一次錯用第一句）
+    const wrong = k.wrongs?.length ? k.wrongs[(held.grudge - 1) % k.wrongs.length] : k.wrong;
+    this.say(k, `【${CH().evidence[evId].name}】\n${wrong}\n（${tail}）`, 'angry');
     this.quip(held.grudge >= 3 ? 't_mute' : 't_miss');
   }
 
@@ -460,7 +464,8 @@ export class TrialScene extends Phaser.Scene {
    * 第三章沒有 t_* 台詞（點將問罪用 ui/dianjiang.ts 的 chat），這裡自己跳過。
    */
   private quip(key: string, delay = 350): void {
-    const lib = CH().banter?.[key];
+    // 第四章：同一個場合每夜不同的，寫成「場合@第幾夜」（例如 t_open@2）；沒有就用通用的
+    const lib = CH().banter?.[`${key}@${this.n}`] ?? CH().banter?.[key];
     if (!lib?.length) return;
     const n = (this.quipN[key] = (this.quipN[key] ?? -1) + 1);
     const right = CH().trial.officers[1]?.label;

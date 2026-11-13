@@ -90,6 +90,8 @@ export interface TrialStyle {
   intro?: (night: number) => string;
   /** 第四章：大廳上的說明 */
   note?: string;
+  /** 第四章：某一夜大廳上多一句說明（第二夜：人已經在北津） */
+  nightNote?: Record<number, string>;
 }
 
 export interface FinaleDef {
@@ -213,6 +215,8 @@ export interface ChapterDef {
   sliceStory?: string;
   /** 第 n 夜開審之前播的過場（第四章：第二夜進火 jinhuo4） */
   nightStory?: Record<number, string>;
+  /** 第 n 天黃曆按「起駕」之後、白天之前播的過場（第四章：第二天出發 chufa4_2） */
+  departStory?: Record<number, string>;
   /**
    * 收尾的黃曆（第四章：開爐，第 12 天）。AlmanacScene 用 { epilogue: true } 打開：「昨日」欄照 run.yesterday
    *（最後一戰被帶到下游沙洲的人），按鈕播 story，之後到信徒錄。

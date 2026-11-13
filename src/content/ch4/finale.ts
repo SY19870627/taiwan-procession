@@ -10,7 +10,7 @@
  *  - 陣前審問三輪（70／40／10%）問出牠是誰：以前在這裡擺渡的。
  *  - 結局：喚回／送回／斬（斬只對茫渡）。被帶到下游的人天亮在沙洲上找到，人沒事，沒趕上回宮——開爐那頁黃曆「昨日」寫他們的名字。
  *
- * 數值是第 A 輪初版（tests/ford.test.ts 的模擬：一般打法贏得了、人鏈越長被帶走的越少）。字全部【待定】。
+ * 數值是第 A 輪初版（tests/ford.test.ts 的模擬：一般打法贏得了、人鏈越長被帶走的越少）。字全部（待寫）。
  */
 import type { RunState } from '../../state';
 import type { BossBattle, BossSetup, MemberStats, Row, Wave } from '../../core/boss';
@@ -21,14 +21,14 @@ import { chainSegments4, sandbarLines4, stragglers4 } from './believers';
 
 /** 兵馬四隊（前哨、押尾、兩隊旗下兵馬）＋會來幫忙的鬼。立繪、戰鬥圖還沒有，先用程式畫的小人 */
 export const MEMBER_STATS4: Record<string, MemberStats & { tex: string[]; desc: string }> = {
-  qianshao: { key: 'qianshao', name: '前哨', role: 'melee', hp: 230, atk: 24, cd: 1.1, range: 170, aoe: 0, guard: 1, tex: ['folk1'], desc: '【待定】前排：出手快' },
-  yawei: { key: 'yawei', name: '押尾', role: 'melee', hp: 320, atk: 16, cd: 1.3, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '【待定】前排：耐拉' },
-  bingma: { key: 'bingma', name: '旗下兵馬・刀', role: 'melee', hp: 260, atk: 20, cd: 1.3, range: 170, aoe: 0, guard: 1, trait: 'block', tex: ['bajiang0'], desc: '【待定】前排：橫掃，25% 格擋' },
-  gongshou: { key: 'gongshou', name: '旗下兵馬・弓', role: 'ranged', hp: 120, atk: 16, cd: 1.5, range: 600, aoe: 40, guard: 1, tex: ['paoshou'], desc: '【待定】後排：遠程' },
+  qianshao: { key: 'qianshao', name: '前哨', role: 'melee', hp: 230, atk: 24, cd: 1.1, range: 170, aoe: 0, guard: 1, tex: ['folk1'], desc: '（待寫）前排：出手快' },
+  yawei: { key: 'yawei', name: '押尾', role: 'melee', hp: 320, atk: 16, cd: 1.3, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '（待寫）前排：耐拉' },
+  bingma: { key: 'bingma', name: '旗下兵馬・刀', role: 'melee', hp: 260, atk: 20, cd: 1.3, range: 170, aoe: 0, guard: 1, trait: 'block', tex: ['bajiang0'], desc: '（待寫）前排：橫掃，25% 格擋' },
+  gongshou: { key: 'gongshou', name: '旗下兵馬・弓', role: 'ranged', hp: 120, atk: 16, cd: 1.5, range: 600, aoe: 40, guard: 1, tex: ['paoshou'], desc: '（待寫）後排：遠程' },
   // 會來幫忙的鬼（判對歸處的）
-  caoxie: { key: 'caoxie', name: '草鞋丁', role: 'melee', hp: 340, atk: 18, cd: 1.4, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '【待定】還了願的草鞋丁：扛得住' },
-  apo: { key: 'apo', name: '點心擔阿婆', role: 'support', hp: 120, atk: 20, cd: 2.2, range: 0, aoe: 0, guard: 1, trait: 'heal', tex: ['folk3'], desc: '【待定】鹹粥：照顧血最少的' },
-  xinniang: { key: 'xinniang', name: '沒走成的新娘', role: 'ranged', hp: 110, atk: 10, cd: 1.6, range: 480, aoe: 40, guard: 1, trait: 'slow', tex: ['folk5'], desc: '【待定】後排：讓牽路仔變慢' },
+  caoxie: { key: 'caoxie', name: '草鞋丁', role: 'melee', hp: 340, atk: 18, cd: 1.4, range: 170, aoe: 0, guard: 0.8, tex: ['folk2'], desc: '（待寫）還了願的草鞋丁：扛得住' },
+  apo: { key: 'apo', name: '點心擔阿婆', role: 'support', hp: 120, atk: 20, cd: 2.2, range: 0, aoe: 0, guard: 1, trait: 'heal', tex: ['folk3'], desc: '（待寫）鹹粥：照顧血最少的' },
+  xinniang: { key: 'xinniang', name: '沒走成的新娘', role: 'ranged', hp: 110, atk: 10, cd: 1.6, range: 480, aoe: 40, guard: 1, trait: 'slow', tex: ['folk5'], desc: '（待寫）後排：讓牽路仔變慢' },
 };
 
 /** 鬼的上場順序（假香燈腳該判「不帶」，判對了也不會來） */
@@ -86,36 +86,36 @@ export function fordEnd4(r: RunState, b: BossBattle): void {
   r.yesterday = sandbarLines4(names);
 }
 
-// ---------- 陣前審問（70／40／10%）：問出牠是以前擺渡的。字全部【待定】；誰上前、要什麼條件是規則 ----------
+// ---------- 陣前審問（70／40／10%）：問出牠是以前擺渡的。字全部（待寫）；誰上前、要什麼條件是規則 ----------
 export const FINALE_ROUNDS4: FinaleRound[] = [
   {
-    line: '【待定】「橋上那麼多人，一個都不下來。」',
+    line: '（待寫）「橋上那麼多人，一個都不下來。」',
     evidence: [],
     people: [
-      { id: 'dukou', label: '請堤防邊的老人上前', test: (r) => !!r.flags.ferry_heard, say: '【待定】老人講以前渾水溪有擺渡的那段。' },
+      { id: 'dukou', label: '請堤防邊的老人上前', test: (r) => !!r.flags.ferry_heard, say: '（待寫）老人講以前渾水溪有擺渡的那段。' },
     ],
-    ok: '【待定】第 1 輪說動牠的那句。',
+    ok: '（待寫）第 1 輪說動牠的那句。',
     effect: '茫渡動搖：受到的傷害 ×1.15',
   },
   {
-    line: '【待定】茫渡第 2 輪的話。',
+    line: '（待寫）茫渡第 2 輪的話。',
     evidence: [],
     people: [
-      { id: 'caoxie', label: '請草鞋丁上前', test: (r) => r.cases.caoxie?.verdict === 'tobeijin', say: '【待定】還了願的草鞋丁說的話。' },
-      { id: 'aman', label: '請阿滿姨上前', test: (r) => r.cases.xinniang?.verdict === 'tohome', say: '【待定】阿滿姨（女兒跟她回家了）說的話。' },
+      { id: 'caoxie', label: '請草鞋丁上前', test: (r) => r.cases.caoxie?.verdict === 'tobeijin', say: '（待寫）還了願的草鞋丁說的話。' },
+      { id: 'aman', label: '請阿滿姨上前', test: (r) => r.cases.xinniang?.verdict === 'tohome', say: '（待寫）阿滿姨（女兒跟她回家了）說的話。' },
     ],
-    ok: '【待定】第 2 輪說動牠的那句。',
+    ok: '（待寫）第 2 輪說動牠的那句。',
     effect: '茫渡動搖：攻擊 ×0.85；下一次霧起不來',
   },
   {
-    line: '【待定】茫渡第 3 輪的話（他是以前在這裡擺渡的）。',
+    line: '（待寫）茫渡第 3 輪的話（他是以前在這裡擺渡的）。',
     evidence: [],
     people: [
-      { id: 'yawei', label: '押尾叫出他的名字', test: (r) => !!r.flags.ferry_heard || (r.follow?.chain ?? 0) > 0, say: '【待定】押尾記得每個落隊的人叫什麼——也記得他。' },
+      { id: 'yawei', label: '押尾叫出他的名字', test: (r) => !!r.flags.ferry_heard || (r.follow?.chain ?? 0) > 0, say: '（待寫）押尾記得每個落隊的人叫什麼——也記得他。' },
     ],
-    ok: '【待定】問出他是以前擺渡的。橋蓋好以後沒人坐船，也沒人記得溪底還有一個。',
+    ok: '（待寫）問出他是以前擺渡的。橋蓋好以後沒人坐船，也沒人記得溪底還有一個。',
     effect: '茫渡的霧薄了一層（受到的傷害 ×1.1）；可以喚回',
   },
 ];
 
-export const FINALE_WRONG4 = '【待定】霧更濃了。（攻擊 ×1.1）';
+export const FINALE_WRONG4 = '（待寫）霧更濃了。（攻擊 ×1.1）';

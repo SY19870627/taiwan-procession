@@ -14,7 +14,7 @@ import { CUTSCENES } from '../src/content/story';
 import { STAGES } from '../src/content/stage';
 import type { DayPlan, Encounter, FollowPlan } from '../src/content/days';
 import * as state from '../src/state';
-import { HIT_FULL_DEFAULT, afterFork, applyBroadcast, betResultText, poolFor, resolveBet, skipStray } from '../src/core/procession';
+import { HIT_FULL_DEFAULT, afterFork, applyBroadcast, beforeFork, betResultText, poolFor, resolveBet, skipStray } from '../src/core/procession';
 import { arrive, judgeGuihu } from '../src/core/guihu';
 import { bandLine4, jiaoKey } from '../src/art/baishadunSpec';
 
@@ -40,10 +40,13 @@ describe('A. 押先鋒：時辰不超過當天上限', () => {
       expect(o.gained).toBe(0);
       expect(r().hours).toBe(p.hours);
       const said = betResultText(f, o);
-      expect(lastLine(said)).toBe(f.results!.hitFull);
+      expect(lastLine(said)).toBe(lastLine(f.results!.hitFull!));
       expect(lastLine(said)).not.toBe(lastLine(f.results!.hit));
-      // 押中那段的前面幾句照舊，只換最後一行系統句
-      expect(said.split('\n').slice(0, -1)).toEqual(f.results!.hit.split('\n').slice(0, -1));
+      expect(lastLine(said)).not.toContain('省 1 時辰');
+      // hitFull 只有一行：押中那段的前面幾句照舊，只換最後一行系統句；
+      // 作者另寫了一整段（第 B1 輪：第二天）：整段換掉
+      if (f.results!.hitFull!.includes('\n')) expect(said).toBe(f.results!.hitFull);
+      else expect(said.split('\n').slice(0, -1)).toEqual(f.results!.hit.split('\n').slice(0, -1));
     });
 
     it(`${p.title}：押中時還沒滿 → +1，但不超過上限`, () => {
@@ -109,22 +112,25 @@ describe('B-1. 第二天（到北津）', () => {
     expect(day).toContain('playStory(this, g.story');
   });
 
-  it('入廟三進三退：駐駕前播演出 sanjin4；轎只用 st_jiao4_carry／st_jiao4_pause，進三次退兩次、群眾喊「進喔！」', () => {
+  it('入廟三進三退：駐駕前播演出 jinmiao4；轎只用 st_jiao4_carry／st_jiao4_pause，三進三退再衝進廟門、眾人喊「進喔！」', () => {
     expect(D2.follow!.stay.name).toBe('北津朝聖宮');
-    expect(D2.follow!.stay.story).toBe('sanjin4');
-    const sc = STAGES.sanjin4;
+    expect(D2.follow!.stay.story).toBe('jinmiao4');
+    const sc = STAGES.jinmiao4;
     expect(sc).toBeDefined();
     const jiaoTex = [
       ...sc.actors.filter((a) => a.id === 'jiao').map((a) => a.tex),
       ...sc.beats.flatMap((b) => (b.moves ?? []).filter((m) => m.id === 'jiao' && m.tex).map((m) => m.tex!)),
     ];
     expect(new Set(jiaoTex)).toEqual(new Set(['st_jiao4_carry', 'st_jiao4_pause']));
-    // 往前衝（換扛轎圖）三次、往後退（換頓住圖）兩次，第三次進廟（淡出）
+    // 往前衝（換扛轎圖）三次＋最後衝進廟門、往後退（換頓住圖）三次；最後一次是衝進廟（淡出）
     const moves = sc.beats.flatMap((b) => (b.moves ?? []).filter((m) => m.id === 'jiao'));
-    expect(moves.filter((m) => m.tex === 'st_jiao4_carry').length).toBe(3);
-    expect(moves.filter((m) => m.tex === 'st_jiao4_pause').length).toBe(2);
+    expect(moves.filter((m) => m.tex === 'st_jiao4_carry').length).toBe(4);
+    expect(moves.filter((m) => m.tex === 'st_jiao4_pause').length).toBe(3);
     expect(moves[moves.length - 1].alpha).toBe(0);
-    expect(CUTSCENES.sanjin4.lines.filter((l) => l.who === 'xiangdeng' && l.text.includes('進喔')).length).toBe(3);
+    expect(CUTSCENES.jinmiao4.lines.filter((l) => l.who === 'zhongren' && l.text.includes('進喔')).length).toBe(3);
+    // 有條件的那幾拍（阿滿姨、秀枝稟報過）不放轎的走位：跳過時轎的位置不會亂
+    for (const b of sc.beats) if (b.src !== undefined && CUTSCENES.jinmiao4.lines[b.src].when) expect((b.moves ?? []).some((m) => m.id === 'jiao'), b.text).toBe(false);
+    expect(raw('/scenes/StoryScene.ts')).toContain('return !l?.when || l.when(run);');
     // DayScene：日落（駐駕）前先播 stay.story
     expect(raw('/scenes/DayScene.ts')).toContain('const st = f.stay.story;');
   });
@@ -143,12 +149,13 @@ describe('B-1. 第二天（到北津）', () => {
     expect(trial).toContain('G.releaseStory?.[a.id]');
   });
 
-  it('第二天兩個鬼（新娘、假香燈腳）都碰得到：新娘在轎子走的那條路，假香燈腳在派出所前', () => {
+  it('第二天兩個鬼（新娘、假香燈腳）都碰得到、不受岔路影響：新娘在 pre（省道），假香燈腳在派出所前；物證帶走時一起拿到', () => {
+    const pre = beforeFork(D2, r()).map((s) => (typeof s === 'string' ? s : s.id));
     const ids = afterFork(D2, r()).map((s) => (typeof s === 'string' ? s : s.id));
-    expect(ids).toContain('xinniang2');
+    expect(pre).toContain('xinniang2');
     expect(ids).toContain('jiajiao2');
-    expect(ids).toContain('veil');
-    expect(ids).toContain('armband');
+    expect(CHAPTER4.cases.xinniang.onCollect).toEqual(['veil']);
+    expect(CHAPTER4.cases.jiajiao.onCollect).toEqual(['armband']);
   });
 
   it('第二天傳消息：三個選項，接著加人鏈（不是覆蓋），換第三天的事件池', () => {
@@ -159,7 +166,12 @@ describe('B-1. 第二天（到北津）', () => {
     expect(r().follow!.chain).toBe(2);
     expect(r().follow!.broadcast).toEqual({ 1: 'garage', 2: opts[0].id });
     for (const o of opts) for (const t of o.tags) if (t !== 'quiet') expect(D3.tagged!.some((x) => x.tag === t), t).toBe(true);
-    expect(opts.find((o) => o.tags.includes('quiet'))!.chain).toBe(0);
+    // 第 B1 輪：三進三退 +1、賢仔的貨車 +0、什麼都不拍 −1（最低到 0）
+    expect(opts.map((o) => o.chain)).toEqual([1, 0, -1]);
+    startChapter('baishadun');
+    applyBroadcast(r(), 1, D1.broadcast![2]);
+    applyBroadcast(r(), 2, opts[2]);
+    expect(r().follow!.chain).toBe(0);
   });
 
   it('第二、三天的信徒卡都有、辦得完（暫代）；辦過一次不再出現；稟報不改第一天的狀態', () => {
@@ -205,7 +217,7 @@ describe('B-2. 第三天（回程・渾水溪）', () => {
   it('事情最多 7 件（不管第二天拍什麼）', () => {
     const f = D3.follow!;
     const route = D3.routes.find((x) => x.id === f.goes)!;
-    const counts = [[], ['crowd'], ['family3'], ['quiet']].map((tags) => {
+    const counts = [[], ['crowd'], ['helper'], ['quiet']].map((tags) => {
       const p = poolFor(D3, tags);
       return p.pre.length + route.encounters.length + (f.detour?.encounters.length ?? 0) + f.rest.encounters.length + p.post.length;
     });
@@ -270,9 +282,9 @@ describe('B-3. 回宮、開爐、整章接法', () => {
     }
   });
 
-  it('playableDays 仍是 1（分支上試玩版照舊）；網址 &full=1 時不限（整章走到底）', () => {
-    expect(CHAPTER4.playableDays).toBe(1);
-    expect(playableDays(CHAPTER4)).toBe(1);
+  it('playableDays 2（第 B1 輪：試玩版開到第二夜天亮）；網址 &full=1 時不限（整章走到底）', () => {
+    expect(CHAPTER4.playableDays).toBe(2);
+    expect(playableDays(CHAPTER4)).toBe(2);
     playOverride.full = true;
     try {
       expect(playableDays(CHAPTER4)).toBeUndefined();

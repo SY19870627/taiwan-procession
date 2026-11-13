@@ -85,6 +85,8 @@ export class DayScene extends Phaser.Scene {
   private broadcastHeard = false;
   /** 第四章：駐駕前的過場（stay.story）播過了 */
   private stayStoryPlayed = false;
+  /** 第四章：轎子走的那條路走完時的過場（RouteDef.endStory）播過了 */
+  private routeEndPlayed = false;
   /** 互嗆台詞輪到第幾組 */
   private banterN: Record<string, number> = {};
   /** 走近第幾件事（第三章：每走三件事冒一組走路的互嗆） */
@@ -112,6 +114,7 @@ export class DayScene extends Phaser.Scene {
     this.busy = false;
     this.broadcastHeard = false;
     this.stayStoryPlayed = false;
+    this.routeEndPlayed = false;
     // 第四章跟轎：出發後的事依前一天傳消息的標籤加（core/procession.ts）；其他章照舊
     this.queue = this.plan.follow ? beforeFork(this.plan, run) : [...this.plan.pre, 'fork'];
     this.seg = 'pre';
@@ -640,7 +643,8 @@ export class DayScene extends Phaser.Scene {
 
   /** 互嗆：一句一行的小字幕，不擋操作（台詞庫見各章的 banter） */
   private banter(key: string): void {
-    const lib = CH().banter?.[key];
+    // 第四章：同一個場合每天不同的，寫成「場合@第幾天」（例如 bet@2）；沒有就用通用的
+    const lib = CH().banter?.[`${key}@${this.plan.day}`] ?? CH().banter?.[key];
     if (!lib?.length) return;
     const n = (this.banterN[key] = (this.banterN[key] ?? -1) + 1);
     banter(this, lib[n % lib.length], BAND_Y + 8);
@@ -966,7 +970,7 @@ export class DayScene extends Phaser.Scene {
         if (this.busy || !resolveStray(run, e, this.seg, c.how, rule.hours)) return;
         this.busy = true;
         this.refreshHeader();
-        this.band.scatter(() => { this.busy = false; this.after(c.how === 'shout' ? rule.story : rule.entrustStory, []); });
+        this.band.scatter(() => { this.busy = false; this.after(c.how === 'shout' ? e.story ?? rule.story : e.entrustStory ?? rule.entrustStory, []); });
       }, c.how === 'entrust');
     }
     this.skipRow(p, y, rule.skip, () => this.skipImp());
@@ -1195,9 +1199,18 @@ export class DayScene extends Phaser.Scene {
   /** 停駕點：短暫休息（之後是會合後的事、駐駕）。有寫 art／theme 就換街景（第四章：賢仔車行） */
   private showRest(): void {
     const r = this.plan.follow!.rest;
+    // 轎子走的那條路走完（第二天乙路：過圳）：先播那段過場，播完再到停駕點
+    const end = this.plan.routes.find((x) => x.id === this.plan.follow!.goes)?.endStory;
+    if (end && !this.routeEndPlayed) {
+      this.routeEndPlayed = true;
+      this.busy = true;
+      playStory(this, end, () => { this.busy = false; this.showRest(); });
+      return;
+    }
     this.seg = 'rest';
     if (r.art || r.theme) this.band.setScene(r.theme ?? this.plan.theme, r.art, this.hourNow());
     const go2 = () => {
+      this.banter('rest');
       this.busy = true;
       this.band.walk(500, () => { this.busy = false; this.next(); });
     };
@@ -1226,7 +1239,7 @@ export class DayScene extends Phaser.Scene {
       y = t.y + t.height + 10;
     }
     for (const o of this.plan.broadcast ?? []) {
-      const none = !o.tags.length || o.chain === 0;
+      const none = !o.tags.length || o.tags.includes('quiet') || o.chain < 0;
       const pick = () => {
         if (this.busy) return;
         applyBroadcast(run, this.plan.day, o);
@@ -1271,7 +1284,7 @@ export class DayScene extends Phaser.Scene {
    */
   private endDayFollow(): void {
     const f = this.plan.follow!;
-    // 駐駕前的過場（第二天：入廟三進三退 sanjin4）：只播一次，播完再畫日落
+    // 駐駕前的過場（第二天：入廟三進三退 jinmiao4）：只播一次，播完再畫日落
     const st = f.stay.story;
     if (st && !this.stayStoryPlayed) {
       this.stayStoryPlayed = true;

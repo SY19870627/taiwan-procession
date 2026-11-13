@@ -55,7 +55,9 @@ export class StoryScene extends Phaser.Scene {
       });
     };
     // 有演出腳本就播演出（沒有 &text=1 時）；播放器出錯就退回文字版
-    const sc = STAGES[id];
+    // 有條件的句子（Line.when）不成立時，演出裡對應的那一拍也跳過（第四章入廟：秀枝稟報過才有的四句）
+    const st = STAGES[id];
+    const sc = st && { ...st, beats: st.beats.filter((b) => { const l = b.src === undefined ? undefined : cs.lines[b.src]; return !l?.when || l.when(run); }) };
     if (sc && !data.text) {
       try {
         const player = new StagePlayer(this, sc, { onDone: finish, startBeat: data.beat });

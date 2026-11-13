@@ -96,16 +96,18 @@ export function resolveBet(r: RunState, plan: DayPlan, bet: string): BetOutcome 
 }
 
 /** 押中但時辰已滿時的系統句（FollowPlan.results.hitFull 沒寫時用這句） */
-export const HIT_FULL_DEFAULT = '【待定】押中了。牽路仔已經清掉；時辰本來就是滿的，沒有多出來。';
+export const HIT_FULL_DEFAULT = '押中了。牽路仔已經清掉；時辰本來就是滿的，沒有多出來。';
 
 /**
  * 押完之後播的話：押中／押錯／留在轎邊的那段；押中但時辰已滿時，最後一行（系統句「省 1 時辰」）
  * 換成 results.hitFull（沒寫用 HIT_FULL_DEFAULT）。最後一行就是押兵結果頁上的那一句。
+ * hitFull 寫了好幾行（第二天：作者另寫了一整段「押中但時辰已滿」）就整段換掉。
  */
 export function betResultText(f: FollowPlan, o: Pick<BetOutcome, 'result' | 'full'>): string {
   const res = f.results;
   if (!res) return '';
   if (o.result !== 'hit' || !o.full) return res[o.result];
+  if (res.hitFull?.includes('\n')) return res.hitFull;
   const lines = res.hit.split('\n');
   return [...lines.slice(0, -1), res.hitFull ?? HIT_FULL_DEFAULT].join('\n');
 }
@@ -149,7 +151,8 @@ export function applyBroadcast(r: RunState, day: number, opt: BroadcastOption): 
   const f = followOf(r);
   f.broadcast[day] = opt.id;
   f.tags = [...opt.tags];
-  f.chain += opt.chain;
+  // 人鏈可以減（第二天「什麼都不拍」−1），最低到 0
+  f.chain = Math.max(0, f.chain + opt.chain);
   r.flags[`film_${opt.id}`] = true;
 }
 

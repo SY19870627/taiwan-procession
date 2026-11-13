@@ -12,7 +12,7 @@ export type Encounter =
   /** 有冤情的鬼：收容回去晚上審 */
   | { kind: 'ghost'; id: string; place: string; caseId: string }
   /** 小妖：當場驅散，不用審（第四章牽路仔：stall＝附近的點心站，可以託人顧） */
-  | { kind: 'imp'; id: string; place: string; text: string; tex: string; stall?: string }
+  | { kind: 'imp'; id: string; place: string; text: string; tex: string; stall?: string; story?: string; entrustStory?: string }
   /** 線索：得到物證 */
   | { kind: 'clue'; id: string; place: string; evidence: string; hours: number; text: string; needs?: string; story?: string; peek?: string }
   /** 問話：得到證詞 */
@@ -29,6 +29,8 @@ export interface RouteDef {
   preview?: string[];
   /** 第四章：押兵畫面上這條路的小字 */
   note?: string;
+  /** 第四章：轎子走這條路、走完之後（到停駕點之前）自動播的過場（第二天乙路：過圳） */
+  endStory?: string;
 }
 
 export interface DayPlan {
@@ -98,7 +100,7 @@ export interface FollowPlan {
     name: string; place: string; text: string; encounters: Encounter[]; art?: string; theme?: StreetTheme;
     gather?: { title: string; text: string; story?: string };
   };
-  /** 駐駕：過夜的地方（日落畫面）。story：日落前先播的過場（第二天：入廟三進三退 sanjin4） */
+  /** 駐駕：過夜的地方（日落畫面）。story：日落前先播的過場（第二天：入廟三進三退 jinmiao4） */
   stay: { name: string; text: string; story?: string };
 }
 

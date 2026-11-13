@@ -60,6 +60,12 @@ export function judgeGuihu(r: RunState, k: GhostCase, v: VerdictDef, rules: Guih
     h.dest = dest;
     h.since = night;
     const d = rules.dests[dest];
+    // 今晚就在歸處（第二夜判「帶去北津」：跟頭旗進廟門）→ 當晚放下，不佔格
+    if (d && d.night <= night) {
+      r.held = r.held.filter((x) => x !== h);
+      r.flags[`arrived_${k.id}`] = true;
+      return [`${name}今晚就到了${d.name}，放下了。`, '頭旗下空出一格。'];
+    }
     return [`${name}跟在頭旗後面走。`, `到${d?.name ?? dest}之前，牠一直佔著頭旗下一格。`];
   }
   r.held = r.held.filter((x) => x.id !== k.id);

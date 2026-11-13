@@ -160,11 +160,15 @@ export interface GhostCase {
   press: string[];
   /** 第四章：追問時問的那一句（顯示在回答前面） */
   pressQ?: string[];
+  /** 第四章：問他的時候先說的開場陳述（接在 trial.open 那句後面） */
+  openLines?: string;
   /** 第四章：白天遇到時的按鈕字與結果（帶走／先不帶） */
   meet?: { take: string; takeResult: string; taken: string; skip: string; left: string };
   truths: Truth[];
   /** 出示錯的證據時的反應 */
   wrong: string;
+  /** 第四章：出示錯時輪流用的幾句（有寫就不用 wrong；第一次錯用第一句） */
+  wrongs?: string[];
   verdicts: VerdictDef[];
   // ----- 第三章（可選；第一、二章不填） -----
   /** 身分（沒填就看 innocent） */

@@ -11,7 +11,9 @@ export type SpeakerId = 'narrator' | 'wang' | 'mei' | 'kui' | 'shiju' | 'shijuCa
   | 'wupan' | 'qiye' | 'baye' | 'xunbu' | 'jiaoban'
   // 第四章（白砂墩）：媽祖全章不露臉、不講話，沒有說話者
   | 'qianshao' | 'yawei' | 'touqi' | 'arui' | 'aman' | 'xianzai' | 'xiuzhi' | 'ahan' | 'caoxie' | 'apo'
-  | 'xiangdeng' | 'xiangdengbo' | 'jiaoban4' | 'cunbo' | 'qianlu' | 'chashui' | 'oajian' | 'mangdu';
+  | 'xiangdeng' | 'xiangdengbo' | 'jiaoban4' | 'cunbo' | 'qianlu' | 'chashui' | 'oajian' | 'mangdu'
+  // 第四章第二天
+  | 'xinniang' | 'jiajiao' | 'zhongren' | 'jingyuan' | 'zunama' | 'qiaoren' | 'yijing' | 'dianxin' | 'xuesheng' | 'diantou' | 'guqi';
 
 export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; tex: string; side: 'left' | 'right'; scale: number }> = {
   wang: { name: '阿魍', tex: 'wang', side: 'left', scale: 2.4 },
@@ -67,6 +69,18 @@ export const SPEAKERS: Record<Exclude<SpeakerId, 'narrator'>, { name: string; te
   oajian: { name: '賣蚵嗲的阿桑', tex: 'folk3', side: 'right', scale: 1.8 },
   // 第四章魔王：立繪 mangdu 還沒到，先用戰鬥圖的暫代（b4_mangdu，520×420）
   mangdu: { name: '茫渡', tex: 'b4_mangdu', side: 'right', scale: 0.45 },
+  // 第四章第二天（_agent/ch4-text-day2.md）：立繪都還沒有，先用小人
+  xinniang: { name: '新娘', tex: 'folk5', side: 'right', scale: 1.8 },
+  jiajiao: { name: '假香燈腳', tex: 'folk4', side: 'right', scale: 1.8 },
+  zhongren: { name: '眾人', tex: 'st_xiangdeng_b', side: 'right', scale: 0.5 },
+  jingyuan: { name: '派出所的警員', tex: 'folk1', side: 'right', scale: 1.8 },
+  zunama: { name: '圳邊的阿嬤', tex: 'folk3', side: 'right', scale: 1.8 },
+  qiaoren: { name: '橋上的人', tex: 'st_xiangdeng_d', side: 'right', scale: 0.5 },
+  yijing: { name: '義警阿伯', tex: 'folk2', side: 'right', scale: 1.8 },
+  dianxin: { name: '點心站的阿姨', tex: 'folk3', side: 'right', scale: 1.8 },
+  xuesheng: { name: '擺攤的學生', tex: 'folk1', side: 'right', scale: 1.8 },
+  diantou: { name: '點人頭的阿伯', tex: 'folk2', side: 'right', scale: 1.8 },
+  guqi: { name: '顧旗的囡仔', tex: 'folk5', side: 'right', scale: 1.8 },
 };
 
 /** 過場說話的人 → 立繪圖（代號、預設表情）；神明一律用「旨意」那張圖 */
