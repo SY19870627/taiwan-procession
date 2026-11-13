@@ -49,7 +49,7 @@ export function betChoices(plan: DayPlan): BetChoice[] {
     label: `押${rt.id}`,
     ifRight: `轎子走${rt.id}：${rt.id}路的小妖先清掉，省 ${BET_GAIN} 時辰`,
     // 第 C3 輪：押錯不扣時辰
-    ifWrong: '【待定】轎子走另一邊：前哨趕回來，不扣時辰',
+    ifWrong: '轎子走另一邊：前哨跑回來會合，什麼都不扣',
   }));
   out.push({ bet: STAY, label: '留在轎邊', ifRight: '不賺不賠', ifWrong: '不賺不賠' });
   return out;
@@ -65,7 +65,10 @@ export interface BetOutcome {
   gained?: number;
   /** resolveBet 之後才有：押中了，但時辰本來就是滿的（不加，改顯示「時辰已滿」那句） */
   full?: boolean;
-  /** resolveBet 之後才有：押中了，但那條路今天本來就沒有牽路仔（Encounter.unlessTag；不省也不扣，改顯示 hitEmpty） */
+  /**
+   * resolveBet 之後才有：押中了，但那條路今天本來就沒有牽路仔（Encounter.unlessTag；不省也不扣，改顯示 hitEmpty）。
+   * 押錯時：轎子走的那條路今天本來就沒有牽路仔（missNote 只接前兩句；時辰照舊不動）
+   */
   empty?: boolean;
 }
 
@@ -98,6 +101,10 @@ export function resolveBet(r: RunState, plan: DayPlan, bet: string): BetOutcome 
   const here = base.cleared.filter((id) => !absentToday(r, plan, id));
   const empty = base.result === 'hit' && base.cleared.length > 0 && here.length === 0;
   const o: BetOutcome = empty ? { ...base, delta: 0, cleared: [] } : { ...base, cleared: here };
+  // 押錯、但轎子走的那條路今天本來就沒有牽路仔：只影響押錯的話（missNote 不接最後一句「…的牽路仔到了再處理」），不影響時辰
+  const goneRt = plan.routes.find((x) => x.id === plan.follow?.goes);
+  const goneImps = (goneRt?.encounters ?? []).filter((e) => e.kind === 'imp');
+  const missEmpty = base.result === 'miss' && goneImps.length > 0 && goneImps.every((e) => absentToday(r, plan, e.id));
   f.bet = bet;
   f.betResult = o.result;
   const before = r.hours;
@@ -106,7 +113,7 @@ export function resolveBet(r: RunState, plan: DayPlan, bet: string): BetOutcome 
   for (const id of o.cleared) r.flags[`cleared_${id}`] = true;
   // 第 C3 輪：押中記一筆（回宮／開爐多一個人影）
   if (o.result === 'hit') r.flags[`bet_hit_${r.day}`] = true;
-  return { ...o, gained: r.hours - before, full, empty };
+  return { ...o, gained: r.hours - before, full, empty: empty || missEmpty };
 }
 
 /** 這件事今天因為傳消息的標籤不出現（Encounter.unlessTag：第三天「什麼都不拍」，渡頭路的牽路仔不出現） */
@@ -130,7 +137,12 @@ export function betResultText(f: FollowPlan, o: Pick<BetOutcome, 'result' | 'ful
   // 押中、但那條路今天本來就沒有牽路仔（第三天「什麼都不拍」）：最後一行系統句換成 hitEmpty
   if (o.result === 'hit' && o.empty && res.hitEmpty) return [...res.hit.split('\n').slice(0, -1), res.hitEmpty].join('\n');
   // 第 C3 輪：押錯不扣時辰——miss 只留對話，最後一行（押兵結果頁那一句）是 missNote
-  if (o.result === 'miss') return res.missNote ? [res.miss, res.missNote].join('\n') : res.miss;
+  // 押錯、但轎子走的那條路今天本來就沒有牽路仔（第三天「什麼都不拍」）：missNote 只接前兩句
+  if (o.result === 'miss') {
+    if (!res.missNote) return res.miss;
+    const note = o.empty ? (res.missNote.match(/[^。]*。/g) ?? [res.missNote]).slice(0, 2).join('') : res.missNote;
+    return [res.miss, note].join('\n');
+  }
   if (o.result !== 'hit' || !o.full) return res[o.result];
   if (res.hitFull?.includes('\n')) return res.hitFull;
   const lines = res.hit.split('\n');

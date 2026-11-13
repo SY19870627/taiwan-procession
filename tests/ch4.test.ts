@@ -88,9 +88,9 @@ describe('行轎岔路：押先鋒', () => {
     expect(cs.map((c) => c.bet)).toEqual(['甲', '乙', STAY]);
     for (const c of cs.slice(0, 2)) {
       expect(c.ifRight).toContain(`省 ${BET_GAIN} 時辰`);
-      // 第 C3 輪：押錯不扣時辰（BET_LOSS 0；說明句是【待定】）
+      // 第 C3 輪：押錯不扣時辰（BET_LOSS 0；說明句：_agent/ch4-text-shuang-A.md 1-1）
       expect(BET_LOSS).toBe(0);
-      expect(c.ifWrong).toContain('不扣時辰');
+      expect(c.ifWrong).toBe('轎子走另一邊：前哨跑回來會合，什麼都不扣');
     }
     expect(cs[2].ifRight).toBe('不賺不賠');
     expect(cs[2].ifWrong).toBe('不賺不賠');
@@ -631,9 +631,6 @@ const CH4_SRC = import.meta.glob(['../src/content/ch4/*.ts', '../src/content/sta
 const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"\\])\/\/[^\n]*/g, '$1');
 /** 空的、或還是暫代字 */
 const stub = (s: string | undefined) => !s || !s.trim() || /待寫|【待定】/.test(s);
-/** 第 C3 輪（爽Game）換成【待定】開頭的短句：每一句都原樣列在 _agent/c3-report.md 的【待定】清單 */
-const C3_REPORT = Object.values(import.meta.glob('../_agent/c3-report.md', { query: '?raw', import: 'default', eager: true }))[0] as string;
-const C3_STUB = (s: string | undefined) => !!s && s.startsWith('【待定】') && C3_REPORT.includes(s);
 const HEADER = '// 台詞：第四章試玩段落文字 v0.1（全部【待定】，作者尚未定稿）';
 
 describe('第一天試玩段落：正式文字', () => {
@@ -644,11 +641,11 @@ describe('第一天試玩段落：正式文字', () => {
       if (e.kind === 'person') {
         const c = CARDS4[e.card](r())!;
         expect(c, e.id).toBeTruthy();
-        // 第 C3 輪（爽Game）：說錯了的字換成【待定】開頭的短句（C3_STUBS，_agent/c3-report.md）
-        for (const s of [c.who, c.text, c.ignore]) expect(stub(s) && !C3_STUB(s), `${e.id}：${s}`).toBe(false);
+        // 第 C3 輪（爽Game）的【待定】暫代字作者都補了（_agent/ch4-text-shuang-A.md）
+        for (const s of [c.who, c.text, c.ignore]) expect(stub(s), `${e.id}：${s}`).toBe(false);
         for (const o of c.options) {
           expect(stub(o.label), e.id).toBe(false);
-          expect(stub(o.result) && !C3_STUB(o.result), `${e.id} ${o.label}`).toBe(false);
+          expect(stub(o.result), `${e.id} ${o.label}`).toBe(false);
           if (o.report) continue;
           startChapter('baishadun');
           expect(stub(o.apply(r())), `${e.id} ${o.label}`).toBe(false);
@@ -671,17 +668,17 @@ describe('第一天試玩段落：正式文字', () => {
     const f = D1.follow!;
     const lines = [
       f.hint, f.intro, f.hints, f.turn, f.results!.hit, f.results!.miss, f.results!.stay,
-      ...Object.values(f.bets!).flatMap((b) => [b.label, ...(b.small.startsWith('【待定】') ? [] : [b.small])]),
+      ...Object.values(f.bets!).flatMap((b) => [b.label, b.small]), f.results!.missNote,
       f.detour!.name, f.detour!.text, f.detour!.why, f.rest.name, f.rest.text, f.stay.name, f.stay.text,
       ...D1.routes.flatMap((rt) => [rt.name, rt.note, ...(rt.preview ?? [])]),
       D1.broadcastIntro, D1.broadcastNote, ...D1.broadcast!.flatMap((o) => [o.label, o.brings, o.cost, o.said]),
       ...Object.values(D1.almanac(r())), CHAPTER4.unlocks![1].text,
     ];
     for (const s of lines) expect(stub(s), String(s)).toBe(false);
-    // 第 C3 輪：押甲／押乙的小字（押錯不扣時辰）、押錯的最後一行換成【待定】
-    expect(f.bets!.甲.small.startsWith('【待定】')).toBe(true);
-    expect(f.bets!.乙.small.startsWith('【待定】')).toBe(true);
-    expect(f.results!.missNote!.startsWith('【待定】')).toBe(true);
+    // 第 C3 輪：押甲／押乙的小字（押錯不扣時辰）、押錯的最後一行（作者正式文字：_agent/ch4-text-shuang-A.md 1-2）
+    expect(f.bets!.甲.small).toBe('轎子走甲：防風林的牽路仔先清掉，省 1 時辰。轎子走乙：前哨跑回來會合，什麼都不扣。');
+    expect(f.bets!.乙.small).toBe('轎子走乙：外環的牽路仔先清掉，省 1 時辰。轎子走甲：前哨跑回來會合，什麼都不扣。');
+    expect(f.results!.missNote).toBe('沒押中。時辰照舊，一格都沒動。防風林的牽路仔到了再處理。');
     // 序章黃曆、擲筊（三個聖筊各一句）、序章那句話（第 B2 輪：試玩結束卡拿掉了）
     for (const s of [...Object.values(CHAPTER4.prologue), CHAPTER4.jiao.ask, CHAPTER4.jiao.done, CHAPTER4.jiao.allHoly.text, CHAPTER4.prologueLine]) expect(stub(s), s).toBe(false);
     expect(CHAPTER4.jiao.lines).toHaveLength(CHAPTER4.jiao.times);
@@ -696,8 +693,8 @@ describe('第一天試玩段落：正式文字', () => {
     expect(Object.keys(CH4_SRC).length).toBeGreaterThanOrEqual(8);
     for (const [f, src] of Object.entries(CH4_SRC)) {
       expect(src.replace(/^\uFEFF/, '').startsWith(HEADER), f).toBe(true);
-      // 【待定】開頭的字串（作者定案後換掉的說明句，等作者補）不算
-      const code = stripComments(src).replace(/'【待定】[^']*'/g, "''");
+      // 爽Game 的【待定】暫代字作者都補了（_agent/ch4-text-shuang-A.md）：程式碼裡一個都不能有
+      const code = stripComments(src);
       expect(code.includes('【待定】'), f).toBe(false);
       expect(code.includes('阿哲'), f).toBe(false);
       expect(code.includes('azhe'), f).toBe(false);
@@ -737,15 +734,9 @@ describe('第一天試玩段落：正式文字', () => {
       setup();
       walk([CHAPTER4.epitaphs(r()), CHAPTER4.ghostEpitaphs(r()), CHAPTER4.finalEpitaph(r()), CHAPTER4.finale.chainLines!(r()), CHAPTER4.epilogue!.almanac(r())]);
     }
-    // 作者定案（爽Game）以後說錯的說明句換成【待定】開頭的短句等作者補（列在 _agent/c1-report.md）：只有字串開頭的那幾個可以
-    const stubs = out.filter((s) => s.startsWith('【待定】'));
-    // 第 C2 輪：時辰不夠也能辦以後，第二、三天的今日說明卡也換成【待定】（列在 _agent/c2-report.md）
-    const c12 = [CHAPTER4.finale.briefing!.text, CHAPTER4.unlocks![2].text, CHAPTER4.unlocks![3].title, CHAPTER4.unlocks![3].text];
-    for (const s of c12) expect(stubs).toContain(s);
-    // 第 C3 輪：其他的【待定】都是這一輪換的，每一句都原樣列在 _agent/c3-report.md
-    for (const s of new Set(stubs)) if (!c12.includes(s)) expect(C3_STUB(s), s).toBe(true);
-    expect(stubs.filter((s) => !c12.includes(s)).length).toBeGreaterThan(10);
-    const text = out.filter((s) => !s.startsWith('【待定】')).join('\n');
+    // C1／C2／C3 輪的【待定】暫代字都換成作者的正式文字了（_agent/ch4-text-shuang-A.md）
+    expect(out.filter((s) => s.includes('【待定】'))).toEqual([]);
+    const text = out.join('\n');
     expect(text.length).toBeGreaterThan(3000);
     // 實際產生的字沒有【待定】；第 B2 輪：三天的字都到了，也沒有「（待寫）」
     expect(text.includes('【待定】')).toBe(false);
@@ -790,8 +781,8 @@ describe('第一天試玩段落：正式文字', () => {
       expect(k.verdicts.filter((v) => v.needs).map((v) => v.verdict), id).toEqual([want]);
       for (const v of k.verdicts) {
         expect(stub(v.result), `${id} ${v.verdict}`).toBe(false);
-        // 第 C3 輪：判到別處的傷心結局換成【待定】（列在 c3-report）
-        expect(stub(v.after) && !C3_STUB(v.after), `${id} ${v.verdict}`).toBe(false);
+        // 第 C3 輪：判到別處的傷心結局換成溫和的版本（_agent/ch4-text-shuang-A.md 第 8 節）
+        expect(stub(v.after), `${id} ${v.verdict}`).toBe(false);
       }
       // 三層真相、三句話，每句都可以再問
       expect(k.truths, id).toHaveLength(3);
@@ -960,17 +951,17 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
     const f = D2.follow!;
     const lines = [
       f.hint, f.intro, f.hints, f.turn, f.results!.hit, f.results!.miss, f.results!.stay, f.results!.hitFull,
-      // 第 C3 輪：押兵小字、「什麼都不拍」的代價換成【待定】（C3_STUB）
-      ...Object.values(f.bets!).flatMap((b) => [b.label, ...(C3_STUB(b.small) ? [] : [b.small])]), ...f.clues!.map((c) => c.text),
+      // 第 C3 輪：押兵小字、押錯的最後一行、「什麼都不拍」的代價（作者正式文字：_agent/ch4-text-shuang-A.md）
+      ...Object.values(f.bets!).flatMap((b) => [b.label, b.small]), f.results!.missNote, ...f.clues!.map((c) => c.text),
       f.rest.name, f.rest.text, f.rest.gather!.title, f.rest.gather!.text, f.stay.name, f.stay.text,
       ...D2.routes.flatMap((rt) => [rt.name, rt.note, ...(rt.preview ?? [])]),
-      D2.broadcastIntro, D2.broadcastNote, ...D2.broadcast!.flatMap((o) => [o.label, o.brings, ...(C3_STUB(o.cost) ? [] : [o.cost]), o.said]),
-      ...Object.values(D2.almanac(r())), D2.title, D2.area, CHAPTER4.unlocks![2].title,
+      D2.broadcastIntro, D2.broadcastNote, ...D2.broadcast!.flatMap((o) => [o.label, o.brings, o.cost, o.said]),
+      ...Object.values(D2.almanac(r())), D2.title, D2.area, CHAPTER4.unlocks![2].title, CHAPTER4.unlocks![2].text,
       CHAPTER4.trial.intro!(2), CHAPTER4.trial.nightNote![2],
     ];
     for (const s of lines) expect(stub(s), String(s)).toBe(false);
-    // 第 C2 輪：時辰不夠也能辦，說明卡「辦不完是正常的」說錯了，換成【待定】開頭的短句等作者補（_agent/c2-report.md）
-    expect(CHAPTER4.unlocks![2].text.startsWith('【待定】')).toBe(true);
+    // 第 C2 輪：時辰不夠也能辦，說明卡「辦不完是正常的」說錯了 → 作者正式文字（_agent/ch4-text-shuang-A.md 10-1）
+    expect(CHAPTER4.unlocks![2].text).toBe('今天到北津，人比昨天多很多。時辰用完了，路上的事照樣可以辦，不用省。\n頭旗後面帶著的，判去北津的今晚到了就放下。旗下滿了也還能帶，往後多排一格。');
     // 牽路仔：舊街死巷口有自己的兩種結果（美雲、圳邊的阿嬤）
     const s2 = imp(D2, 'stray2b');
     expect(s2.story).toContain('美雲');
@@ -1062,7 +1053,7 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
     expect(k.onCollect).toEqual(['armband']);
     expect(CARDS4.arui2(r())!.options.some((o) => o.gives?.includes('arui_replay'))).toBe(true);
     expect(CARDS4.xianzai2(r())!.options.some((o) => o.gives?.includes('xian_truck'))).toBe(true);
-    for (const v of k.verdicts) expect(stub(v.after) && !C3_STUB(v.after), v.verdict).toBe(false);
+    for (const v of k.verdicts) expect(stub(v.after), v.verdict).toBe(false);
     r().held.push({ id: 'jiajiao', grudge: 0 });
     judgeGuihu(r(), k, k.verdicts.find((v) => v.verdict === 'leave')!, G, 2);
     expect(r().held).toEqual([]);

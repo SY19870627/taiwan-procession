@@ -247,6 +247,24 @@ describe('B-2. 第三天（回程・渾水溪）', () => {
     expect(said.split('\n').slice(0, -1)).toEqual(D3.follow!.results!.hit.split('\n').slice(0, -1));
   });
 
+  it('什麼都不拍：押錯（押乙）時辰不動；missNote 只接前兩句（渡頭路今天本來就沒有牽路仔）', () => {
+    r().follow!.tags = ['quiet'];
+    r().hours = 2;
+    const o = resolveBet(r(), D3, '乙');
+    expect(o.result).toBe('miss');
+    expect(o.empty).toBe(true);
+    expect(o.gained).toBe(0);
+    expect(r().hours).toBe(2);
+    const said = betResultText(D3.follow!, o);
+    expect(said).toBe(`${D3.follow!.results!.miss}\n沒押中。時辰照舊，一格都沒動。`);
+    expect(said).not.toContain('渡頭路的牽路仔');
+    // 沒有拍「什麼都不拍」：照舊接整句
+    startChapter('baishadun');
+    const o2 = resolveBet(r(), D3, '乙');
+    expect(o2.empty).toBe(false);
+    expect(lastLine(betResultText(D3.follow!, o2))).toBe('沒押中。時辰照舊，一格都沒動。渡頭路的牽路仔到了再處理。');
+  });
+
   it('秀枝的那一段在停駕點（有卡、可以稟報）；稟報不等於辦成：報了卡片還在（keepOpen），還能辦卡上的事；報過才播「轎子回頭」', () => {
     const e = D3.follow!.rest.encounters.find((x) => x.kind === 'person' && x.card === 'xiuzhi3');
     expect(e).toBeDefined();

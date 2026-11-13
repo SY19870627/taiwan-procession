@@ -190,9 +190,9 @@ export const FINALE_ROUNDS4: FinaleRound[] = [
 
 /**
  * 出示錯誤（三輪共用）。第 C3 輪：說不動也不加懲罰（core/boss.ts 的 answer：ford 不加攻擊）；
- * 舊字「茫渡：「聽不懂。要過溪的，這邊上船。」\n霧又厚了一層。」的「霧又厚了一層」說錯了 → 【待定】
+ * 舊字「茫渡：「聽不懂。要過溪的，這邊上船。」\n霧又厚了一層。」的「霧又厚了一層」說錯了；字：_agent/ch4-text-shuang-A.md 第 5 節
  */
-export const FINALE_WRONG4 = '【待定】茫渡：「聽不懂。要過溪的，這邊上船。」（霧沒有變）';
+export const FINALE_WRONG4 = '茫渡：「聽不懂。要過溪的，這邊上船。」\n牠沒聽進去。霧還是剛才那樣，隊伍照常往前走。';
 
 /**
  * 第 C3 輪（爽Game）：做了的事在回宮／開爐多一個人影（stage/ch4.ts 的 rewardCrowd4）——只加不減，沒做的不扣。

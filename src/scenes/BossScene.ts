@@ -853,7 +853,7 @@ export class BossScene extends Phaser.Scene {
         this.hud.chat('b_hold');
         return true;
       case 'lure':
-        this.hud.toast(`霧裡學人講話，在叫「${e.name}」……往下游走了！（喊名；人鏈拉得住）`, 0xd8e0ff, 3000);
+        this.hud.toast(`霧裡學人講話，在叫「${e.name}」……他往下游走了幾步。（喊名可以馬上喊回來）`, 0xd8e0ff, 3000);
         this.hud.chat('b_lure', true);
         return true;
       case 'chainHold':
@@ -869,9 +869,9 @@ export class BossScene extends Phaser.Scene {
         this.hud.chat('b_called');
         return true;
       case 'returned':
-        // 沒有人鏈段數時：被叫的人自己走回來（一定回來）。提示字待作者補
+        // 沒有人鏈段數時：被叫的人自己走回來（一定回來）
         this.ft(b.palanquin.x + 60, GROUND_Y - 260, `${e.name}回來了`, 0x9fe8c0, 24);
-        this.hud.toast(`【待定】「${e.name}」自己走回來了`, 0x9fe8c0, 2400);
+        this.hud.toast(`「${e.name}」走了幾步，覺得那個聲音不對，自己走回來了`, 0x9fe8c0, 2400);
         return true;
       case 'huiqi':
         this.cameras.main.flash(200, 255, 240, 200);
@@ -1179,7 +1179,7 @@ export class BossHud extends Phaser.Scene {
     this.time.delayedCall(700, () => this.toast(esc
       ? '點陣頭卡片換前排／後排。觸手會拖住王船：用王令押走、五王火燒掉'
       : jiao ? '點卡片換前後排（走 2 秒）。四將輪流上前排站滿 5 秒插營旗，太子出轎插中營旗：五面插齊就是五營合陣。柳將軍留在後排才射得斷水繩'
-        : ford ? '轎子先過溪了。茫渡不打人，牠拉住前排、起霧叫走水裡的人：被拉住的換下來就掙開；有人被叫走就「喊名」，人鏈也拉得住'
+        : ford ? '轎子先過溪了。茫渡不打人，牠拉住前排、起霧叫水裡的人：被拉住的換下來就掙開；有人被叫就「喊名」，他馬上回來，不喊他晚一點也會自己回來'
           : '點陣頭卡片換前排／後排。前排挨打，後排近戰會回血：輪流上陣扛傷害', 0xfff3c4, 5200));
     if (jiao) {
       // 陣前審問第 3 輪的字幕（戰鬥帶中間，戰鬥不停）
@@ -1285,7 +1285,7 @@ export class BossHud extends Phaser.Scene {
     if (b.mode === 'ford') {
       // 第四章：人鏈還剩幾段（畫面計數）、霧裡有沒有人正被叫走
       const st = b.boss.state;
-      const head = b.lure ? `「${b.lure.name}」正被叫走！` : st === 'paw' ? '霧要起了' : st === 'charge' ? '霧裡' : st === 'breath' ? '現出渡船・猛攻' : '';
+      const head = b.lure ? `霧在叫「${b.lure.name}」` : st === 'paw' ? '霧要起了' : st === 'charge' ? '霧裡' : st === 'breath' ? '現出渡船・猛攻' : '';
       this.goalTxt.setText(`${head ? `${head}　` : ''}人鏈 ${b.chainLeft} 段`).setColor(b.lure || st === 'charge' ? '#ff9a8a' : '#9fe8c0');
     }
     if (esc) {

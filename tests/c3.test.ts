@@ -26,7 +26,6 @@ import * as state from '../src/state';
 const r = () => state.run;
 const RAW = import.meta.glob(['../src/scenes/*.ts', '../src/content/ch4/*.ts'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const raw = (end: string) => RAW[Object.keys(RAW).find((p) => p.endsWith(end))!];
-const REPORT = Object.values(import.meta.glob('../_agent/c3-report.md', { query: '?raw', import: 'default', eager: true }))[0] as string;
 
 beforeEach(() => startChapter('baishadun'));
 
@@ -374,20 +373,12 @@ describe('C3-6. 回宮／開爐：做了的事多站幾個人（只是畫面）'
   });
 });
 
-describe('C3-7. 【待定】都列在報告裡', () => {
-  it('第四章內容檔裡這一輪換的【待定】字串，每一句都原樣列在 _agent/c3-report.md', () => {
-    expect(REPORT).toBeTruthy();
-    const found = new Set<string>();
+describe('C3-7. 【待定】暫代字都換成作者的正式文字了', () => {
+  it('第四章內容檔、押兵說明、BossScene 都沒有【待定】開頭的字串（_agent/ch4-text-shuang-A.md）', () => {
     for (const [f, src] of Object.entries(RAW)) {
-      if (!f.includes('/content/ch4/')) continue;
-      for (const m of src.matchAll(/'(【待定】[^']*)'/g)) found.add(m[1]);
+      if (!f.includes('/content/ch4/') && !f.endsWith('/core/procession.ts') && !f.endsWith('/scenes/BossScene.ts')) continue;
+      expect([...src.matchAll(/['`](【待定】[^'`]*)['`]/g)].map((m) => m[1]), f).toEqual([]);
     }
-    // 第 C1、C2 輪的（說明卡、今日說明卡）不在這一輪的報告裡
-    const old = new Set([CHAPTER4.unlocks![2].text, CHAPTER4.unlocks![3].title, CHAPTER4.unlocks![3].text]);
-    // 第 C1 輪的說明卡（原始碼裡是 '...\n...' 一整串，這裡抓到的是原始字）
-    const mine = [...found].filter((s) => !old.has(s) && !s.startsWith('【待定】茫渡不打人'));
-    expect(mine.length).toBeGreaterThan(10);
-    for (const s of mine) expect(REPORT.includes(s), s).toBe(true);
   });
 });
 
