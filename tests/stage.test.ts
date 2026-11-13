@@ -11,6 +11,7 @@ import { STAGES } from '../src/content/stage';
 import { STAGE_ART, STAGE_EXTRA, STAGE_FILES, STAGE_PORTRAIT_FILES, STAGE_PORTRAITS, STAGE_SIZES } from '../src/art/stageSpec';
 import { FAR_MAX_H, NEAR_WALK, STAGE_MAX_K, actorScale, bubbleBox, farBandHeight, nearBand, pickFar, stageLayout, stageSize } from '../src/core/stageLayout';
 import { BATTLE_ART, BG_FILES, PLAIN_ART } from '../src/art/xinyingSpec';
+import { CH4_STAGE_ART, CH4_STAGE_FILES } from '../src/art/baishadunSpec';
 import { CASES3 } from '../src/content/ch3/cases';
 import { isBorrowedPortrait, portraitKey } from '../src/art/portraits';
 import { BASE_H, W } from '../src/theme';
@@ -245,13 +246,13 @@ describe('美術檔名（計畫 §5）', () => {
     for (const [p, data] of Object.entries(artistFiles)) {
       const f = p.split('/').pop()!;
       const k = f.replace(/\.webp$/, '');
-      if (p.includes('/stage/')) expect(size(data), f).toEqual([...STAGE_ART[k as keyof typeof STAGE_ART]]);
+      if (p.includes('/stage/')) expect(size(data), f).toEqual([...(STAGE_ART[k as keyof typeof STAGE_ART] ?? CH4_STAGE_ART[k as keyof typeof CH4_STAGE_ART])]);
       else if (STAGE_PORTRAIT_FILES.includes(f)) expect(size(data), f).toEqual([420, 560]);
     }
   });
 
   it('public/ 裡已經有的畫師檔案，檔名都在清單上（不在清單的不會被載入）', () => {
-    for (const f of stageFiles) expect(STAGE_FILES.map((k) => `${k}.webp`), f).toContain(f);
+    for (const f of stageFiles) expect([...STAGE_FILES, ...CH4_STAGE_FILES].map((k) => `${k}.webp`), f).toContain(f);
   });
 });
 
