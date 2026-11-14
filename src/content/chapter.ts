@@ -155,7 +155,8 @@ export interface ChapterDef {
   look: 'mountain' | 'harbor' | 'plain';
   prologue: Almanac;
   /**
-   * 序章擲筊。lines（第四章）：擲到聖筊為止，第 i 個聖筊播 lines[i]；笑杯、陰杯只顯示那句話、重擲（不算次數）
+   * 序章擲筊（AlmanacScene.prologueJiao）：點三下，每一下都是聖杯。lines（第四章）：第 i 個聖筊播 lines[i]。
+   * laugh、yin 的字留在資料裡，序章流程不再秀出來
    */
   jiao: { ask: string; times: number; holy: { text: string }; laugh: { text: string }; yin: { text: string }; allHoly: { text: string }; done: string; lines?: string[] };
   /** 序章黃曆下方那句話 */

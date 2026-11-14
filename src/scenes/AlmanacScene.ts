@@ -280,7 +280,7 @@ export class AlmanacScene extends Phaser.Scene {
     return s.split('\n').reduce((n, para) => n + Math.ceil(Array.from(toVertical(para)).length / per), 0);
   }
 
-  /** 序章：擲筊請示「明日是否照常暗訪？」，三種結果事先寫明 */
+  /** 序章：擲筊請示「明日是否照常暗訪？」，點三下、每一下都是聖杯 */
   private prologueJiao(): void {
     const j = CH().jiao;
     const pw = W - 40;
@@ -300,11 +300,12 @@ export class AlmanacScene extends Phaser.Scene {
       objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.4).setOrigin(0).setDepth(900).setInteractive());
       objs.push(panel(this, x, y, pw, ph).setDepth(901));
       objs.push(title);
-      // 第四章（j.lines）：擲到聖筊為止；笑杯、陰杯重擲，三個聖筊日子才定
+      // 序章擲筊（各章共用）：點三下，每一下都指定聖杯（一平一凸），三個聖杯就過關；不會擲出笑杯、陰杯，也不用重擲
+      // （笑杯、陰杯的字留在資料裡，這裡不再秀出來）。第四章（j.lines）：第 i 個聖筊播 lines[i]
       const until = !!j.lines;
       const rules = until
-        ? [`要連得 ${j.times} 個聖筊（一平一凸），日子才定。`, `笑杯（兩平）：${j.laugh.text.replace(/。$/, '')}`, `陰杯（兩凸）：${j.yin.text.replace(/。$/, '')}`]
-        : ['照傳統擲三次：', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`, `笑杯（兩平）：${j.laugh.text.replace(/。$/, '')}`, `陰杯（兩凸）：${j.yin.text.replace(/。$/, '')}`];
+        ? [`要連得 ${j.times} 個聖筊（一平一凸），日子才定。`]
+        : ['照傳統擲三次：', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`];
       objs.push(txt(this, x + 32, y + dy + 76, rules.join('\n'), 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
       const rows: Phaser.GameObjects.Text[] = [];
       const rowY = until ? 214 : 230;
@@ -317,17 +318,10 @@ export class AlmanacScene extends Phaser.Scene {
         tb.setEnabled(false);
         for (const o of anim) o.destroy();
         anim = throwJiao(this, y + dy + 340 + (until ? 30 : 0), 903, (r) => {
-          if (until && r !== 'holy') {
-            // 不算次數：寫出這一筊，再擲一次
-            const i = results.length;
-            rows[i].setText(`第 ${i + 1} 次：${JIAO_NAME[r]}　${j[r].text}`).setColor(r === 'yin' ? '#ff9a8a' : '#fbf3e2');
-            tb.setLabel(`再擲（${i + 1}／${j.times}）`).setEnabled(true);
-            return;
-          }
           results.push(r);
           const i = results.length - 1;
           if (until) rows[i].setText(`第 ${i + 1} 次：${JIAO_NAME.holy}　${j.lines![i] ?? j.holy.text}`).setColor('#e9b949');
-          else rows[i].setText(`第 ${i + 1} 次：${JIAO_NAME[r]}（${JIAO_RULE[r]}）　${j[r].text}`).setColor(r === 'holy' ? '#e9b949' : r === 'yin' ? '#ff9a8a' : '#fbf3e2');
+          else rows[i].setText(`第 ${i + 1} 次：${JIAO_NAME.holy}（${JIAO_RULE.holy}）　${j.holy.text}`).setColor('#e9b949');
           if (results.length < j.times) {
             tb.setLabel(`再擲（${results.length + 1}／${j.times}）`).setEnabled(true);
             return;
@@ -346,7 +340,7 @@ export class AlmanacScene extends Phaser.Scene {
           button(this, W / 2, y + ph + 60, 280, 72, '翻到明天', () => (story
             ? go(this, 'story', { id: story, next: after })
             : go(this, 'almanac', { day: 1 })), { size: 26, fill: 0x8a1b14 }).setDepth(903);
-        });
+        }, W / 2, 'holy');
       }, { size: 28, fill: 0x8a1b14 });
       tb.setDepth(903);
       objs.push(tb);
