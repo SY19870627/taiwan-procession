@@ -289,6 +289,80 @@ describe('夜審「回憶」的拆句（ui/split.ts 的 flashbackLines）', () =
   });
 });
 
+// ---------------- 超框校正第 3 步：夜審回憶殘影 ----------------
+
+describe('回憶 flashback()：整段一起淡入淡出、新回憶先清掉舊的（ui/talk.ts）', () => {
+  /** 只看 flashback() 那一段 */
+  const fb = () => {
+    const src = raw('talk.ts');
+    return src.slice(src.indexOf('export function flashback('));
+  };
+
+  it('整段（底、暗角、雨／浪、標題、身影、每一句字）都在同一個容器裡，容器有名字給掃描工具認', () => {
+    const s = fb();
+    expect(raw('talk.ts')).toContain("export const FLASHBACK_NAME = 'flashback';");
+    expect(s).toContain('const root = scene.add.container(0, 0).setDepth(D).setAlpha(0);');
+    expect(s).toContain('root.name = FLASHBACK_NAME;');
+    expect(s).toContain('root.add(objs);');
+    expect(s).toContain('root.add(t);');
+    // 容器裡的東西不再各自 setDepth（容器裡照加進去的順序畫）
+    expect(s).not.toMatch(/setDepth\(D \+ \d\)/);
+    // 加進容器的順序：底 → 暗角 → 雨／浪 → 標題 → 身影（跟原本 depth 990～993 的上下一樣）
+    const at = (x: string) => s.indexOf(x);
+    expect(at('objs.push(bg)')).toBeLessThan(at('objs.push(vig)'));
+    expect(at('objs.push(vig)')).toBeLessThan(at('objs.push(d)'));
+    expect(at('objs.push(d)')).toBeLessThan(at('objs.push(label)'));
+    expect(at('objs.push(label)')).toBeLessThan(at('objs.push(img)'));
+    expect(at('objs.push(img)')).toBeLessThan(at('root.add(objs)'));
+  });
+
+  it('淡入、淡出都是整個容器；收掉就是 destroy 容器（字和底一起不見）', () => {
+    const s = fb();
+    expect(s).toContain('scene.tweens.add({ targets: root, alpha: 1, duration: 400 });');
+    expect(s).toContain("scene.tweens.add({ targets: root, alpha: 0, delay, duration, onComplete: () => { clear(); onDone(); } })");
+    expect(s).toContain('root.destroy();');
+    // 不再分開淡出、分開 destroy
+    expect(s).not.toContain('objs.concat(shown)');
+    expect(s).not.toContain('for (const x of [...objs, ...shown]) x.destroy();');
+  });
+
+  it('第四章（一問一答）：字先收（150ms）底才淡出（300ms）；別章照舊一起 400ms', () => {
+    const s = fb();
+    expect(s).toContain('if (shown.length) scene.tweens.add({ targets: shown, alpha: 0, duration: 150 });');
+    expect(s).toContain('out(150, 300);');
+    expect(s).toContain('} else out(0, 400);');
+    // 點很快時：上一句還在淡入就先停掉，再壓暗（只在第四章）
+    expect(s).toContain('if (dialog) scene.tweens.killTweensOf(s);');
+  });
+
+  it('新的回憶開始前，同一個場景上一段還在就立刻清掉（不接 onDone）；收掉之後再點不會再走', () => {
+    const s = fb();
+    expect(raw('talk.ts')).toContain('const liveFlashback = new WeakMap<Phaser.Scene, () => void>();');
+    // 第一行就先清舊的，才開始畫新的
+    expect(s.indexOf('liveFlashback.get(scene)?.();')).toBeLessThan(s.indexOf('scene.add.container('));
+    expect(s).toContain('liveFlashback.set(scene, kill);');
+    expect(s).toMatch(/const kill = \(\) => \{\s*if \(!root\.active\) return;\s*scene\.tweens\.killTweensOf\(root\);\s*clear\(\);\s*\};/);
+    expect(s).toMatch(/bg\.on\('pointerup', \(\) => \{\s*if \(done\) return;/);
+  });
+});
+
+describe('掃描工具照正常流程走（tools/overflow-scan-ch4.mjs）', () => {
+  const TOOL = import.meta.glob('../tools/overflow-scan-ch4.mjs', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+  const tool = () => Object.values(TOOL)[0];
+
+  it('回憶還在就不做下一個動作；回憶句子比點的次數多就點到收掉', () => {
+    const s = tool();
+    expect(s).toContain("o.name === 'flashback' && o.active");
+    expect(s).toContain("if (window.__flashback()) return 'busy';");
+    expect(s).toContain("for (let k = 0; k < 20 && (await ev('__flashback()')); k++) {");
+    expect(s).toContain("for (let k = 0; k < 12 && (await ev('__flashback()')); k++, t++) {");
+  });
+
+  it('每個分頁都當成有焦點（不在前面的分頁遊戲迴圈不會停）', () => {
+    expect(tool()).toContain("await s('Emulation.setFocusEmulationEnabled', { enabled: true })");
+  });
+});
+
 describe('最後一戰「陣前審問」那一條（BossScene.playTrial，第四章 ford）', () => {
   const src = () => raw('BossScene.ts');
   const ROOM = () => Number(/TRIAL_STAMP_ROOM = (\d+)/.exec(src())![1]);

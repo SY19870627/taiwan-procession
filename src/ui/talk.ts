@@ -16,6 +16,10 @@ export { splitStory, chunk, flashbackLines, type TalkLine } from './split';
 
 const BOX_H = 250;
 const DEPTH = 980;
+/** 回憶容器的名字（tools/overflow-scan-ch4.mjs 用它判斷回憶還在不在） */
+export const FLASHBACK_NAME = 'flashback';
+/** 每個場景還在播的那段回憶：新的回憶開始前先把它立刻清掉 */
+const liveFlashback = new WeakMap<Phaser.Scene, () => void>();
 
 /** 播一段對話，播完呼叫 onDone */
 export function talk(scene: Phaser.Scene, lines: TalkLine[], onDone: () => void): void {
@@ -133,11 +137,16 @@ export function talk(scene: Phaser.Scene, lines: TalkLine[], onDone: () => void)
  * 一句一句浮出來（鬼說的話 → 記下的真相）。大約 8～12 秒，點一下跳下一句。
  */
 export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; reveal: string; summary: string; fx?: 'rain' | 'sea' }, onDone: () => void): void {
+  // 同一個場景上一段回憶還在（正常玩不會：回憶的底整片擋住點擊；保險起見）：先立刻清掉，不會疊兩層「― 回 憶 ―」
+  liveFlashback.get(scene)?.();
   const objs: Phaser.GameObjects.GameObject[] = [];
   const D = 990;
-  const bg = scene.add.rectangle(0, 0, W, H, 0x2a2014, 1).setOrigin(0).setDepth(D).setInteractive().setAlpha(0);
+  // 整段回憶（底、暗角、雨／浪、標題、身影、每一句字）都放在同一個容器裡：一起淡入、一起淡出、一起清掉，不會留下字或底
+  const root = scene.add.container(0, 0).setDepth(D).setAlpha(0);
+  root.name = FLASHBACK_NAME;
+  const bg = scene.add.rectangle(0, 0, W, H, 0x2a2014, 1).setOrigin(0).setInteractive();
   objs.push(bg);
-  const vig = scene.add.graphics().setDepth(D + 1).setAlpha(0);
+  const vig = scene.add.graphics();
   // 四邊慢慢變暗（舊照片的暗角）
   for (let k = 0; k < 16; k++) {
     const a = 0.05;
@@ -149,12 +158,7 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
     vig.fillRect(W - 110 + d * 0.6, 0, 110 - d * 0.6, H);
   }
   objs.push(vig);
-  const label = txt(scene, W / 2, 70, '― 回 憶 ―', 30, 0xd8c8a0, { serif: true }).setOrigin(0.5).setDepth(D + 2).setAlpha(0);
-  objs.push(label);
-  const img = scene.add.image(W / 2, H * 0.52, o.tex).setOrigin(0.5, 1).setDepth(D + 2).setTint(0xc8b088).setAlpha(0);
-  img.setScale(Math.min(420 / img.height, 320 / img.width));
-  objs.push(img);
-  // 下雨或浪
+  // 下雨或浪（跟暗角同一層：在標題、身影下面）
   if (o.fx) {
     for (let k = 0; k < 40; k++) {
       const x = Phaser.Math.Between(0, W);
@@ -162,12 +166,18 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
       const d = o.fx === 'rain'
         ? scene.add.rectangle(x, y, 2, 30, 0xd8c8a0, 0.35).setAngle(12)
         : scene.add.rectangle(x, H * 0.55 + (k % 10) * 18, 50, 3, 0xd8c8a0, 0.25);
-      d.setDepth(D + 1);
       objs.push(d);
       if (o.fx === 'rain') scene.tweens.add({ targets: d, y: y + H, duration: 900 + k * 10, repeat: -1 });
       else scene.tweens.add({ targets: d, x: x - 60, duration: 1600 + k * 30, yoyo: true, repeat: -1 });
     }
   }
+  const label = txt(scene, W / 2, 70, '― 回 憶 ―', 30, 0xd8c8a0, { serif: true }).setOrigin(0.5);
+  objs.push(label);
+  const img = scene.add.image(W / 2, H * 0.52, o.tex).setOrigin(0.5, 1).setTint(0xc8b088).setAlpha(0);
+  img.setScale(Math.min(420 / img.height, 320 / img.width));
+  objs.push(img);
+  // 容器裡照加進去的順序畫：底 → 暗角 → 雨／浪 → 標題、身影 → 字（跟原本 depth D、D+1、D+2、D+3 的上下一樣）
+  root.add(objs);
   const lines: { text: string; color: number; serif: boolean }[] = [
     ...flashbackLines(o.reveal, o.name).map((t) => ({ text: t, color: 0xfff3c4, serif: false })),
     ...chunk(o.summary).map((t) => ({ text: t, color: 0xd8c8a0, serif: true })),
@@ -197,11 +207,34 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
       y += s.height + GAP;
     }
   };
+  /** 整段收掉：計時器、動畫、容器（連同裡面每一句字）一次清乾淨 */
+  const clear = () => {
+    done = true;
+    timer?.remove();
+    timer = undefined;
+    // 容器自己的淡出動畫不在這裡停（clear 可能就是在它的 onComplete 裡叫的）
+    scene.tweens.killTweensOf([...objs, ...shown]);
+    root.destroy();
+    if (liveFlashback.get(scene) === kill) liveFlashback.delete(scene);
+  };
+  /** 被下一段回憶頂掉（正常玩不會發生）：立刻清掉，不接 onDone */
+  const kill = () => {
+    if (!root.active) return;
+    scene.tweens.killTweensOf(root);
+    clear();
+  };
+  liveFlashback.set(scene, kill);
   const finish = () => {
     if (done) return;
     done = true;
     timer?.remove();
-    scene.tweens.add({ targets: objs.concat(shown), alpha: 0, duration: 400, onComplete: () => { for (const x of [...objs, ...shown]) x.destroy(); onDone(); } });
+    scene.tweens.killTweensOf(shown);
+    const out = (delay: number, duration: number) => scene.tweens.add({ targets: root, alpha: 0, delay, duration, onComplete: () => { clear(); onDone(); } });
+    if (dialog) {
+      // 第四章：字先收（150ms），底才淡出（300ms）：底不會先不見、字還浮在夜審面板上
+      if (shown.length) scene.tweens.add({ targets: shown, alpha: 0, duration: 150 });
+      out(150, 300);
+    } else out(0, 400);
   };
   const step = () => {
     if (i >= lines.length) {
@@ -210,7 +243,9 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
     }
     const l = lines[i];
     const prevY = shown.length ? shown[shown.length - 1].y + shown[shown.length - 1].height + 18 : y0;
-    const t = txt(scene, W / 2, prevY, l.text, 28, l.color, { serif: l.serif, bold: !l.serif, align: 'center', lineSpacing: 8, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0).setDepth(D + 3).setAlpha(0);
+    const t = txt(scene, W / 2, prevY, l.text, 28, l.color, { serif: l.serif, bold: !l.serif, align: 'center', lineSpacing: 8, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0).setAlpha(0);
+    // 字也放進回憶的容器（畫在底、身影上面）：跟著整段一起淡出、一起清掉
+    root.add(t);
     if (dialog && punctLeads(t.getWrappedText())) {
       // 換行後「」」「。」這類標點落在行首：窄一兩個字再換一次
       t.setWordWrapWidth(wrapWidth(W - 80, W - 80, 28, (w) => {
@@ -220,19 +255,24 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
     }
     shown.push(t);
     scene.tweens.add({ targets: t, alpha: 1, duration: 500 });
-    // 舊的字淡一點、往上推
-    for (const s of shown.slice(0, -1)) s.setAlpha(0.55);
+    // 舊的字淡一點、往上推（第四章：上一句還在淡入就先停掉，不然點很快時舊的字又亮回 1）
+    for (const s of shown.slice(0, -1)) {
+      if (dialog) scene.tweens.killTweensOf(s);
+      s.setAlpha(0.55);
+    }
     if (dialog) relayout();
     else if (t.y + t.height > H - 80) for (const s of shown) s.y -= t.height + 18;
     i++;
     timer = scene.time.delayedCall(3200, step);
   };
   bg.on('pointerup', () => {
+    if (done) return;
     timer?.remove();
     if (i >= lines.length) finish();
     else step();
   });
-  scene.tweens.add({ targets: [bg, vig, label], alpha: 1, duration: 400 });
+  // 整個容器淡入（底、暗角、標題原本就是一起 400ms 淡入）；身影另外慢慢浮出
+  scene.tweens.add({ targets: root, alpha: 1, duration: 400 });
   scene.tweens.add({ targets: img, alpha: 0.75, duration: 900 });
   scene.cameras.main.flash(250, 255, 240, 200);
   timer = scene.time.delayedCall(600, step);

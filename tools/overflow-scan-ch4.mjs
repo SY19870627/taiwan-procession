@@ -347,7 +347,15 @@ function PAGE() {
     while (n < 4 && (window.__click(key, '關閉') || window.__click(key, '收回'))) n++;
     return n;
   };
+  /**
+   * 回憶（ui/talk.ts 的 flashback，容器名字 'flashback'）還在不在。
+   * 真的玩的時候回憶的底整片擋住點擊，播完（點完、淡出、接回堂上）之前按不到別的；掃描也要等它收掉才做下一個動作，
+   * 不然直接叫的 say()／check() 會畫在還沒收的回憶旁邊（第 3 次掃描的兩個「― 回 憶 ―」、回憶的字浮在面板上就是這樣來的）
+   */
+  window.__flashback = () => game().scene.scenes.some((sc) => sc.sys.settings.status === 5
+    && sc.children.list.some((o) => o.name === 'flashback' && o.active));
   window.__actDo = (i) => {
+    if (window.__flashback()) return 'busy';
     if (window.__actKey) window.__closeAll(window.__actKey);
     window.__acts[i].run();
     return window.__acts[i].name;
@@ -607,6 +615,9 @@ async function main() {
           await s('Page.enable');
           await s('Runtime.enable');
           await s('Emulation.setDeviceMetricsOverride', D);
+          // 平行好幾個分頁時，不在前面的分頁可能不跑 requestAnimationFrame（遊戲迴圈停住：淡入動畫、計時器都不走，
+          // 只有掃描直接叫的函式在動），畫面跟掃到的對不上。每個分頁都當成有焦點
+          await s('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => {});
           if (D.mobile) {
             await s('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }).catch(() => {});
             await s('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] }).catch(() => {});
@@ -671,14 +682,31 @@ async function main() {
               const names = (await ev(st.acts === 'day' ? '__dayActs()' : '__trialActs()')) ?? [];
               for (let i = 0; i < names.length; i++) {
                 const [name, taps] = names[i].split('#');
-                await ev(`__actDo(${i})`);
+                // 上一個動作的回憶還沒收：照真的玩一樣先點完（不掃），收掉才做下一個
+                for (let k = 0; k < 20 && (await ev('__flashback()')); k++) {
+                  await ev('__tap()');
+                  await sleep(700);
+                }
+                const did = await ev(`__actDo(${i})`);
+                if (did === 'busy') warn(`   [${dev}] ${o.name}: ${name} 前面的回憶還沒收掉`);
                 await sleep(900);
                 await scan(name);
                 // 有回憶、判決的對話：點幾下，每下掃一次
-                for (let t = 0; t < Number(taps ?? 0); t++) {
+                let t = 0;
+                for (; t < Number(taps ?? 0); t++) {
                   await ev('__tap()');
                   await sleep(1800);
                   await scan(`${name}_t${t + 1}`);
+                }
+                // 回憶句子比點的次數多：繼續點到回憶收掉（每下一樣掃），再等淡出、接回堂上
+                if (await ev('__flashback()')) {
+                  for (let k = 0; k < 12 && (await ev('__flashback()')); k++, t++) {
+                    await ev('__tap()');
+                    await sleep(1800);
+                    await scan(`${name}_t${t + 1}`);
+                  }
+                  await sleep(700);
+                  await scan(`${name}_after`);
                 }
               }
             }
