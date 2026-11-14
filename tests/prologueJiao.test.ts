@@ -102,7 +102,7 @@ describe('AlmanacScene.prologueJiao：三下都是聖杯', () => {
     expect(s).not.toContain('j.laugh');
     expect(s).not.toContain('j.yin');
     expect(s).toContain('`要連得 ${j.times} 個聖筊（一平一凸），日子才定。`');
-    expect(s).toContain("'照傳統擲三次：'");
+    expect(s).toContain("'照傳統要連續三個聖杯，中間不能斷。'");
     expect(s).toContain('j.allHoly.text');
     expect(s).toContain('j.done');
   });

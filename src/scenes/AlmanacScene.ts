@@ -305,7 +305,7 @@ export class AlmanacScene extends Phaser.Scene {
       const until = !!j.lines;
       const rules = until
         ? [`要連得 ${j.times} 個聖筊（一平一凸），日子才定。`]
-        : ['照傳統擲三次：', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`];
+        : ['照傳統要連續三個聖杯，中間不能斷。', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`];
       objs.push(txt(this, x + 32, y + dy + 76, rules.join('\n'), 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
       const rows: Phaser.GameObjects.Text[] = [];
       const rowY = until ? 214 : 230;
