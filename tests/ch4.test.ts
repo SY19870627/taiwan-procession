@@ -3,7 +3,7 @@
  * 問歸處與跨天佔格、威名關掉、對鬼不斬，以及章節內容的一致性。前三章的規則不變另見 chapters／renown／dianjiang 測試。
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CHAPTERS, startChapter, summary, visible } from '../src/content/chapter';
+import { CHAPTERS, ghostUnit, ghostWord, startChapter, summary, visible } from '../src/content/chapter';
 import { CHAPTER4 } from '../src/content/ch4';
 import { CARDS4 } from '../src/content/ch4/believers';
 import { CUTSCENES } from '../src/content/story';
@@ -201,9 +201,9 @@ describe('牽路仔（ImpRule stray）', () => {
     expect(rule.mode).toBe('stray');
     if (rule.mode !== 'stray') return;
     expect(rule.hours).toBe(1);
-    expect(rule.verb).toBe('派押尾回頭喊他');
-    expect(summary(r(), imp(D1, 'stray1a')).cost).toBe('派押尾回頭喊他 1 時辰／託點心站 0');
-    expect(summary(r(), bare).cost).toBe('派押尾回頭喊他 1 時辰');
+    expect(rule.verb).toBe('派押尾回頭喊人');
+    expect(summary(r(), imp(D1, 'stray1a')).cost).toBe('派押尾回頭喊人 1 時辰／託點心站 0');
+    expect(summary(r(), bare).cost).toBe('派押尾回頭喊人 1 時辰');
   });
 
   it('沒有點心站：只能派兵回頭喊（1 時辰）', () => {
@@ -911,17 +911,17 @@ describe('第 B1 輪：第一天補字（ch4-text-fixes.md）', () => {
 
   it('兩個鬼的第三列、再問、出示錯（兩句輪流）；開審與再問的提示', () => {
     const cx = CHAPTER4.cases.caoxie;
-    expect(cx.statements[2]).toBe('我沒有什麼要跟媽祖講的。出力就好。');
+    expect(cx.statements[2]).toBe('我哪有什麼話要跟媽祖講。我來出一點力就好了啦。');
     expect(cx.pressQ![1]).toBe('「你都在後面哪裡等？」');
     expect(cx.pressQ![2]).toBe('「真的一句都沒有？」');
     expect(cx.wrongs).toHaveLength(2);
-    expect(cx.daySight.split('\n')[0]).toBe('隊伍後面跟著一個打赤腳的老人影子。草鞋掛在脖子上，沒穿。');
+    expect(cx.daySight.split('\n')[0]).toBe('隊伍後面跟著一個打赤腳的老人影子。他的草鞋掛在脖子上，沒有穿。');
     const apo = CHAPTER4.cases.apo;
     expect(apo.statements[2]).toBe('轎子還沒到啦。到了會放炮，我聽得出來。');
     expect(apo.pressQ![2]).toBe('「今晚有聽到炮聲嗎？」');
     expect(apo.wrongs).toHaveLength(2);
     expect(CHAPTER4.trial.open('某某')).toBe('前哨：「不用跪，坐著講。你本來是要去哪裡？」');
-    expect(CHAPTER4.trial.again).toBe('押尾：「這句再問一次。他剛才講到一半停了。」');
+    expect(CHAPTER4.trial.again).toBe('押尾：「領隊，我們再問一次。剛才有一句話講到一半就停了。」');
     // 第 C3 輪：問歸處對照錯了不加怨氣，輪流用的是錯的次數（wrongN）
     expect(raw('/scenes/TrialScene.ts')).toContain('k.wrongs[(n - 1) % k.wrongs.length]');
     expect(raw('/scenes/TrialScene.ts')).toContain("const calm = T.style === 'guihu';");
@@ -931,7 +931,7 @@ describe('第 B1 輪：第一天補字（ch4-text-fixes.md）', () => {
     expect(CHAPTER4.unlocks![1].title).toBe('跟轎');
     expect(CHAPTER4.unlocks![1].text.split('\n')).toHaveLength(3);
     const b = imp(D1, 'stray1b');
-    expect(b.entrustStory).toContain('外環點心站的阿姨抓了一顆包子');
+    expect(b.entrustStory).toContain('點心站的阿姨抓了一顆包子追過去');
     expect(b.entrustStory).not.toContain('茶水攤');
     expect(raw('/scenes/DayScene.ts')).toContain('e.entrustStory ?? rule.entrustStory');
     expect(D1.follow!.results!.hitFull).toBe('押中了。防風林的牽路仔已經清掉。時辰本來就是滿的，沒有多出來。');
@@ -980,11 +980,19 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
     ];
     for (const s of lines) expect(stub(s), String(s)).toBe(false);
     // 第 C2 輪：時辰不夠也能辦，說明卡「辦不完是正常的」說錯了 → 作者正式文字（_agent/ch4-text-shuang-A.md 10-1）
-    expect(CHAPTER4.unlocks![2].text).toBe('今天到北津，人比昨天多很多。時辰用完了，路上的事照樣可以辦，不用省著用。\n跟在頭旗後面走的，判了去北津的那幾位，今晚到了就放下。旗下滿了也還能帶，往後多排一格。');
+    expect(CHAPTER4.unlocks![2].text).toBe('今天到北津，人比昨天多很多。時辰用完了，路上的事照樣可以辦，不用省著用。\n跟在頭旗後面走的那幾位，判了「帶去北津」的，今晚到北津就可以放下。頭旗下面的格子滿了也還能再帶，會往後多排一格。');
     // 牽路仔：舊街死巷口有自己的兩種結果（美雲、圳邊的阿嬤）
     const s2 = imp(D2, 'stray2b');
     expect(s2.story).toContain('美雲');
     expect(s2.entrustStory).toContain('圳邊的阿嬤');
+    // 語氣重過：冬瓜茶攤（拍了車行才有）也有自己的兩種結果（冠宇）；北津大橋、大橋引道沒有（轎子不走）
+    const sy = imp(D2, 'stray2y');
+    expect(sy.story).toContain('押尾：「冠宇。你看一下手機的直播，轎子還在省道上走。」');
+    expect(sy.entrustStory).toContain('社團的冬瓜茶攤這段路要顧著他，不能再幫別的事。');
+    expect(imp(D2, 'stray2a').story).toBeUndefined();
+    expect(imp(D2, 'stray2a').entrustStory).toBeUndefined();
+    expect(raw('/scenes/DayScene.ts')).toContain("c.how === 'shout' ? e.story ?? rule.story : e.entrustStory ?? rule.entrustStory");
+    expect(MISSED_END4.stray2y).toBeTruthy();
     // 第二天的過場（出發、過圳、停駕、入廟、進火、草鞋丁放下、天亮）都是劇本的字；第二夜的互嗆 6＋6 組
     for (const id of ['chufa4_2', 'guozun4', 'tingjia_beijin4', 'jinmiao4', 'jinhuo4', 'fangxia_caoxie4', 'tianliang4_2']) {
       expect(CUTSCENES4[id], id).toBeDefined();
@@ -1165,5 +1173,27 @@ describe('第 B1 輪：第二天（ch4-text-day2.md）', () => {
     CARDS4.ahan2(r())!.options[1].apply(r());
     expect(CHAPTER4.ledger(r()).some((x) => x.state === '阿翰：背包上車，人用走的，走到了北津')).toBe(true);
     expect(r().flags.helped_ahan).toBe(true);
+  });
+});
+
+describe('語氣重過：畫面上的「鬼」第四章叫「好兄弟」（別章不變）', () => {
+  it('ghostWord／ghostUnit：第四章「好兄弟」「位」；第一～三章沒寫，照舊「鬼」「鬼魂」「個」', () => {
+    expect(ghostWord('鬼', CHAPTER4)).toBe('好兄弟');
+    expect(ghostWord('鬼魂', CHAPTER4)).toBe('好兄弟');
+    expect(ghostUnit(CHAPTER4)).toBe('位');
+    for (const id of ['wanjia', 'dongjin', 'xinying']) {
+      expect(ghostWord('鬼', CHAPTERS[id])).toBe('鬼');
+      expect(ghostWord('鬼魂', CHAPTERS[id])).toBe('鬼魂');
+      expect(ghostUnit(CHAPTERS[id])).toBe('個');
+    }
+  });
+
+  it('夜審、白天畫面上玩家看得到的「鬼」都改用 ghostWord（註解不算）', () => {
+    for (const f of ['/scenes/TrialScene.ts', '/scenes/DayScene.ts']) {
+      const code = raw(f).split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).map((l) => l.replace(/\/\/.*$/, ''));
+      const left = code.filter((l) => /['`"][^'`"]*鬼/.test(l) && !l.includes('ghostWord('));
+      expect(left, f).toEqual([]);
+    }
+    expect(raw('/scenes/DayScene.ts')).toContain('收容了 ${run.held.length} ${ghostUnit()}${ghostWord()}');
   });
 });

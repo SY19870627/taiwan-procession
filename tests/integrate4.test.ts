@@ -77,7 +77,7 @@ describe('第四章整章：過場', () => {
   });
 
   it('香擔的火在任何結局都沒有熄：每一種結局之後都照常回宮、開爐（添火那句不分結局都播）', () => {
-    const add = CUTSCENES.kailu4.lines.find((l) => l.text.includes('一勺一勺添進殿裡的爐'))!;
+    const add = CUTSCENES.kailu4.lines.find((l) => l.text.includes('一勺一勺添進殿裡的香爐'))!;
     expect(add).toBeDefined();
     expect(add.when).toBeUndefined();
     expect(CHAPTER4.finale.closeStory).toBe('huigong4');
@@ -216,7 +216,7 @@ describe('第四章整章：用規則走一局（不開畫面）', () => {
       expect(l.when, t).toBeUndefined();
     }
     const said = CUTSCENES.kailu4.lines.filter((l) => !l.when || l.when(r())).map((l) => l.text);
-    expect(said).toContain('剛好。沒有多。');
+    expect(said).toContain('供桌上的湯圓剛好，沒有多。');
     expect(said).not.toContain('多一碗。');
     // 回宮沒有「沒趕上」的那兩句
     expect(CUTSCENES.huigong4.lines.map((l) => l.text).join('\n')).not.toContain('沒趕上的那幾個');

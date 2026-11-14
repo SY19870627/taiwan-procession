@@ -87,11 +87,11 @@ export const STAGES4: Record<string, StageScript> = {
     ],
     beats: [
       // 鏡頭從廟門慢慢拉開，香旗被風吹向同一邊
-      { who: 'narrator', text: '白砂墩拱辰宮，將近子時。廟埕的燈全開，海風很大。', src: 0, cam: { x: 360, y: -110, zoom: 1, ms: 2200 } },
+      { who: 'narrator', text: '快到子時了。拱辰宮廟埕的燈全部打開，海風很大。', src: 0, cam: { x: 360, y: -110, zoom: 1, ms: 2200 } },
       // 阿睿從右邊倒退走進來，自拍棒舉高
       { at: 'arui', who: 'arui', text: '跟轎台開播！現在線上三百一十二人，大家晚安！', src: 1, moves: [{ id: 'arui', x: 600, ms: 1400 }] },
       { at: 'qianshao', who: 'qianshao', text: '領隊，那個拿棍子的在跟誰講話？', src: 2, cam: { x: 300, y: -90, zoom: 1.08, ms: 700 } },
-      { at: 'yawei', who: 'yawei', text: '手機。他叫阿睿。', src: 3 },
+      { at: 'yawei', who: 'yawei', text: '他在跟手機講話。他叫阿睿。', src: 3 },
       // 頭旗舉起
       { at: 'touqi', who: 'touqi', text: '時辰到。起！', src: 4, fx: 'flash', cam: { x: 420, y: -120, zoom: 1.1, ms: 600 }, moves: [{ id: 'touqi', y: 10, hop: true, ms: 400 }] },
       // 頭旗手往左衝出畫面
@@ -115,20 +115,20 @@ export const STAGES4: Record<string, StageScript> = {
       { at: 'qianshao', who: 'qianshao', text: '我走前面！往省道對不對？', src: 8, moves: [{ id: 'qianshao', x: 60, hop: true, ms: 500 }] },
       // 轎停在路口，前後擺兩次，往下頓一次。全場的人都停
       {
-        who: 'narrator', text: '轎子到了廟前第一個路口，停住。前後擺了兩下，頓了一頓。', src: 9,
+        who: 'narrator', text: '轎子到了廟前第一個路口就停住，前後擺了兩下，頓了一下。', src: 9,
         cam: { x: 260, y: -80, zoom: 1.12, ms: 800 },
         // 第 3 輪：換「路口頓住」的轎（st_jiao4_pause，前低後高）
         moves: [{ id: 'jiao', x: 230, y: 50, tex: 'st_jiao4_pause', ms: 900 }],
         sfx: { text: '頓！', at: 'jiao', color: 0xffd76a },
       },
       // 轎轉向左下方的小路（換「轉進小路」的轎 st_jiao4_turn）
-      { who: 'narrator', text: '轎班沒有人開口，肩膀跟著轎槓轉。轎子往海邊的小路去了。', src: 10, moves: [{ id: 'jiao', x: 140, y: 95, tex: 'st_jiao4_turn', hop: true, ms: 1500 }] },
+      { who: 'narrator', text: '轎班不需開口，轎子一股力量引著眾人轉向。往海邊的小路去了', src: 10, moves: [{ id: 'jiao', x: 140, y: 95, tex: 'st_jiao4_turn', hop: true, ms: 1500 }] },
       // 前哨煞住，折回來（轎已經轉進小路，換回扛著走的轎）
       { at: 'qianshao', who: 'qianshao', text: '……海邊？那邊沒有路燈欸。', src: 11, moves: [{ id: 'qianshao', x: 200, ms: 500 }, { id: 'jiao', tex: 'st_jiao4_carry', ms: 400 }] },
       { at: 'xd0', who: 'xiangdengbo', text: '今年走海線啦！跟好跟好！', src: 12, cam: { x: 360, y: -80, zoom: 1, ms: 700 } },
       // 阿滿姨在隊伍中段，一手扶膝蓋
       { at: 'aman', who: 'aman', text: '我就知道會彎這裡。', src: 13, cam: { x: 520, y: -80, zoom: 1.1, ms: 700 } },
-      { at: 'yawei', who: 'yawei', text: '領隊，後面我顧。一個一個我都記。', src: 14 },
+      { at: 'yawei', who: 'yawei', text: '領隊，後面我來顧。每一個人的名字我都會記。', src: 14 },
       // 鏡頭拉遠，一小串燈沿著海邊走
       {
         who: 'narrator', text: '隊伍離開白砂墩。這時候還很短，從頭旗到隊尾，喊一聲就聽得到。', src: 15,
@@ -162,7 +162,7 @@ export const STAGES4: Record<string, StageScript> = {
       { id: 'xd1', tex: 'st_xiangdeng_f', x: 300, y: 125, scale: 0.3 },
     ],
     beats: [
-      { at: 'qianshao', who: 'qianshao', text: '前面兩公里有一間廟，我看今晚就駐那裡。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 800 } },
+      { at: 'qianshao', who: 'qianshao', text: '前面兩公里有一間廟，我看轎子今晚就駐那裡。', src: 0, cam: { x: 360, y: -100, zoom: 1, ms: 800 } },
       // 轎往左走過車行，停，倒退回車行門口
       { who: 'narrator', text: '轎子走過一間車行，停住。往後退了三步。', src: 1, moves: [{ id: 'jiao', x: 230, hop: true, ms: 1600 }] },
       // 轎前進、後退三輪，香燈腳迅速讓出一大圈
@@ -186,9 +186,9 @@ export const STAGES4: Record<string, StageScript> = {
         sfx: { text: '咚。', at: 'jiao' },
       },
       { at: 'xd0', who: 'xiangdeng', text: '駐駕了！今晚駐這裡！', src: 6, cam: { x: 360, y: -90, zoom: 1, ms: 600 } },
-      { at: 'arui', who: 'arui', text: '聊天室整個炸掉。大家都在問，為什麼是修車的？', src: 7 },
-      { at: 'qianshao', who: 'qianshao', text: '這間？這間是修車的欸。旁邊就有廟。', src: 8, moves: [{ id: 'qianshao', x: 160, hop: true, ms: 400 }] },
-      { at: 'yawei', who: 'yawei', text: '跟。', src: 9 },
+      { at: 'arui', who: 'arui', text: '聊天室整個炸掉了。大家都在問，轎子為什麼停修車的？', src: 7 },
+      { at: 'qianshao', who: 'qianshao', text: '這間?怎麼會停在修車行。隔壁不就有一座廟嗎？', src: 8, moves: [{ id: 'qianshao', x: 160, hop: true, ms: 400 }] },
+      { at: 'yawei', who: 'yawei', text: '跟上。', src: 9 },
     ],
   },
   // ---------- 第二天（台詞照 ch4/story.ts 的 src；換字只改 story.ts 與這裡的 text，走位不用動） ----------
@@ -222,7 +222,7 @@ export const STAGES4: Record<string, StageScript> = {
     beats: [
       // 頭旗舉起，香燈腳小人全部起身
       {
-        who: 'narrator', text: '人到齊了。頭旗手把旗舉起來，整條街站起來。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 },
+        who: 'narrator', text: '人到齊了。頭旗手把旗舉起來，整條街坐著的人都站起來。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 },
         moves: [{ id: 'touqi', y: 10, hop: true, ms: 500 }, { id: 'xd0', y: 112, hop: true, ms: 400 }, { id: 'xd2', y: 122, hop: true, ms: 400 }, { id: 'xd3', y: 127, hop: true, ms: 400 }],
       },
       { at: 'touqi', who: 'touqi', text: '起馬。進廟。', src: 1 },
@@ -241,7 +241,7 @@ export const STAGES4: Record<string, StageScript> = {
       // 第一退：倒退回畫面中間（頓住的轎）
       { at: 'xd0', who: 'zhongren', text: '進喔！', src: 5, moves: [{ id: 'jiao', x: 580, tex: 'st_jiao4_pause', ms: 900 }], sfx: { text: '進喔！', at: 'jiao', color: 0xffd76a } },
       // 第二進：衝得更前面（轎頂進了門簷的影子）
-      { who: 'narrator', text: '第二次衝得更前面，轎頂的粉紅布都進了門簷的影子。又退。', src: 6, fx: 'shake', moves: [{ id: 'jiao', x: 450, tex: 'st_jiao4_carry', hop: true, ms: 800 }] },
+      { who: 'narrator', text: '第二次轎子衝得更前面，轎頂的粉紅布都到門簷底下了，結果又退回來。', src: 6, fx: 'shake', moves: [{ id: 'jiao', x: 450, tex: 'st_jiao4_carry', hop: true, ms: 800 }] },
       // 第二退
       { at: 'xd3', who: 'zhongren', text: '進喔！進喔！', src: 7, moves: [{ id: 'jiao', x: 590, tex: 'st_jiao4_pause', ms: 900 }], sfx: { text: '進喔！進喔！', at: 'jiao', color: 0xffd76a } },
       // 阿滿姨在第三排（有條件：趕上入廟才播；沒趕上換下一拍外圈那句）
@@ -254,8 +254,8 @@ export const STAGES4: Record<string, StageScript> = {
       { who: 'narrator', text: '第三次，轎子退得很遠，停了一下。整個廟埕的人吸了一口氣。', src: 12, cam: { x: 520, y: -100, zoom: 1.05, ms: 900 }, moves: [{ id: 'jiao', x: 650, tex: 'st_jiao4_pause', ms: 1400 }] },
       // 秀枝稟報過才有的四句（有條件；不放轎的走位）
       { who: 'narrator', text: '轎子又往後退，一直退到巷口。', src: 13, cam: { x: 600, y: -100, zoom: 1.12, ms: 700 } },
-      { who: 'narrator', text: '轎子在輪椅前面三步的地方頓了一下，才往前衝。', src: 14, sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
-      { at: 'xiuzhi', who: 'xiuzhi', text: '阿母，妳有沒有看到？就在前面。阿母。', src: 15 },
+      { who: 'narrator', text: '轎子在秀枝她阿母的輪椅前面三步的地方頓了一下，才往前衝。', src: 14, sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { at: 'xiuzhi', who: 'xiuzhi', text: '阿母，妳有沒有看到？轎子就在我們前面。阿母。', src: 15 },
       { who: 'narrator', text: '大家都說，今年第三退退得特別遠。', src: 16, cam: { x: 420, y: -100, zoom: 1, ms: 700 } },
       { at: 'xd0', who: 'zhongren', text: '進喔！', src: 17, cam: { x: 420, y: -100, zoom: 1, ms: 500 }, sfx: { text: '進喔！', at: 'jiao', color: 0xffd76a } },
       // 轎衝進廟門消失；頭旗、香擔跟在後面進去
@@ -308,7 +308,7 @@ export const STAGES4: Record<string, StageScript> = {
       // 頓三下（很輕的 shake；橋上的人聲小下去）
       { who: 'narrator', text: '轎子跟上來，在橋頭頓了一下。', src: 4, fx: 'shake', cam: { x: 400, y: -90, zoom: 1.1, ms: 600 }, moves: [{ id: 'jiao', x: 400, y: 30, hop: true, ms: 900 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
       { who: 'narrator', text: '又頓了一下。橋上沒有人講話了。', src: 5, moves: [{ id: 'jiao', y: 20, hop: true, ms: 500 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
-      { who: 'narrator', text: '第三下。轎班的肩膀跟著轎槓往右轉。', src: 6, moves: [{ id: 'jiao', y: 30, hop: true, ms: 700 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
+      { who: 'narrator', text: '轎子頓了第三下。轎班的肩膀跟著轎槓往右轉。', src: 6, moves: [{ id: 'jiao', y: 30, hop: true, ms: 700 }], sfx: { text: '頓！', at: 'jiao', color: 0xffd76a } },
       // 轎往右下走進芒草（y 變大＝往畫面下方）；香擔、頭旗跟著轉下去，走到轎的前面
       {
         who: 'narrator', text: '轎子離開橋頭，下了堤防的斜坡。芒草比人高，粉紅色的轎頂在草上面一晃一晃，往溪邊去。', src: 7, cam: { x: 420, y: -80, zoom: 1, ms: 900 },
@@ -319,10 +319,10 @@ export const STAGES4: Record<string, StageScript> = {
       },
       { at: 'xd0', who: 'xiangdeng', text: '下去了！不走橋！轎子要過溪！', src: 8 },
       { at: 'yijing', who: 'yijing4', text: '蛤？下面是水欸。……橋上的不要動！不要用跳的！走斜坡下去，一個一個來！', src: 9 },
-      { at: 'qianshao', who: 'qianshao', text: '橋就在旁邊。燈都點好了，路也封好了。', src: 10, moves: [{ id: 'qianshao', x: 200, hop: true, ms: 500 }] },
+      { at: 'qianshao', who: 'qianshao', text: '橋明明就在旁邊欸。燈都點好了，路也封好了，轎子怎麼不走橋？', src: 10, moves: [{ id: 'qianshao', x: 200, hop: true, ms: 500 }] },
       // 香燈腳小人一串一串從橋頭轉下斜坡；押尾走最後面。鏡頭拉遠
       {
-        at: 'yawei', who: 'yawei', text: '跟。隊尾下來要很久，我走最後面。', src: 11, cam: { x: 360, y: -100, zoom: 1, ms: 1600 },
+        at: 'yawei', who: 'yawei', text: '跟上。隊尾下來要很久，我走最後面。', src: 11, cam: { x: 360, y: -100, zoom: 1, ms: 1600 },
         moves: [
           { id: 'xd0', x: 420, y: 150, hop: true, ms: 2200 }, { id: 'xd1', x: 340, y: 150, hop: true, ms: 2600 }, { id: 'xd2', x: 260, y: 150, hop: true, ms: 3000 },
           { id: 'yawei', x: 120, hop: true, ms: 1600 },
@@ -360,11 +360,11 @@ export const STAGES4: Record<string, StageScript> = {
     crowd: crowd4('huigong4'),
     beats: [
       // 四人小轎從右邊進來，停在大轎旁邊
-      { who: 'narrator', text: '三月初九，下午。隊伍回到通汐。防風林邊，八人大轎已經等在那裡了。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 }, moves: [{ id: 'jiao4', x: 640, hop: true, ms: 2000 }, { id: 'jiao8', alpha: 1, ms: 800 }] },
+      { who: 'narrator', text: '三月初九下午，隊伍回到通汐。八人大轎已經在防風林邊等了。', src: 0, cam: { x: 420, y: -100, zoom: 1, ms: 1500 }, moves: [{ id: 'jiao4', x: 640, hop: true, ms: 2000 }, { id: 'jiao8', alpha: 1, ms: 800 }] },
       // 布圍起來：小轎淡出，只看得到大轎
       { who: 'narrator', text: '換轎的時候，四周拉起布圍著。外面的人都把頭低下去。', src: 1, moves: [{ id: 'jiao4', alpha: 0, ms: 1400 }, { id: 'jiao8', x: 600, ms: 1400 }] },
-      { at: 'qianshao', who: 'qianshao', text: '換大的了。八個人扛。走了三天的那一頂呢？', src: 2 },
-      { at: 'yawei', who: 'yawei', text: '收起來。明年還是它。', src: 3 },
+      { at: 'qianshao', who: 'qianshao', text: '換大頂的了，要八個人扛。那走了三天的那一頂轎子呢？', src: 2 },
+      { at: 'yawei', who: 'yawei', text: '那一頂先收起來，明年進香還是抬它。', src: 3 },
       // 鏡頭往左搖，路邊一桌接一桌
       { who: 'narrator', text: '從通汐到白砂墩，路兩邊擺滿了飯擔。家家戶戶把桌子搬到門口，鍋蓋都掀著。', src: 4, cam: { x: 260, y: -90, zoom: 1.05, ms: 1400 }, moves: [{ id: 'xd0', x: 160, hop: true, ms: 900 }] },
       { at: 'cunbo', who: 'cunbo', text: '回來了回來了！吃飽才准進去！這鍋是你們的，那鍋是兵將的！', src: 5 },
@@ -380,20 +380,20 @@ export const STAGES4: Record<string, StageScript> = {
       { at: 'xd0', who: 'zhongren', text: '進喔！進喔！進喔！', src: 10, sfx: { text: '進喔！', at: 'jiao8', color: 0xffd76a } },
       // 大轎衝進廟門
       { who: 'narrator', text: '大轎三進三退，進了廟門。鞭炮從廟口炸到海堤，跟出門那一晚一樣。', src: 11, fx: 'firecracker', moves: [{ id: 'jiao8', x: 420, y: 10, alpha: 0, hop: true, ms: 2400 }], sfx: { text: '劈哩啪啦！', at: 'xd1' } },
-      { at: 'yawei', who: 'yawei', text: '出門兩百一十七個。回來的我記到六萬多，後面還在進來。領隊，到了。', src: 12 },
+      { at: 'yawei', who: 'yawei', text: '出門的時候是兩百一十七個人。回來的我記到六萬多，後面還在進來。領隊，我們到了。', src: 12 },
       // 有條件的幾拍（阿滿姨第三天沒辦）
       { who: 'narrator', text: '阿滿姨是自己走橋回來的，到廟埕的時候鞭炮還有零星幾聲。她在廟門口合掌，把那支小旗插正。', src: 13, cam: { x: 300, y: -100, zoom: 1.1, ms: 700 } },
       // 新娘放下（判帶回白砂墩）：新娘小人淡出，石階邊留一雙鞋（鞋沒有圖，只淡出）
       { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住。她把網袋從左肩卸下來，朝左邊講了一句。', src: 14, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
       { at: 'aman', who: 'aman', text: '到了。', src: 15 },
       { who: 'narrator', text: '她每年走到這裡，都對著左邊講這一句。', src: 16 },
-      { at: 'xinniang', who: 'xinniang', text: '到了。阿母，回來這一半我有走完。', src: 17 },
+      { at: 'xinniang', who: 'xinniang', text: '到了。阿母，回來這一半我有陪妳走完。', src: 17 },
       { who: 'narrator', text: '新娘蹲下去，把那雙布鞋脫了，併好，放在石階旁邊。鞋尖朝廟門。', src: 18, moves: [{ id: 'xinniang', alpha: 0, ms: 1600 }] },
-      { at: 'aman', who: 'aman', text: '奇怪，今年回來腳比較不痠。', src: 19 },
+      { at: 'aman', who: 'aman', text: '奇怪，今年走回來，腳怎麼沒有像往年那麼痠。', src: 19 },
       { who: 'narrator', text: '新娘放下了。旗下空出 1 格。', src: 20 },
       // 其他版本（短）
       { who: 'narrator', text: '阿滿姨走進廟埕，在石階前站住，把那支小旗插正，講了一句「到了」。', src: 21, cam: { x: 280, y: -100, zoom: 1.15, ms: 700 } },
-      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。他說北津那一趟，明年他認得路了。', src: 22, cam: { x: 400, y: -100, zoom: 1, ms: 700 } },
+      { who: 'narrator', text: '草鞋丁跟到廟門口。他在門檻外面跪下去，磕了三個頭。他說去北津的路他認得了，明年他自己走一趟。', src: 22, cam: { x: 400, y: -100, zoom: 1, ms: 700 } },
       { at: 'apo', who: 'apo', text: '這裡不是我家。……你們吃飽沒有？沒有的話我在這邊煮也可以。', src: 23 },
       { who: 'narrator', text: '假香燈腳站在廟埕邊，看那個揹紅背包的男人進廟。這次他沒有跟進去。', src: 24 },
     ],
@@ -426,26 +426,26 @@ export const STAGES4: Record<string, StageScript> = {
     // 第 C3 輪：做了的事再多站幾個人（rewardCrowd4）
     crowd: crowd4('kailu4'),
     beats: [
-      { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
+      { who: 'narrator', text: '三月二十，回宮第十二天。拱辰宮的殿裡站滿了人，都在等開爐。', src: 0, cam: { x: 360, y: -60, zoom: 1, ms: 1500 } },
       // 上緣的布往兩邊拉開，一道光由上往下照在人臉上：鏡頭往上抬到臉的高度（畫面裡沒有神龕）
       { who: 'narrator', text: '時辰到。神龕的布幔往兩邊拉開。', src: 1, cam: { x: 360, y: -150, zoom: 1.1, ms: 1600 } },
       { who: 'narrator', text: '殿裡的人一起抬頭。沒有人講話。', src: 2 },
       { who: 'narrator', text: '阿滿姨抬著頭，嘴巴動了動。', src: 3, cam: { x: 140, y: -140, zoom: 1.3, ms: 700 } },
       { who: 'narrator', text: '阿翰把帽子拿在手上。', src: 4, cam: { x: 300, y: -140, zoom: 1.3, ms: 700 } },
       { who: 'narrator', text: '賢仔站在門邊，褲子後面的口袋還插著那支扳手。', src: 5, cam: { x: 620, y: -140, zoom: 1.3, ms: 700 } },
-      { who: 'narrator', text: '秀枝把輪椅的椅背搖高。她阿母看了很久，手上的旗沒有放下來。', src: 6, cam: { x: 520, y: -140, zoom: 1.3, ms: 700 } },
+      { who: 'narrator', text: '秀枝把輪椅的椅背搖高。她阿母抬頭看了很久，手上的旗沒有放下來。', src: 6, cam: { x: 520, y: -140, zoom: 1.3, ms: 700 } },
       { who: 'narrator', text: '阿睿站在最後面。他的手機在口袋裡，今天沒有拿出來。', src: 7, cam: { x: 380, y: -150, zoom: 1.2, ms: 700 } },
       // 畫面下方一點火光，從右移到左（火光沒有圖：只拉遠鏡頭）
-      { who: 'narrator', text: '香擔的封條撕開。帶回來的火，一勺一勺添進殿裡的爐。', src: 8, cam: { x: 360, y: -100, zoom: 1, ms: 1200 } },
-      { at: 'qianshao', who: 'qianshao', text: '一路顧回來，真的沒有熄。', src: 9 },
+      { who: 'narrator', text: '香擔的封條撕開了。從北津帶回來的火，一勺一勺添進殿裡的香爐。', src: 8, cam: { x: 360, y: -100, zoom: 1, ms: 1200 } },
+      { at: 'qianshao', who: 'qianshao', text: '火一路顧回來，真的都沒有熄欸。', src: 9 },
       { at: 'yawei', who: 'yawei', text: '挑擔的那幾個，這幾天沒有好好睡。', src: 10 },
       { at: 'cunbo', who: 'cunbo', text: '湯圓好了！紅的白的都有，自己舀，吃了才圓滿！', src: 11 },
       // 阿滿姨把一碗湯圓放在廟埕的石階上
-      { at: 'aman', who: 'aman', text: '湯圓多煮一碗，放那邊。', src: 12, moves: [{ id: 'aman', x: 160, y: 100, hop: true, ms: 800 }] },
-      { at: 'qianshao', who: 'qianshao', text: '領隊，供桌上那一排是我們的。我數過了，我們幾個，就幾碗。', src: 13 },
-      { at: 'yawei', who: 'yawei', text: '多一碗。', src: 14 },
-      { at: 'qianshao', who: 'qianshao', text: '多的那碗給誰？……喔。溪邊那個。', src: 15 },
-      { at: 'yawei', who: 'yawei', text: '剛好。沒有多。', src: 16 },
+      { at: 'aman', who: 'aman', text: '我多煮了一碗湯圓，放在石階那邊喔。', src: 12, moves: [{ id: 'aman', x: 160, y: 100, hop: true, ms: 800 }] },
+      { at: 'qianshao', who: 'qianshao', text: '領隊，供桌上那一排湯圓是我們的。我數過了，我們有幾個就擺幾碗。', src: 13 },
+      { at: 'yawei', who: 'yawei', text: '供桌上多了一碗。', src: 14 },
+      { at: 'qianshao', who: 'qianshao', text: '多的那碗是要給誰的？……喔，溪邊那個撐船的。', src: 15 },
+      { at: 'yawei', who: 'yawei', text: '供桌上的湯圓剛好，沒有多。', src: 16 },
     ],
   },
 };

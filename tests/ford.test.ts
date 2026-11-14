@@ -17,6 +17,7 @@ import { CHAPTERS } from '../src/content/chapter';
 import { MISSED_END4 } from '../src/content/ch4/missed';
 import { hasSlay, rightVerdict } from '../src/core/guihu';
 import { slayBoss } from '../src/core/renown';
+import { skipStray } from '../src/core/procession';
 import { newRun, newFollow, type RunState } from '../src/state';
 import { CH4_BATTLE_FILES, CH4_FORD_BG } from '../src/art/baishadunSpec';
 
@@ -328,6 +329,34 @@ describe('渾水溪・茫渡：人鏈只是畫面（越多人只是畫面特效�
     expect(stragglers4(r)).toEqual(['宗翰', '金水伯', '美雲']);
     for (const n of ['秀枝', '秀枝的阿母', '阿滿姨', '賢仔']) expect(stragglers4(ch4Run())).not.toContain(n);
   });
+
+  it('語氣重過：依實際略過的那一隻牽路仔取名字（stray1a／1b→金水伯、stray2b→美雲、stray2y→冠宇、stray3a→宗翰）；冠宇不補位', () => {
+    const h = (x: RunState) => { x.flags.helped_ahan = true; x.flags.helped_arui = true; };
+    // 第二天兩隻都略過：兩個都喊（冠宇、美雲）
+    expect(stragglers4(ch4Run((x) => { h(x); skipStray(x, 'stray2b'); skipStray(x, 'stray2y'); }))).toEqual(['冠宇', '美雲', '金水伯', '宗翰']);
+    expect(stragglers4(ch4Run((x) => { h(x); skipStray(x, 'stray2y'); }))).toEqual(['冠宇', '金水伯', '美雲', '宗翰']);
+    expect(stragglers4(ch4Run((x) => { h(x); skipStray(x, 'stray1b'); skipStray(x, 'stray3a'); }))).toEqual(['金水伯', '宗翰', '美雲']);
+    // 北津大橋、大橋引道沒有名字；沒略過就只有補位（不含冠宇）
+    expect(stragglers4(ch4Run((x) => { h(x); skipStray(x, 'stray2a'); skipStray(x, 'stray3b'); }))).toEqual(['金水伯', '美雲', '宗翰']);
+    expect(stragglers4(ch4Run(h))).not.toContain('冠宇');
+    // 舊進度（只有 strayedDay）照舊
+    expect(stragglers4(ch4Run((x) => { h(x); x.follow!.strayedDay = { 2: 1 }; }))).toEqual(['美雲', '金水伯', '宗翰']);
+    // 不給 id（舊的呼叫）不記任何東西
+    const r = ch4Run();
+    skipStray(r);
+    expect(r.follow!.strayedIds).toBeUndefined();
+  });
+
+  it('語氣重過：人鏈台詞每一句都不換行（賢仔、阿睿拆成同一個人連續兩句）', () => {
+    const r = ch4Run((x) => { x.flags.done_xianzai3 = true; x.flags.done_arui3 = true; x.flags.helped_xianzai = true; });
+    const groups = CHAPTER4.finale.chainLines!(r);
+    for (const g of groups) for (const l of g) expect(l.text, l.text).not.toContain('\n');
+    const xz = groups.find((g) => g[0]?.who === '賢仔')!;
+    expect(xz.map((l) => l.who)).toEqual(['賢仔', '賢仔']);
+    expect(xz.map((l) => l.text)).toEqual(['拖車繩三十米！一頭我綁保險桿，另一頭你們拉下水！', '車燈我開遠燈，看到燈的往燈走！']);
+    const ar = groups.find((g) => g[0]?.who === '阿睿')!;
+    expect(ar.map((l) => l.text)).toEqual(['各位，畫面是白的，我知道。', '我現在念名字，在水裡聽到的喊『有』！黃金水！林美雲！']);
+  });
 });
 
 describe('渾水溪・茫渡：斬茫渡不加戾氣（只有第四章）', () => {
@@ -379,7 +408,7 @@ describe('渾水溪・茫渡：陣前審問、結局的字與接法', () => {
     expect(ends.return.needRound).toBe(2);
     expect(ends.slay.needLast ?? ends.slay.needRound).toBeUndefined();
     for (const e of F.ends) expect(e.desc.length, e.kind).toBeGreaterThan(10);
-    expect(ends.slay.desc).toContain('這一章只有牠可以斬');
+    expect(ends.slay.desc).toContain('這一章只有茫渡可以斬');
     for (const k of ['recall', 'return', 'slay'] as const) {
       const cs = CUTSCENES[F.endStory![k]!];
       expect(cs.lines.length, k).toBeGreaterThanOrEqual(10);
@@ -387,11 +416,11 @@ describe('渾水溪・茫渡：陣前審問、結局的字與接法', () => {
       for (const l of cs.lines) expect(['god', 'kaijiang', 'yun', 'taizi'].includes(l.who)).toBe(false);
     }
     // 收尾的那句：兵馬自己猜轎子為什麼不走橋（旁白不替媽祖解釋）
-    for (const k of ['recall', 'return', 'slay'] as const) expect(CUTSCENES[F.endStory![k]!].lines.some((l) => l.who === 'qianshao' && l.text.includes('難怪不走橋')), k).toBe(true);
+    for (const k of ['recall', 'return', 'slay'] as const) expect(CUTSCENES[F.endStory![k]!].lines.some((l) => l.who === 'qianshao' && l.text.includes('難怪媽祖不走橋')), k).toBe(true);
     // 斬：第三輪押尾問過名字，押尾那句換掉
     const slay = CUTSCENES.mangduSlay4.lines.filter((l) => l.who === 'yawei' && l.when);
     expect(slay.length).toBe(2);
-    expect(slay.filter((l) => l.when!(ch4Run((x) => { x.flags.finale_yawei = true; }))).map((l) => l.text)).toEqual(['「渡頭撐船的」。我記了。現在要劃掉。']);
+    expect(slay.filter((l) => l.when!(ch4Run((x) => { x.flags.finale_yawei = true; }))).map((l) => l.text)).toEqual(['我簿子上記的是「渡頭撐船的」。現在要把這一行劃掉了。']);
   });
 });
 

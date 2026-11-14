@@ -183,6 +183,10 @@ export interface ChapterDef {
   releaseSkill(id: string): { name: string; desc: string } | null;
   /** 白天：收容的地方叫什麼、怎麼收容、小妖怎麼處理 */
   held: { label: string; sub: string; icon: string; collect: (dayName: string) => string };
+  /** 白天、夜審畫面上「鬼」「鬼魂」的稱呼（可選；預設「鬼」。第四章：「好兄弟」）。用 ghostWord() 讀 */
+  ghostWord?: string;
+  /** 數鬼的量詞（可選；預設「個」。第四章：「位」——「收容了 N 位好兄弟」）。用 ghostUnit() 讀 */
+  ghostUnit?: string;
   imp: ImpRule;
   trial: TrialStyle;
   finale: FinaleDef;
@@ -349,6 +353,19 @@ export const CHAPTERS: Record<string, ChapterDef> = { wanjia: CHAPTER1, dongjin:
 /** 目前這一章 */
 export function CH(): ChapterDef {
   return CHAPTERS[run.chapter] ?? CHAPTER1;
+}
+
+/**
+ * 這一章畫面上怎麼叫鬼（ChapterDef.ghostWord）。沒寫就用 fallback：原本寫「鬼」的地方是「鬼」，
+ * 原本寫「鬼魂」的地方傳 '鬼魂'（別章顯示完全不變）。
+ */
+export function ghostWord(fallback = '鬼', ch: ChapterDef = CH()): string {
+  return ch.ghostWord ?? fallback;
+}
+
+/** 這一章數鬼的量詞（ChapterDef.ghostUnit；沒寫是「個」） */
+export function ghostUnit(ch: ChapterDef = CH()): string {
+  return ch.ghostUnit ?? '個';
 }
 
 /** 開始一章：重設進度（收容格數、開局押著的鬼依章節設定） */

@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import type { Card, Option } from '../content/believers';
 import type { DayPlan, Encounter, RouteDef } from '../content/days';
-import { CH, collectHours, evidenceFor, evidenceOf, finaleEvidence, ghostMood, laterSightings, summary, takeDocs, talkBlocked, visible, type ImpRule } from '../content/chapter';
+import { CH, collectHours, evidenceFor, evidenceOf, finaleEvidence, ghostMood, ghostUnit, ghostWord, laterSightings, summary, takeDocs, talkBlocked, visible, type ImpRule } from '../content/chapter';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
 import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
@@ -45,9 +45,10 @@ function twoLines(label: string): string {
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
-const LIQI_TEXT = ['平靜', '鬼魂會躲起來', '鬼魂會逃走', '鬼魂都躲著隊伍'];
+/** 戾氣的說明（「鬼」「鬼魂」照這一章的稱呼 ghostWord；別章照舊是「鬼」「鬼魂」，第四章是「好兄弟」） */
+const liqiText = (): string[] => ['平靜', `${ghostWord('鬼魂')}會躲起來`, `${ghostWord('鬼魂')}會逃走`, `${ghostWord('鬼魂')}都躲著隊伍`];
 /** 第三章：戾氣讓鬼躲起來時用風火輪追，所以說法不同 */
-const LIQI_TEXT3 = ['平靜', '膽小的鬼會躲（風火輪追）', '鬼魂會躲或逃', '鬼魂都躲著隊伍'];
+const liqiText3 = (): string[] => ['平靜', `膽小的${ghostWord()}會躲（風火輪追）`, `${ghostWord('鬼魂')}會躲或逃`, `${ghostWord('鬼魂')}都躲著隊伍`];
 
 /** 蓋在畫面上的清單下方的動作按鈕（第三章營旗格：看相、快判、路邊點將） */
 interface ActionDef {
@@ -162,7 +163,7 @@ export class DayScene extends Phaser.Scene {
     });
     this.panelMsg(`${this.plan.title}・起駕`, this.plan.follow
       ? '頭旗出發了，轎子跟在後面。往哪裡走，只有媽祖知道。路上遇到的事，停下來處理才花時辰；略過就走過去了。'
-      : '隊伍出發了。路上遇到的人和鬼，停下來處理才花時辰；略過就走過去了。');
+      : `隊伍出發了。路上遇到的人和${ghostWord()}，停下來處理才花時辰；略過就走過去了。`);
   }
 
   /** 神蹟的叫法（第四章：稟報） */
@@ -220,7 +221,7 @@ export class DayScene extends Phaser.Scene {
     this.hourBoxes.forEach((b, i) => b.setAlpha(i < used ? 0.25 : 1));
     this.miracleDots.forEach((d, i) => d.setFillStyle(i < run.miracles ? 0xffd76a : 0x3a3442));
     this.liqiPips.forEach((p, i) => p.setFillStyle(i < run.liqi ? 0xd23a2a : 0x3a3442));
-    this.liqiTxt.setText((this.renown() ? LIQI_TEXT3 : LIQI_TEXT)[run.liqi]);
+    this.liqiTxt.setText((this.renown() ? liqiText3() : liqiText())[run.liqi]);
     this.weimingPips.forEach((p, i) => p.setFillStyle(i < run.weiming ? 0xffd76a : 0x3a3442));
     this.weimingTxt?.setText(weimingText(run.weiming));
     this.drawSlots();
@@ -802,7 +803,7 @@ export class DayScene extends Phaser.Scene {
     ].join('\n');
     const text = `${k.daySight}${mood === 'hiding' ? '\n牠感覺到隊伍的戾氣，躲了起來；要花 1 個時辰勸出來。' : ''}\n\n${info}`;
     // 第四章的鬼不是「有冤情」：是沒地方去、要帶到歸處的
-    const tag = k.meet ? { s: '沒地方去的', color: '#2b5aa8' } : { s: '有冤情的鬼', color: '#2b5aa8' };
+    const tag = k.meet ? { s: '沒地方去的', color: '#2b5aa8' } : { s: `有冤情的${ghostWord()}`, color: '#2b5aa8' };
     const { p, y: y0 } = this.cardHead(k.dayName, `${e.place}（凡人看不見）`, text, tag, k.tex, true, k.id);
     // 第四章（第 C3 輪）：頭旗下滿了也帶得走（core/guihu.ts 的 makeRoom：旗後面多排一格）
     const full = run.held.length >= run.slots && !CH().guihu;
@@ -1025,10 +1026,11 @@ export class DayScene extends Phaser.Scene {
     this.skipRow(p, y, '最後一戰小妖 +1 波', () => this.skipImp());
   }
 
-  private skipImp(): void {
+  /** id：第四章牽路仔的 id（記下略過的是哪一隻，最後一戰水裡的名單用） */
+  private skipImp(id?: string): void {
     if (this.busy) return;
     const rule = CH().imp;
-    if (rule.mode === 'stray') skipStray(run);
+    if (rule.mode === 'stray') skipStray(run, id);
     else run.bossAdds += rule.mode === 'ring' ? rule.skipAdds : 1;
     this.skip();
   }
@@ -1051,7 +1053,7 @@ export class DayScene extends Phaser.Scene {
         this.band.scatter(() => { this.busy = false; this.after(c.how === 'shout' ? e.story ?? rule.story : e.entrustStory ?? rule.entrustStory, []); });
       }, c.how === 'entrust');
     }
-    this.skipRow(p, y, rule.skip, () => this.skipImp());
+    this.skipRow(p, y, rule.skip, () => this.skipImp(e.id));
   }
 
   // ----- 線索 -----
@@ -1093,7 +1095,7 @@ export class DayScene extends Phaser.Scene {
   private showFork(): void {
     const p = this.resetSide();
     this.add2(txt(this, p.x + 24, p.y + 14, '岔路', 30, C.gold, { serif: true }));
-    this.add2(txt(this, p.x + 24, p.y + 56, '時辰只夠走一條。另一條路上的人和鬼，今天就錯過了。', 20, C.paper, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
+    this.add2(txt(this, p.x + 24, p.y + 56, `時辰只夠走一條。另一條路上的人和${ghostWord()}，今天就錯過了。`, 20, C.paper, { bold: false, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     const routes = this.plan.routes;
     const blockH = (p.h - 100) / routes.length;
     routes.forEach((route, i) => {
@@ -1354,14 +1356,14 @@ export class DayScene extends Phaser.Scene {
     const lines = camps
       ? this.campSummary(camps)
       : run.held.length
-        ? `${CH().held.label}收容了 ${run.held.length} 個鬼：\n${run.held.map((h) => `・${CH().cases[h.id].dayName}`).join('\n')}\n\n今晚升堂夜審。`
-        : '今天沒有收容任何鬼。';
+        ? `${CH().held.label}收容了 ${run.held.length} ${ghostUnit()}${ghostWord()}：\n${run.held.map((h) => `・${CH().cases[h.id].dayName}`).join('\n')}\n\n今晚升堂夜審。`
+        : `今天沒有收容任何${ghostWord()}。`;
     this.add2(txt(this, p.x + 24, p.y + 100, lines, 23, C.paper, { bold: false, lineSpacing: 10, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.band.setHour(18);
     this.banter('dusk');
     const day = this.plan.day;
     if (day === 3) CH().endOfDay3(run);
-    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: `今晚審${CH().held.label}的鬼`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・升堂', () => go(this, 'cut', { kind: 'dusk', title: '日落・升堂', sub: `今晚審${CH().held.label}的${ghostWord()}`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
   }
 
   /**
@@ -1394,7 +1396,7 @@ export class DayScene extends Phaser.Scene {
     this.add2(txt(this, p.x + p.w / 2, p.y + 24, f.stay.finale ? `日落・${f.stay.name}` : `日落・駐駕${f.stay.name}`, 30, C.gold, { serif: true }).setOrigin(0.5, 0));
     const held = run.held.length
       ? `頭旗下 ${run.held.length}／${run.slots}：${run.held.map((h) => `${CH().cases[h.id].dayName}${h.dest ? `（往${CH().guihu?.dests[h.dest]?.name ?? h.dest}）` : ''}`).join('、')}`
-      : '頭旗下沒有跟著的鬼。';
+      : `頭旗下沒有跟著的${ghostWord()}。`;
     const t = this.add2(txt(this, p.x + 24, p.y + 76, [f.stay.text, held].filter(Boolean).join('\n'), 20, C.paper, { bold: false, lineSpacing: 6, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     this.band.setHour(18);
     const day = this.plan.day;
@@ -1425,7 +1427,7 @@ export class DayScene extends Phaser.Scene {
       }), { size: 26, fill: 0x8a1b14 }));
       return;
     }
-    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・問歸處', () => go(this, 'cut', { kind: 'dusk', title: '日落・駐駕', sub: `今晚問${CH().held.label}的鬼要去哪裡`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
+    this.add2(button(this, p.x + p.w / 2, p.y + p.h - 70, 260, 72, '入夜・問歸處', () => go(this, 'cut', { kind: 'dusk', title: '日落・駐駕', sub: `今晚問${CH().held.label}的${ghostWord()}要去哪裡`, next: { key: 'trial', data: { night: day } } }), { size: 26, fill: 0x5a2a6a }));
   }
 
   /** 第三章收工頁：營旗下五格各押著誰、今晚能審幾案 */
@@ -1519,13 +1521,13 @@ export class DayScene extends Phaser.Scene {
         y += Math.max(36, t.height) + 16;
       }
       y += 10;
-      add(txt(this, x + 30, y, `${CH().held.label}的鬼`, 22, C.gold, { serif: true }));
+      add(txt(this, x + 30, y, `${CH().held.label}的${ghostWord()}`, 22, C.gold, { serif: true }));
       y += 36;
       const held = run.held.length ? run.held.map((h) => `・${CH().cases[h.id].dayName}（怨氣 ${h.grudge}／3）`).join('\n') : '（沒有）';
       const t1 = txt(this, x + 30, y, held, 21, 0x9fd0ff, { bold: false, lineSpacing: 6 });
       add(t1);
       y += t1.height + 20;
-      add(txt(this, x + 30, y, `戾氣 ${run.liqi}／3：${(this.renown() ? LIQI_TEXT3 : LIQI_TEXT)[run.liqi]}`, 21, 0xff9a8a, { bold: false }));
+      add(txt(this, x + 30, y, `戾氣 ${run.liqi}／3：${(this.renown() ? liqiText3() : liqiText())[run.liqi]}`, 21, 0xff9a8a, { bold: false }));
       y += 40;
       if (this.renown()) {
         add(txt(this, x + 30, y, `威名 ${run.weiming}／${WEIMING_MAX}：${weimingText(run.weiming)}`, 21, 0xffd76a, { bold: false }));

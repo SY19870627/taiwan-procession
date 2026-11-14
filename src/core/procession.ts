@@ -257,9 +257,13 @@ export function resolveStray(r: RunState, e: Extract<Encounter, { kind: 'imp' }>
 /**
  * 略過牽路仔。第 C3 輪（爽Game）：不記任何東西——沒有「沒跟上」的人數、沒有遺憾、最後一戰不多小妖。
  * 落隊的人自己走回隊伍（故事照走）；有處理的才有獎勵（flags.stray_<id>：回宮／開爐多一個人影）。
+ * 給了牽路仔 id 就記下來（follow.strayedIds）：只用在最後一戰水裡喊誰的名字（believers.ts 的 stragglers4），不是懲罰。
  */
-export function skipStray(r: RunState): void {
-  followOf(r);
+export function skipStray(r: RunState, id?: string): void {
+  const f = followOf(r);
+  if (!id) return;
+  const ids = (f.strayedIds ??= []);
+  if (!ids.includes(id)) ids.push(id);
 }
 
 // ---------- 稟報 ----------

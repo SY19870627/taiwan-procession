@@ -173,7 +173,7 @@ describe('第四章漏掉收尾（第 B 步）', () => {
       if (s === MISSED_FINALE4.noSlayReturn) continue;
       expect(inDoc(s), s).toBe(true);
     }
-    expect(MISSED_FINALE4.noSlayReturn).toContain('牠撐了最後一篙，船頭碰到了岸');
+    expect(MISSED_FINALE4.noSlayReturn).toContain('茫渡撐了最後一篙，船頭碰到了岸');
   });
 
   it('分配表：N1-1 化解、N1-2 搞笑、N1-3 化解、N2-1 化解、N2-2 化解、N2-3 化解、N2-4 搞笑；N1-4（jump scare）不在這裡', () => {
@@ -330,9 +330,9 @@ describe('第四章 jump scare（N1-4 阿婆、3-13 提燈的）', () => {
     const x = r();
     expect(shown(x)).toContain(TIDENG_SCARE4.say);
     expect(shown(x)).toContain(TIDENG_SCARE4.after);
-    expect(shown(x)).not.toContain('夠亮了。今天晚上不用我的。');
+    expect(shown(x)).not.toContain('這麼多燈，夠亮了啦。今天晚上用不到我這一盞。');
     x.held.push({ id: 'tideng', grudge: 0 });
-    expect(shown(x)).toContain('夠亮了。今天晚上不用我的。');
+    expect(shown(x)).toContain('這麼多燈，夠亮了啦。今天晚上用不到我這一盞。');
     expect(shown(x)).not.toContain(TIDENG_SCARE4.say);
   });
 

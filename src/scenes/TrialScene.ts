@@ -11,7 +11,7 @@
 import Phaser from 'phaser';
 import { C, H, W } from '../theme';
 import { DEFECT_NEEDS, type GhostCase, type VerdictDef } from '../content/cases';
-import { CH, evidenceOf, playableDays, verdictName } from '../content/chapter';
+import { CH, evidenceOf, ghostWord, playableDays, verdictName } from '../content/chapter';
 import { playStory } from './StoryScene';
 import { run } from '../state';
 import { button, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
@@ -46,7 +46,7 @@ export class TrialScene extends Phaser.Scene {
     super('trial');
   }
 
-  create(data: { night: number; scare?: boolean; fun?: boolean }): void {
+  create(data: { night: number; scare?: boolean; fun?: boolean; ask?: string; panel?: string }): void {
     this.n = data.night ?? 1;
     this.watch = 0;
     this.messages = [];
@@ -119,7 +119,12 @@ export class TrialScene extends Phaser.Scene {
     if (data.scare && run.chapter === 'baishadun' && T.style === 'guihu') this.time.delayedCall(900, () => this.scareApo());
     // 開發用（截圖）：&preset=missed&fun=1 跳過開審前的對話，草鞋丁直接判一個錯的歸處（判決頁接 N1-2 搞笑）
     else if (data.fun && run.chapter === 'baishadun' && T.style === 'guihu') this.time.delayedCall(900, () => this.funCaoxie());
-    else if (before.length || intro) this.time.delayedCall(450, playNext);
+    // 開發用（截圖，tools/shots-ch4-voice.mjs）：&ask=lobby 跳過開審前的對話，停在大廳；&ask=<案>（要先 &held=<案>）直接問那個鬼，
+    // 再加 &panel=verdicts 直接開判決面板
+    else if (data.ask && run.chapter === 'baishadun' && T.style === 'guihu') {
+      const k = CH().cases[data.ask];
+      if (k && run.held.some((h) => h.id === k.id)) this.time.delayedCall(300, () => (data.panel === 'verdicts' ? this.verdicts(k) : this.open(k)));
+    } else if (before.length || intro) this.time.delayedCall(450, playNext);
   }
 
   // ---------- 堂上：選要審哪一個 ----------
@@ -153,11 +158,11 @@ export class TrialScene extends Phaser.Scene {
       if (info) this.add2(txt(this, W / 2, 180, info, 19, 0xffd76a, { bold: false, align: 'center', lineSpacing: 4, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0));
     }
     if (!list.length || left <= 0) {
-      this.add2(txt(this, p.x + 24, p.y + 24, list.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要${guihu ? '問' : '審'}的鬼了。`, 24, C.paper, { bold: false }));
+      this.add2(txt(this, p.x + 24, p.y + 24, list.length ? '更鼓響了五下。今夜到此為止。' : `${CH().held.label}沒有要${guihu ? '問' : '審'}的${ghostWord()}了。`, 24, C.paper, { bold: false }));
       this.add2(button(this, W / 2, p.y + p.h - 70, 280, 76, this.n === 3 ? T.finalLabel : '天亮', () => this.finish(), { size: 28, fill: 0x8a1b14 }));
       return;
     }
-    this.add2(txt(this, p.x + 24, p.y + 18, `${CH().held.label}的鬼`, 26, C.gold, { serif: true }));
+    this.add2(txt(this, p.x + 24, p.y + 18, `${CH().held.label}的${ghostWord()}`, 26, C.gold, { serif: true }));
     list.forEach((h, i) => {
       const k = CH().cases[h.id];
       const st = run.cases[h.id] ?? { truths: [] };
@@ -531,9 +536,9 @@ export class TrialScene extends Phaser.Scene {
     this.add2(panel(this, p.x, p.y, p.w, p.h));
     for (const m of this.messages.slice(-2)) this.add2(txt(this, W / 2, 174, m, 17, 0xffd76a, { bold: false }).setOrigin(0.5, 1));
     if (!run.held.length) {
-      this.add2(txt(this, p.x + 24, p.y + 24, `${CH().held.label}沒有要審的鬼了。`, 24, C.paper, { bold: false }));
+      this.add2(txt(this, p.x + 24, p.y + 24, `${CH().held.label}沒有要審的${ghostWord()}了。`, 24, C.paper, { bold: false }));
     } else {
-      this.add2(txt(this, p.x + 24, p.y + 16, `${CH().held.label}的鬼`, 26, C.gold, { serif: true }));
+      this.add2(txt(this, p.x + 24, p.y + 16, `${CH().held.label}的${ghostWord()}`, 26, C.gold, { serif: true }));
       const rowH = Math.min(176, Math.floor((p.h - 190) / Math.max(1, run.held.length)));
       run.held.forEach((h, i) => {
         const k = CH().cases[h.id];

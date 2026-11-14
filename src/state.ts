@@ -86,6 +86,11 @@ export interface FollowState {
   reports: Record<string, boolean>;
   /** 每天被牽路仔帶偏的人數（天數 → 人數；略過牽路仔時才建立） */
   strayedDay?: Record<number, number>;
+  /**
+   * 略過的牽路仔 id（照略過的順序；略過時才建立，舊進度沒有這個欄位）。
+   * 只給最後一戰「水裡的名單」取名字用（believers.ts 的 stragglers4），不算遺憾、不加小妖。
+   */
+  strayedIds?: string[];
 }
 
 export function newFollow(): FollowState {
