@@ -12,10 +12,19 @@ export function rollJiao(): JiaoResult {
   return r < 0.5 ? 'holy' : r < 0.75 ? 'laugh' : 'yin';
 }
 
-/** 擲筊動畫：兩片筊往上拋、轉幾圈、落地，落地後回呼結果 */
-export function throwJiao(scene: Phaser.Scene, y: number, depth: number, cb: (r: JiaoResult) => void, cx = W / 2): Phaser.GameObjects.Image[] {
-  const r = rollJiao();
-  const faces = r === 'holy' ? ['jiao_flat', 'jiao_round'] : r === 'laugh' ? ['jiao_flat', 'jiao_flat'] : ['jiao_round', 'jiao_round'];
+export type JiaoFace = 'jiao_flat' | 'jiao_round';
+/** 結果 → 兩片筊落地的面（聖杯一平一凸、笑杯兩平、陰杯兩凸） */
+export function jiaoFaces(r: JiaoResult): [JiaoFace, JiaoFace] {
+  return r === 'holy' ? ['jiao_flat', 'jiao_round'] : r === 'laugh' ? ['jiao_flat', 'jiao_flat'] : ['jiao_round', 'jiao_round'];
+}
+
+/**
+ * 擲筊動畫：兩片筊往上拋、轉幾圈、落地，落地後回呼結果。
+ * forced：指定這一擲的結果（動畫照播，落地的面與回呼都用指定值）；沒給就照 rollJiao() 的機率
+ */
+export function throwJiao(scene: Phaser.Scene, y: number, depth: number, cb: (r: JiaoResult) => void, cx = W / 2, forced?: JiaoResult): Phaser.GameObjects.Image[] {
+  const r = forced ?? rollJiao();
+  const faces = jiaoFaces(r);
   let landed = 0;
   const imgs: Phaser.GameObjects.Image[] = [];
   [-70, 70].forEach((dx, i) => {

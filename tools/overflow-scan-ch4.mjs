@@ -444,8 +444,8 @@ add('chapter', `scene=chapter&${CH4}`, 3000, [{ scan: '' }, { js: "(() => { cons
 add('almanac_prologue', `scene=almanac&${CH4}&prologue=1`, 3500, [
   { scan: '' },
   { click: ['almanac', '請示媽祖'] }, { sleep: 700 }, { scan: 'jiao' },
-  // 擲到三個聖筊為止（聖杯 50%）：最多按 14 次
-  ...Array.from({ length: 14 }, () => [{ clickRe: ['almanac', '^(擲筊|再擲)'] }, { sleep: 1800 }]).flat(),
+  // 序章三次都是聖筊：按 3 次
+  ...Array.from({ length: 3 }, () => [{ clickRe: ['almanac', '^(擲筊|再擲)'] }, { sleep: 1800 }]).flat(),
   { scan: 'jiao_done' },
 ]);
 // 第 1–3 天黃曆（昨日卡、今日說明卡、黃曆本頁）
