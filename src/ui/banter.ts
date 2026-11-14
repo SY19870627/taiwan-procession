@@ -10,6 +10,7 @@ import { H, W, WHO_COLOR } from '../theme';
 import { freeY, wrapWidth, type Rect } from '../core/layout';
 import type { BanterLine } from '../content/chapter';
 import { txt } from './widgets';
+import { noteLine } from '../debug/probe';
 
 const LINE_MS = 2200;
 
@@ -35,6 +36,7 @@ export function banter(scene: Phaser.Scene, lines: BanterLine[], y = 240, depth 
   lines.forEach((l, i) => {
     scene.time.delayedCall(i * LINE_MS, () => {
       if (live.get(scene) !== objs) return;
+      noteLine(l.who, l.text, i, scene.scene.key);
       // 名字依五營上色，後面接著台詞（第四章最後一戰：旁白沒有名字，who 是空字串）
       const tag = l.who ? `${l.who}：` : '';
       let name = txt(scene, 10, 4, tag, size, WHO_COLOR[l.who] ?? 0xffd76a, { stroke: '#120a10', strokeThickness: 5 });
@@ -151,6 +153,7 @@ export function banterStrip(scene: Phaser.Scene, lines: BanterLine[], o: StripOp
   lines.forEach((l, i) => {
     scene.time.delayedCall(i * LINE_MS, () => {
       if (live.get(scene) !== objs) return;
+      noteLine(l.who, l.text, i, scene.scene.key);
       const col = WHO_COLOR[l.who] ?? 0xffd76a;
       const right = o.side(l.who) === 'right';
       const st = { stroke: '#120a10', strokeThickness: 4 };

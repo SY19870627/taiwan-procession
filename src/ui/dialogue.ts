@@ -7,6 +7,7 @@ import { C, H, W, SERIF } from '../theme';
 import { ART, SPEAKERS, type Line } from '../content/story';
 import { portraitKey } from '../art/portraits';
 import { txt } from './widgets';
+import { clearLine, noteLine } from '../debug/probe';
 
 /** 對話框高度 */
 const BOX_H = 280;
@@ -102,6 +103,7 @@ export class Dialogue {
     if (this.i >= this.lines.length) {
       if (!this.finished) {
         this.finished = true;
+        clearLine(this.scene.scene.key);
         this.onDone();
       }
       return;
@@ -146,6 +148,7 @@ export class Dialogue {
     }
     if (line.fx) this.onFx?.(line.fx);
     this.full = line.text;
+    noteLine(line.who === 'narrator' ? '' : SPEAKERS[line.who].name, line.text, this.i, this.scene.scene.key);
     this.body.setText('');
     this.hint.setAlpha(0);
     let n = 0;
@@ -177,6 +180,7 @@ export class Dialogue {
     if (this.finished) return;
     this.typing?.remove();
     this.finished = true;
+    clearLine(this.scene.scene.key);
     this.onDone();
   }
 }

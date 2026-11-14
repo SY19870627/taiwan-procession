@@ -17,6 +17,7 @@ import { actorScale, bubbleBox, farBandHeight, nearBand, pickFar, stageLayout, s
 import { fittedCams } from '../core/stageEdges';
 import { wrapWidth } from '../core/layout';
 import { txt } from './widgets';
+import { clearLine, noteLine } from '../debug/probe';
 
 const BUBBLE_W = 400;
 
@@ -315,6 +316,7 @@ export class StagePlayer {
     this.ui = [];
     const beat = this.sc.beats[this.i];
     if (!beat) return this.finish();
+    noteLine(beat.name ?? (beat.who && beat.who !== 'narrator' ? SPEAKERS[beat.who as Exclude<SpeakerId, 'narrator'>].name : ''), beat.text, this.i, this.scene.scene.key);
     this.beatAt = this.scene.time.now;
     this.stageBeat(beat, instant);
     if (!instant) {
@@ -334,6 +336,7 @@ export class StagePlayer {
   private finish(): void {
     if (this.done) return;
     this.done = true;
+    clearLine(this.scene.scene.key);
     this.opts.onDone();
   }
 

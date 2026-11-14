@@ -16,6 +16,7 @@ import { BossHud, BossScene } from './scenes/BossScene';
 import { EndScene } from './scenes/EndScene';
 import { AssetScene } from './scenes/AssetScene';
 import { SliceEndScene } from './scenes/SliceEndScene';
+import { debugOn } from './debug/core/index.js';
 
 async function start() {
   setupMobile();
@@ -49,6 +50,11 @@ async function start() {
   (window as unknown as Record<string, unknown>).__cases = () => CH().cases;
   // 截圖、超框掃描用（tools/overflow-scan-ch4.mjs）：讀這一章的資料（只讀，不改進度）
   (window as unknown as Record<string, unknown>).__ch = () => CH();
+  // 除錯面板（?debug=1）：只有測試區建置（VITE_DEBUG_TOOLS=1）或本機開發才帶；正式版建置這整段在建置時就拿掉，dist 裡沒有除錯程式。
+  // 沒帶 ?debug=1 也不會下載（動態 import）
+  if ((import.meta.env.DEV || import.meta.env.VITE_DEBUG_TOOLS === '1') && debugOn(location.search)) {
+    import('./debug/adapter').then((m) => m.start(game)).catch((e) => console.warn('除錯面板載入失敗', e));
+  }
 }
 
 start();

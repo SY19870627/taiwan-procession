@@ -30,7 +30,10 @@ jobs:
 
       - run: npm ci
       - run: npm test
+      # 測試區才帶除錯面板（網址加 ?debug=1 才會載入）；正式版（deploy.yml）不設，dist 裡沒有除錯程式
       - run: npm run build
+        env:
+          VITE_DEBUG_TOOLS: '1'
 
       - name: 只替換 gh-pages 的 test/
         run: |

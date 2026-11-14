@@ -11,6 +11,7 @@ import { txt } from './widgets';
 import { portraitKey } from '../art/portraits';
 import { chunk, flashbackLines, type TalkLine } from './split';
 import { punctLeads, wrapWidth } from '../core/layout';
+import { clearLine, noteLine } from '../debug/probe';
 
 export { splitStory, chunk, flashbackLines, type TalkLine } from './split';
 
@@ -92,6 +93,7 @@ export function talk(scene: Phaser.Scene, lines: TalkLine[], onDone: () => void)
       done = true;
       typing?.remove();
       for (const o of objs) o.destroy();
+      clearLine(scene.scene.key);
       onDone();
       return;
     }
@@ -105,6 +107,7 @@ export function talk(scene: Phaser.Scene, lines: TalkLine[], onDone: () => void)
       body.setFontFamily(SERIF).setColor('#d9cbe8');
     }
     full = l.text;
+    noteLine(l.name, l.text, i, scene.scene.key);
     body.setText('');
     hint.setAlpha(0);
     let n = 0;
@@ -215,6 +218,7 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
     // 容器自己的淡出動畫不在這裡停（clear 可能就是在它的 onComplete 裡叫的）
     scene.tweens.killTweensOf([...objs, ...shown]);
     root.destroy();
+    clearLine(scene.scene.key);
     if (liveFlashback.get(scene) === kill) liveFlashback.delete(scene);
   };
   /** 被下一段回憶頂掉（正常玩不會發生）：立刻清掉，不接 onDone */
@@ -242,6 +246,7 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
       return;
     }
     const l = lines[i];
+    noteLine('', l.text, i, scene.scene.key);
     const prevY = shown.length ? shown[shown.length - 1].y + shown[shown.length - 1].height + 18 : y0;
     const t = txt(scene, W / 2, prevY, l.text, 28, l.color, { serif: l.serif, bold: !l.serif, align: 'center', lineSpacing: 8, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0).setAlpha(0);
     // 字也放進回憶的容器（畫在底、身影上面）：跟著整段一起淡出、一起清掉
