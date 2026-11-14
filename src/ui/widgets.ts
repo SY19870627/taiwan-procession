@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FONT, SERIF, C, hex, W } from '../theme';
 import { canFullscreen, isFullscreen, toggleFullscreen } from '../mobile';
+import { BUTTON_PAD, fitLine } from '../core/fitText';
 
 export function txt(
   scene: Phaser.Scene, x: number, y: number, s: string, size = 22, color: number | string = C.paper,
@@ -14,6 +15,22 @@ export function txt(
     color: typeof color === 'number' ? hex(color) : color,
     ...rest,
   });
+}
+
+/**
+ * 單行字放不下 maxW：先縮字（現在的字級一級一級縮到 minSize），還放不下就在 maxW 換行（core/fitText.ts 的 fitLine）。
+ * 放得下就什麼都不動（別章原本放得下的字顯示完全一樣）。回傳同一個 Text。
+ * 換行時照 align（預設置中）；用 setOrigin(0.5) 的字換成兩行會往上下長，呼叫的人要自己看 t.height 讓位。
+ */
+export function fitText(t: Phaser.GameObjects.Text, maxW: number, minSize: number, align: 'left' | 'center' | 'right' = 'center'): Phaser.GameObjects.Text {
+  const size = parseFloat(String(t.style.fontSize)) || 22;
+  const r = fitLine((sz) => {
+    t.setFontSize(sz);
+    return t.width;
+  }, maxW, size, minSize);
+  t.setFontSize(r.size);
+  if (r.wrap) t.setWordWrapWidth(maxW, true).setAlign(align);
+  return t;
 }
 
 export function panel(scene: Phaser.Scene, x: number, y: number, w: number, h: number, fill = C.panel, alpha = 0.94): Phaser.GameObjects.Graphics {
@@ -55,7 +72,15 @@ export function button(
     g.strokeRoundedRect(-w / 2, -h / 2, w, h, 14);
   };
   draw();
-  const t = txt(scene, 0, 0, label, opt.size ?? 24, opt.color ?? C.paper).setOrigin(0.5);
+  const size = opt.size ?? 24;
+  const t = txt(scene, 0, 0, label, size, opt.color ?? C.paper).setOrigin(0.5);
+  // 字比按鈕寬：縮字到左右各留 6px（最小 size 的六成、不小於 13），還放不下就換行。
+  // 沒有比按鈕寬就不動（別章原本放得下的按鈕字顯示完全一樣）
+  const fitLabel = () => {
+    if (t.width <= w - 2) return;
+    fitText(t, w - BUTTON_PAD, Math.max(13, Math.round(size * 0.6)));
+  };
+  fitLabel();
   const hit = scene.add.rectangle(0, 0, w, h, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
   c.add([g, t, hit]);
   let downAt: { x: number; y: number } | null = null;
@@ -80,7 +105,10 @@ export function button(
     return c;
   };
   c.setLabel = (s: string) => {
+    // 上一個字縮過／換過行：先還原再量
+    if (t.style.wordWrapWidth || parseFloat(String(t.style.fontSize)) !== size) t.setWordWrapWidth(null).setFontSize(size);
     t.setText(s);
+    fitLabel();
     return c;
   };
   c.setSize(w, h);

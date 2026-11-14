@@ -47,6 +47,8 @@ async function start() {
   // 除錯用：在 console 看目前進度
   (window as unknown as Record<string, unknown>).__run = () => state.run;
   (window as unknown as Record<string, unknown>).__cases = () => CH().cases;
+  // 截圖、超框掃描用（tools/overflow-scan-ch4.mjs）：讀這一章的資料（只讀，不改進度）
+  (window as unknown as Record<string, unknown>).__ch = () => CH();
 }
 
 start();

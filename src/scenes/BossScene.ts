@@ -48,6 +48,8 @@ function fitFord(img: Phaser.GameObjects.Image, h: number): void {
 export const BAND_Y = 132;
 /** 陣前審問動畫的長度（滑出結束）；互嗆等它播完才插嘴 */
 export const TRIAL_ANIM_MS = 4500;
+/** 第四章陣前審問：魔王那句右邊留給印章的寬度（印章中心 x = W − 90、寬約 84，再留 4px） */
+export const TRIAL_STAMP_ROOM = 112;
 const ZOOM = W / FW;
 export const BAND_H = Math.round(FH * ZOOM);
 const BIG = 1.6;
@@ -1052,6 +1054,10 @@ export class BossHud extends Phaser.Scene {
   private quietUntil = 0;
   /** 第四章漏掉收尾 F-2：說不動茫渡的那段播過了 */
   private wrongFunPlayed = false;
+  /** 第四章：正在播的陣前審問那一條（換輪時先清掉上一輪，不疊在一起） */
+  private trialC?: Phaser.GameObjects.Container;
+  /** 第四章：審問那一條還在的時候來的提示字，等它滑出再顯示（不疊在審問結果上） */
+  private pendingToast?: [string, number, number];
 
   constructor() {
     super('bosshud');
@@ -1091,6 +1097,8 @@ export class BossHud extends Phaser.Scene {
     this.chatSaid = new Set();
     this.quietUntil = 0;
     this.wrongFunPlayed = false;
+    this.trialC = undefined;
+    this.pendingToast = undefined;
     const F = CH().finale;
     // 第四章：人鏈的台詞（一段一段出現；一段都沒有就播「沒有人下水」那兩句）。開打的互嗆之後先播第一組，之後每拉住一個人播下一組
     this.chainQueue = F.chainLines?.(run) ?? [];
@@ -1275,6 +1283,11 @@ export class BossHud extends Phaser.Scene {
   }
 
   toast(s: string, color: number, ms = 1800): void {
+    // 第四章：陣前審問那一條還在（半透明底），提示字會透出來疊在審問結果上：等它滑出再顯示
+    if (this.trialC?.active) {
+      this.pendingToast = [s, color, ms];
+      return;
+    }
     this.toastTxt.setText(s).setColor(`#${color.toString(16).padStart(6, '0')}`).setAlpha(1);
     this.tweens.killTweensOf(this.toastTxt);
     this.tweens.add({ targets: this.toastTxt, alpha: 0, delay: ms, duration: 400 });
@@ -1439,6 +1452,16 @@ export class BossHud extends Phaser.Scene {
     // 動畫期間先把提示字收起來，避免疊在一起
     this.tweens.killTweensOf(this.toastTxt);
     this.toastTxt.setAlpha(0);
+    // 第四章（ford）：審問那一條的字不被印章、互嗆、上一輪蓋到（別章照舊）
+    const ford = this.battle.mode === 'ford';
+    if (ford) {
+      // 上一輪還沒滑出（或滑出動畫還在播）：直接清掉，不疊在新一輪上（等著的提示字留給這一輪滑出後再放）
+      const wait = this.pendingToast;
+      this.pendingToast = undefined;
+      this.trialC?.destroy();
+      this.trialC = undefined;
+      this.pendingToast = wait;
+    }
     const c = this.add.container(0, 0).setDepth(800);
     const top = BAND_Y + 8;
     const h = BAND_H - 16;
@@ -1449,14 +1472,25 @@ export class BossHud extends Phaser.Scene {
     edge.lineBetween(0, top, W, top);
     edge.lineBetween(0, top + h, W, top + h);
     const title = txt(this, 24, top + 14, `陣前審問　${round}／3`, 24, C.gold, { serif: true });
-    const say = txt(this, 24, top + 54, line, 23, 0xd9b0ff, { wordWrap: { width: W - 48, useAdvancedWrap: true } });
-    c.add([bg, edge, title, say]);
+    // 第四章：右邊留出印章的位置（印章中心 x = W − 90，寬約 84），字換行在印章左邊
+    const sayW = ford ? W - 48 - TRIAL_STAMP_ROOM : W - 48;
+    const say = txt(this, 24, top + 54, line, 23, 0xd9b0ff, { wordWrap: { width: sayW, useAdvancedWrap: true } });
+    const items: Phaser.GameObjects.GameObject[] = [bg];
+    if (ford) {
+      // 標題、茫渡那句後面墊不透明的底：後面的互嗆字幕（同一個場景、depth 255）、戰場飄字不會透出來疊在字上
+      const sayBottom = say.y + say.height;
+      items.push(this.add.rectangle(0, top, W, Math.max(sayBottom, BAND_Y + 34 + 2 * 38) + 8 - top, 0x0a0614, 1).setOrigin(0));
+    }
+    items.push(edge, title, say);
+    c.add(items);
     c.x = -W;
     this.tweens.add({ targets: c, x: 0, duration: 260, ease: 'Cubic.out' });
     // 證據卡：從下方飛上來、放大、蓋章
     const card = this.add.container(W / 2, top + h + 120);
     const cw = W - 120;
     const ch = 120;
+    // 第四章：茫渡那句換成三行時，卡片往下讓（不壓到字）
+    const cardTop = ford ? Math.max(top + 110, say.y + say.height + 10) : top + 110;
     const g = this.add.graphics();
     g.fillStyle(used ? 0xeee0bd : 0x3a3442, 1);
     g.fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 10);
@@ -1471,7 +1505,7 @@ export class BossHud extends Phaser.Scene {
     }
     card.setScale(0.6).setAlpha(0);
     c.add(card);
-    this.tweens.add({ targets: card, y: top + 110 + ch / 2, scale: 1, alpha: 1, delay: 500, duration: 380, ease: 'Back.out' });
+    this.tweens.add({ targets: card, y: cardTop + ch / 2, scale: 1, alpha: 1, delay: 500, duration: 380, ease: 'Back.out' });
     // 結果：蓋章＋一行字
     const stamp = txt(this, W - 90, top + 96, ok ? '說動' : '無效', 30, ok ? 0x2f8f5a : 0xb3261e, { serif: true, backgroundColor: '#eee0bd', padding: { x: 8, y: 4 } }).setOrigin(0.5).setAngle(-12).setScale(2.4).setAlpha(0);
     const res = txt(this, 24, top + h - 70, result, 20, ok ? 0x9fe8c0 : 0xff9a8a, { lineSpacing: 4, wordWrap: { width: W - 48, useAdvancedWrap: true } }).setAlpha(0);
@@ -1486,6 +1520,16 @@ export class BossHud extends Phaser.Scene {
       this.boss.ft(bx, GROUND_Y - 260, ok ? '動搖了' : '更兇了', ok ? 0xfff3c4 : 0xff6a6a, 34);
     });
     // 幾秒後滑出
+    if (ford) {
+      this.trialC = c;
+      // 換輪時被清掉（destroy）也要把等著的提示字放出來
+      c.once(Phaser.GameObjects.Events.DESTROY, () => {
+        if (this.trialC === c) this.trialC = undefined;
+        const p = this.pendingToast;
+        this.pendingToast = undefined;
+        if (p && !this.trialC && this.sys.isActive()) this.toast(...p);
+      });
+    }
     this.tweens.add({ targets: c, x: W, delay: TRIAL_ANIM_MS - 300, duration: 300, ease: 'Cubic.in', onComplete: () => c.destroy() });
   }
 

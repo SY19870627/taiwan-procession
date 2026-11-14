@@ -9,7 +9,7 @@ import type { Card, Option } from '../content/believers';
 import type { DayPlan, Encounter, RouteDef } from '../content/days';
 import { CH, collectHours, evidenceFor, evidenceOf, finaleEvidence, ghostMood, ghostUnit, ghostWord, laterSightings, summary, takeDocs, talkBlocked, visible, type ImpRule } from '../content/chapter';
 import { run, caseDone, gainEvidence, isHeld } from '../state';
-import { button, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
+import { button, fitText, floatText, fullscreenButton, go, panel, txt, type Button } from '../ui/widgets';
 import { BandScene, type Visitor } from './BandScene';
 import { splitStory, talk } from '../ui/talk';
 import { portraitKey, portraitThumb } from '../art/portraits';
@@ -26,22 +26,11 @@ import {
 import { makeRoom } from '../core/guihu';
 import { SPEAKER_TEX } from '../content/story';
 import { fitCard as fitCardLayout } from '../core/layout';
+import { optionLabel } from '../core/fitText';
 import { playStory } from './StoryScene';
 
 /** 第四章：故事裡「名字：「……」」的那句算那個人說的（ui/split.ts）；前三章照舊 */
 const say = (story: string, who?: { name: string; tex?: string; ghost?: boolean }) => splitStory(story, who, CH().follow ? SPEAKER_TEX : undefined);
-
-/** 按鈕上的字太長就斷成兩行（逗號、冒號後面優先） */
-function twoLines(label: string): string {
-  if (label.length <= 7) return label;
-  const mid = Math.ceil(label.length / 2);
-  let at = -1;
-  for (let d = 0; d <= 4 && at < 0; d++) {
-    for (const i of [mid + d, mid - d]) if (/[，：、]/.test(label[i - 1] ?? '')) { at = i; break; }
-  }
-  if (at < 0) at = mid;
-  return `${label.slice(0, at)}\n${label.slice(at)}`;
-}
 
 const HOUR_NAMES = ['辰', '巳', '午', '未', '申', '酉'];
 const BAND_Y = 226;
@@ -509,8 +498,9 @@ export class DayScene extends Phaser.Scene {
       const s = summary(run, e);
       const y = top + i * 38;
       add2(txt(this, p.x + 90, y - 4, s.icon, 19, '#1d1726', { backgroundColor: `#${s.color.toString(16).padStart(6, '0')}`, padding: { x: 5, y: 1 } }));
-      add2(txt(this, p.x + 128, y - 2, s.title, 20, C.paper, { bold: false }));
-      add2(txt(this, p.x + p.w - 24, y, s.cost, 17, C.muted, { bold: false }).setOrigin(1, 0));
+      // 事情的名字太長：縮字到碰不到右邊的花費（放得下就不動；超框校正）
+      const cost = add2(txt(this, p.x + p.w - 24, y, s.cost, 17, C.muted, { bold: false }).setOrigin(1, 0));
+      add2(fitText(txt(this, p.x + 128, y - 2, s.title, 20, C.paper, { bold: false }), p.w - 24 - cost.width - 12 - 128, 14, 'left'));
     });
   }
 
@@ -647,9 +637,11 @@ export class DayScene extends Phaser.Scene {
       if (ghost) img.setTint(0x9ad0ff).setAlpha(0.8);
       tx = p.x + 118;
     }
-    this.add2(txt(this, tx, p.y + 14, title, 30, C.gold, { serif: true }));
-    this.add2(txt(this, tx, p.y + 58, place, 20, C.muted));
-    if (tag) this.add2(txt(this, p.x + p.w - 24, p.y + 18, tag.s, 19, 0xffffff, { backgroundColor: tag.color, padding: { x: 8, y: 4 } }).setOrigin(1, 0));
+    // 標題、地點太長：縮字到放得進右邊的標籤之前（放得下就不動；超框校正）
+    const tagT = tag ? this.add2(txt(this, p.x + p.w - 24, p.y + 18, tag.s, 19, 0xffffff, { backgroundColor: tag.color, padding: { x: 8, y: 4 } }).setOrigin(1, 0)) : undefined;
+    const right = p.x + p.w - 24;
+    this.add2(fitText(txt(this, tx, p.y + 14, title, 30, C.gold, { serif: true }), right - (tagT ? tagT.width + 12 : 0) - tx, 22, 'left'));
+    this.add2(fitText(txt(this, tx, p.y + 58, place, 20, C.muted), right - tx, 15, 'left'));
     const body = this.add2(txt(this, p.x + 24, p.y + 112, text, 22, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: p.w - 48, useAdvancedWrap: true } }));
     return { p, y: body.y + body.height + 16 };
   }
@@ -664,10 +656,9 @@ export class DayScene extends Phaser.Scene {
     g.fillStyle(gold ? 0x5a3a10 : 0x2f3a4a, why ? 0.35 : 0.8);
     g.fillRoundedRect(p.x + 16, y, p.w - 32, optH - 8, 10);
     // 第四章的按鈕字比較長（例如「起一陣風，讓隔壁的阿伯看到他的腳」）：斷成兩行
-    const lab = this.plan.follow ? twoLines(label) : label;
-    const longest = Math.max(...lab.split('\n').map((s) => s.length));
-    const size = lab.includes('\n') ? (longest > 8 ? 15 : 17) : label.length > 9 ? 15 : label.length > 6 ? 18 : label.length > 4 ? 20 : 24;
-    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, lab.includes('\n') ? 64 : 52, lab, onPick, { size, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
+    // （斷行、字級：core/fitText.ts 的 optionLabel；還是比按鈕寬的話 button() 會再縮字）
+    const lab = optionLabel(label, !!this.plan.follow);
+    const b = this.add2(button(this, p.x + 106, y + (optH - 8) / 2, 164, lab.h, lab.text, onPick, { size: lab.size, fill: gold ? 0x8a5a10 : 0x2f6f5a }));
     b.setEnabled(!why);
     return y + optH;
   }

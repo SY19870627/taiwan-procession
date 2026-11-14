@@ -8,7 +8,7 @@ import { C, H, W, hex } from '../theme';
 import type { Almanac } from '../content/believers';
 import { CH } from '../content/chapter';
 import { run } from '../state';
-import { button, fullscreenButton, go, panel, txt } from '../ui/widgets';
+import { button, fitText, fullscreenButton, go, panel, txt } from '../ui/widgets';
 import { JIAO_NAME, JIAO_RULE, throwJiao, type JiaoResult } from '../ui/jiao';
 
 const INK = 0x2a1a10;
@@ -98,11 +98,11 @@ export class AlmanacScene extends Phaser.Scene {
     // 下方按鈕
     if (prologue) this.prologueJiao();
     else if (ep) {
-      txt(this, W / 2, H - 126, `${ep.title}・${ep.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
+      fitText(txt(this, W / 2, H - 126, `${ep.title}・${ep.area}`, 24, C.paper, { serif: true }).setOrigin(0.5), W - 40, 18);
       button(this, W / 2, H - 62, 280, 76, ep.button, () => go(this, 'story', { id: ep.story, next: { key: 'end' } }), { size: 30, fill: 0x8a1b14 });
     } else {
       const plan = CH().days[day];
-      txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5);
+      fitText(txt(this, W / 2, H - 126, `${plan.title}・${plan.area}`, 24, C.paper, { serif: true }).setOrigin(0.5), W - 40, 18);
       // 第四章：起駕之後先播出發的過場（第二天：chufa4_2），再到白天
       const ds = CH().departStory?.[day];
       const toDay = ds ? { key: 'story', data: { id: ds, next: { key: 'day', data: { day } } } } : { key: 'day', data: { day } };
@@ -284,31 +284,39 @@ export class AlmanacScene extends Phaser.Scene {
   private prologueJiao(): void {
     const j = CH().jiao;
     const pw = W - 40;
-    const ph = 600;
     const x = (W - pw) / 2;
-    const y = (H - ph) / 2;
     const open = () => {
       const objs: Phaser.GameObjects.GameObject[] = [];
+      // 標題：第四章的「今年往北津進香，三月初五深夜起駕，可否？」30 號字一行放不下（左右超出畫面）——
+      // 先縮字（最小 22），還放不下才換行，換行多出來的高度（dy）整個彈窗往下讓（放得下的章節：dy = 0，跟原本一樣）
+      const title = txt(this, W / 2, 0, `擲筊・請示：${j.ask}`, 30, C.gold, { serif: true }).setOrigin(0.5).setDepth(902);
+      const h0 = title.height;
+      fitText(title, pw - 64, 22);
+      const dy = Math.max(0, Math.ceil(title.height - h0));
+      const ph = 600 + dy;
+      const y = (H - ph) / 2;
+      if (title.height > h0) title.setOrigin(0.5, 0).setY(y + 36 - h0 / 2);
+      else title.setY(y + 36);
       objs.push(this.add.rectangle(0, 0, W, H, 0x000000, 0.4).setOrigin(0).setDepth(900).setInteractive());
       objs.push(panel(this, x, y, pw, ph).setDepth(901));
-      objs.push(txt(this, W / 2, y + 36, `擲筊・請示：${j.ask}`, 30, C.gold, { serif: true }).setOrigin(0.5).setDepth(902));
+      objs.push(title);
       // 第四章（j.lines）：擲到聖筊為止；笑杯、陰杯重擲，三個聖筊日子才定
       const until = !!j.lines;
       const rules = until
         ? [`要連得 ${j.times} 個聖筊（一平一凸），日子才定。`, `笑杯（兩平）：${j.laugh.text.replace(/。$/, '')}`, `陰杯（兩凸）：${j.yin.text.replace(/。$/, '')}`]
         : ['照傳統擲三次：', `聖杯（一平一凸）：${j.holy.text.replace(/。$/, '')}`, `笑杯（兩平）：${j.laugh.text.replace(/。$/, '')}`, `陰杯（兩凸）：${j.yin.text.replace(/。$/, '')}`];
-      objs.push(txt(this, x + 32, y + 76, rules.join('\n'), 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
+      objs.push(txt(this, x + 32, y + dy + 76, rules.join('\n'), 19, C.paper, { bold: false, lineSpacing: 8, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
       const rows: Phaser.GameObjects.Text[] = [];
       const rowY = until ? 214 : 230;
       const rowH = until ? 50 : 34;
-      for (let i = 0; i < j.times; i++) rows.push(txt(this, x + 32, y + rowY + i * rowH, `第 ${i + 1} 次：`, until ? 18 : 20, C.muted, { bold: false, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
+      for (let i = 0; i < j.times; i++) rows.push(txt(this, x + 32, y + dy + rowY + i * rowH, `第 ${i + 1} 次：`, until ? 18 : 20, C.muted, { bold: false, wordWrap: { width: pw - 64, useAdvancedWrap: true } }).setDepth(902));
       objs.push(...rows);
       const results: JiaoResult[] = [];
       let anim: Phaser.GameObjects.GameObject[] = [];
       const tb = button(this, W / 2, y + ph - 56, 260, 70, `擲　筊（1／${j.times}）`, () => {
         tb.setEnabled(false);
         for (const o of anim) o.destroy();
-        anim = throwJiao(this, y + 340 + (until ? 30 : 0), 903, (r) => {
+        anim = throwJiao(this, y + dy + 340 + (until ? 30 : 0), 903, (r) => {
           if (until && r !== 'holy') {
             // 不算次數：寫出這一筊，再擲一次
             const i = results.length;

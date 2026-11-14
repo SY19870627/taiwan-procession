@@ -9,9 +9,10 @@ import Phaser from 'phaser';
 import { C, H, W, SERIF } from '../theme';
 import { txt } from './widgets';
 import { portraitKey } from '../art/portraits';
-import { chunk, type TalkLine } from './split';
+import { chunk, flashbackLines, type TalkLine } from './split';
+import { punctLeads, wrapWidth } from '../core/layout';
 
-export { splitStory, chunk, type TalkLine } from './split';
+export { splitStory, chunk, flashbackLines, type TalkLine } from './split';
 
 const BOX_H = 250;
 const DEPTH = 980;
@@ -168,14 +169,34 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
     }
   }
   const lines: { text: string; color: number; serif: boolean }[] = [
-    ...chunk(o.reveal.replace(/^「|」$/g, '')).map((t) => ({ text: `${o.name}：「${t}」`, color: 0xfff3c4, serif: false })),
+    ...flashbackLines(o.reveal, o.name).map((t) => ({ text: t, color: 0xfff3c4, serif: false })),
     ...chunk(o.summary).map((t) => ({ text: t, color: 0xd8c8a0, serif: true })),
   ];
+  // 第四章的一問一答（reveal 有換行）：句子比較多，用下面的排法（標點不放行首、往上推不疊、放不下收掉最舊的）。別章照舊
+  const dialog = o.reveal.includes('\n');
   const shown: Phaser.GameObjects.Text[] = [];
   let i = 0;
   let timer: Phaser.Time.TimerEvent | undefined;
   let done = false;
   const y0 = H * 0.56;
+  const GAP = 18;
+  /** 往上推最高推到這裡（「― 回 憶 ―」下面） */
+  const CEIL = label.y + label.height / 2 + 20;
+  const FLOOR = H - 80;
+  /** 從 y0 一句接一句往下排；超過下緣就整疊往上推（不超過 CEIL），還放不下就收掉最舊的 */
+  const relayout = () => {
+    const total = () => shown.reduce((s, x) => s + x.height, 0) + GAP * Math.max(0, shown.length - 1);
+    while (shown.length > 1 && total() > FLOOR - CEIL) {
+      const old = shown.shift()!;
+      scene.tweens.killTweensOf(old);
+      old.destroy();
+    }
+    let y = Math.max(CEIL, Math.min(y0, FLOOR - total()));
+    for (const s of shown) {
+      s.y = y;
+      y += s.height + GAP;
+    }
+  };
   const finish = () => {
     if (done) return;
     done = true;
@@ -190,11 +211,19 @@ export function flashback(scene: Phaser.Scene, o: { tex: string; name: string; r
     const l = lines[i];
     const prevY = shown.length ? shown[shown.length - 1].y + shown[shown.length - 1].height + 18 : y0;
     const t = txt(scene, W / 2, prevY, l.text, 28, l.color, { serif: l.serif, bold: !l.serif, align: 'center', lineSpacing: 8, wordWrap: { width: W - 80, useAdvancedWrap: true } }).setOrigin(0.5, 0).setDepth(D + 3).setAlpha(0);
+    if (dialog && punctLeads(t.getWrappedText())) {
+      // 換行後「」」「。」這類標點落在行首：窄一兩個字再換一次
+      t.setWordWrapWidth(wrapWidth(W - 80, W - 80, 28, (w) => {
+        t.setWordWrapWidth(w, true);
+        return t.getWrappedText();
+      }), true);
+    }
     shown.push(t);
     scene.tweens.add({ targets: t, alpha: 1, duration: 500 });
     // 舊的字淡一點、往上推
     for (const s of shown.slice(0, -1)) s.setAlpha(0.55);
-    if (t.y + t.height > H - 80) for (const s of shown) s.y -= t.height + 18;
+    if (dialog) relayout();
+    else if (t.y + t.height > H - 80) for (const s of shown) s.y -= t.height + 18;
     i++;
     timer = scene.time.delayedCall(3200, step);
   };

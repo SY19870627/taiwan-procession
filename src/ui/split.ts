@@ -67,6 +67,17 @@ export function splitStory(s: string, who?: { name: string; tex?: string; ghost?
   return out.filter((l) => l.text.replace(/[「」\s。，]/g, ''));
 }
 
+/**
+ * 回憶畫面（ui/talk.ts 的 flashback）一句一句浮出來的台詞。
+ * - 一段話（第一～三章，沒有換行）：照舊在句號處斷開，每段前面加「名字：「…」」。
+ * - 一問一答（第四章起，reveal 用換行分開，每行自己就是「…」或「押尾：「…」」）：一行就是一句，字原樣不動。
+ *   以前會把整段當成一句話剝掉頭尾引號再斷，斷出「草鞋丁：「」」這種空引號、引號跑到下一句（超框校正第 2 步）。
+ */
+export function flashbackLines(reveal: string, name: string): string[] {
+  if (!reveal.includes('\n')) return chunk(reveal.replace(/^「|」$/g, '')).map((t) => `${name}：「${t}」`);
+  return reveal.split('\n').map((l) => l.trim()).filter((l) => l.replace(/[「」『』\s。，]/g, ''));
+}
+
 /** 長句在句號、問號、驚嘆號處斷開，每段大約 40 字以內 */
 export function chunk(t: string): string[] {
   const parts = t.split(/(?<=[。！？])/).map((x) => x.trim()).filter(Boolean);
